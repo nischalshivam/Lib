@@ -337,8 +337,12 @@ def read_beats(path: str) -> list:
     # A .jsonl (or a file that is really one JSON object per line) is read line by
     # line, each line repaired on its own, so one malformed beat can't lose the
     # rest. The bracketed-array/.json path below handles the other two.
+    # True JSONL is one object PER LINE. A .jsonl that is actually a single-line
+    # (or pretty-printed) array is NOT that — it just has the wrong extension, and
+    # the normal array/repair path below reads it. So decide by CONTENT, never by
+    # the extension: several lines that each start with '{', and not an array.
     stripped = [ln.strip().rstrip(",") for ln in raw.splitlines() if ln.strip()]
-    looks_jsonl = path.lower().endswith(".jsonl") or (
+    looks_jsonl = (
         len(stripped) >= 2
         and sum(1 for ln in stripped if ln.startswith("{")) >= max(2, len(stripped) // 2)
         and not raw.lstrip().startswith("["))
