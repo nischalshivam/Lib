@@ -333,6 +333,28 @@ def script_extras(path: str) -> tuple:
 def read_beats(path: str) -> list:
     with open(path, "r", encoding="utf-8-sig") as f:
         raw = f.read()
+    # A visual script may arrive as .json, .txt, or .jsonl — GPT emits whichever.
+    # A .jsonl (or a file that is really one JSON object per line) is read line by
+    # line, each line repaired on its own, so one malformed beat can't lose the
+    # rest. The bracketed-array/.json path below handles the other two.
+    stripped = [ln.strip().rstrip(",") for ln in raw.splitlines() if ln.strip()]
+    looks_jsonl = path.lower().endswith(".jsonl") or (
+        len(stripped) >= 2
+        and sum(1 for ln in stripped if ln.startswith("{")) >= max(2, len(stripped) // 2)
+        and not raw.lstrip().startswith("["))
+    if looks_jsonl:
+        beats = []
+        for ln in stripped:
+            if not ln.startswith("{"):
+                continue
+            for cand in _repairs(ln):
+                try:
+                    beats.append(json.loads(cand))
+                    break
+                except json.JSONDecodeError:
+                    continue
+        if beats:
+            return _beats_in(beats)
     first = None
     for candidate in _repairs(raw):
         try:
