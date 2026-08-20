@@ -31,8 +31,11 @@ def _clip_id(file: str, idx: int) -> str:
     return f"c_{idx:04d}_{stem}" if stem else f"c_{idx:04d}"
 
 
-def from_timeline(timeline: dict, name: str = "") -> dict:
-    """Build the handoff dict from a loaded timeline.json."""
+def from_timeline(timeline: dict, name: str = "", build_dir: str = "") -> dict:
+    """Build the handoff dict from a loaded timeline.json. `build_dir`, when
+    given, is used to resolve each clip's file to an absolute path so the handoff
+    is self-contained — ResearchCut can import the real clip files, not just map
+    to visuals it is assumed to already hold."""
     scenes = timeline.get("scenes") or []
     beats = []
     idx = 0
@@ -42,13 +45,22 @@ def from_timeline(timeline: dict, name: str = "") -> dict:
         for it in (sc.get("items") or []):
             start = base + float(it.get("start") or 0.0)
             end = start + float(it.get("duration") or 0.0)
+            rel = it.get("file", "")
+            # items live in per-scene folders scene_XXX/<file>
+            fpath = os.path.join(build_dir, f"scene_{sc.get('scene', 0):03d}", rel) \
+                if build_dir else rel
             beats.append({
                 "id": f"beat_{idx + 1:04d}",
-                "clipId": _clip_id(it.get("file", ""), idx),
+                "clipId": _clip_id(rel, idx),
                 "clipIndex": idx,
                 "start": round(start, 3),
                 "end": round(end, 3),
                 "narration": narration,
+                # extra (beyond the required contract) so the handoff is
+                # self-contained; ResearchCut can ignore or use these:
+                "file": os.path.abspath(fpath) if build_dir and os.path.exists(fpath) else rel,
+                "kind": it.get("kind", "video"),
+                "source": it.get("source", ""),
                 # optional fields intentionally omitted (see module docstring):
                 # ResearchCut auto-extracts emphasis and won't annotate without
                 # real focus coordinates.
@@ -71,7 +83,8 @@ def export(build_dir: str, out: str = "") -> str:
     tl_path = os.path.join(build_dir, "timeline.json")
     with open(tl_path, "r", encoding="utf-8") as f:
         timeline = json.load(f)
-    data = from_timeline(timeline, name=os.path.basename(build_dir.rstrip("/\\")))
+    data = from_timeline(timeline, name=os.path.basename(build_dir.rstrip("/\\")),
+                         build_dir=build_dir)
     out = out or os.path.join(build_dir, "researchcut_beats.json")
     with open(out, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
