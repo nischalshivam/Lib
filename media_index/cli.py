@@ -183,6 +183,17 @@ def cmd_cut(a):
     return 0
 
 
+def cmd_handoff(a):
+    """Export a built project as the ResearchCut Automate handoff JSON."""
+    from . import handoff                                   # noqa: PLC0415
+    out = handoff.export(a.build, a.out or "")
+    import json as _json                                   # noqa: PLC0415
+    data = _json.load(open(out, encoding="utf-8"))
+    print(f"wrote {out}\n  {len(data['beats'])} beats, "
+          f"{data['project']['duration']}s, schema {data['schema']}")
+    return 0
+
+
 def cmd_libcheck(a):
     """Does the library exist for this script? The launcher's pre-build gate."""
     from . import libcheck                                  # noqa: PLC0415
@@ -1075,6 +1086,13 @@ def main(argv=None):
     lc.add_argument("movies", help="movies root, e.g. E:\\Movies")
     lc.add_argument("--out", help="write the JSON report here")
     lc.set_defaults(func=cmd_libcheck)
+
+    hx = sub.add_parser("handoff", parents=[common],
+                        help="export a built project as the ResearchCut Automate "
+                             "handoff JSON (researchcut-automation-beats-v1)")
+    hx.add_argument("build", help="the makevideo build folder (has timeline.json)")
+    hx.add_argument("--out", help="output path (default: <build>/researchcut_beats.json)")
+    hx.set_defaults(func=cmd_handoff)
 
     u = sub.add_parser("subs", parents=[common],
                        help="attach a downloaded subtitle pack to the videos")
