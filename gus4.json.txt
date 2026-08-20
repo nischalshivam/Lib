@@ -1,0 +1,2352 @@
+﻿[
+{
+“beat”: 1,
+“header”: “COLD OPEN — A MAN ENTERS”,
+“narration”: “A man walks into a room where two people think they’re about to die. He doesn’t look at them. He doesn’t say a single word.”,
+“narration_seconds”: 8,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “a calm man in glasses, a white dress shirt and dark tie walking into a bright underground tiled laboratory, back turned to two men”,
+“characters”: [“Gus Fring”, “Walter White”, “Jesse Pinkman”],
+“setting”: “underground superlab, fluorescent white light, tiled walls”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”, “reaction cam”, “fan art”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “two frightened men, one balding in a green shirt and one young in a beige hoodie, pressed against a white tiled wall of a lab”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 2,
+“header”: “THE DRESSING RITUAL”,
+“narration”: “He takes off his jacket, folds it with care, and rolls up his sleeves, calm and unhurried, the way a man moves through a routine he has done many times before. He steps into a red hazmat suit. He ties an apron across his front. He pulls on a pair of gloves.”,
+“narration_seconds”: 18,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “a calm man in glasses removing his dark suit jacket and folding it neatly on a metal lab table”,
+“characters”: [“Gus Fring”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “close on hands unbuttoning a white shirt cuff and rolling up a sleeve, gold watch visible”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “a man stepping into a bright red hazmat suit inside a tiled underground lab, pulling it up over his shoulders”,
+“characters”: [“Gus Fring”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “close on hands tying a white apron over a red hazmat suit in a fluorescent lab”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 3,
+“header”: “SILENCE ON TELEVISION”,
+“narration”: “And he does all of it in silence. Not one word, in one of the most disturbing scenes ever put on television.”,
+“narration_seconds”: 8,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “Whatever it is you think I did, let me explain.”,
+“speaker”: “Walter White”,
+“dialogue_confidence”: “high”,
+“hook”: false,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “”,
+“visual”: “a balding man in a green shirt against a white tiled wall of a lab, speaking urgently, hands slightly raised”,
+“characters”: [“Walter White”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 1,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “a calm man in glasses and a red hazmat suit, close on his face, saying nothing, fluorescent lab light”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 4,
+“header”: “BEGGING AND BREATHING”,
+“narration”: “One of the two men begins to beg. The other can barely breathe. And Gus just gets dressed.”,
+“narration_seconds”: 7,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “a balding man in a green shirt against a white tiled wall pleading, mouth open, hands slightly raised”,
+“characters”: [“Walter White”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 3
+},
+{
+“kind”: “still”,
+“count”: 1,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “a young man in a beige hoodie against a white tiled wall, eyes wide and unfocused, staring downward”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 5,
+“header”: “THE BOX CUTTER”,
+“narration”: “Then, still without a word, he reaches down and picks up a box cutter. The same one Gale had used to set up this very lab.”,
+“narration_seconds”: 8,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “a gloved hand reaching down to pick up a small green and yellow box cutter from a metal lab surface”,
+“characters”: [“Gus Fring”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S03E13”,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “before”,
+“visual”: “a bespectacled chemist in a yellow shirt using a box cutter to open cardboard boxes of lab equipment in a bright underground lab”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 6,
+“header”: “MOST PEOPLE READ THIS AS RAGE”,
+“narration”: “Most people watch this scene and read it as rage. A powerful man whose people were disrespected, finally losing his patience. That reading is wrong, and it misses what makes the scene frightening.”,
+“narration_seconds”: 12,
+“shots”: [
+{
+“kind”: “still”,
+“count”: 1,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “a calm man in glasses and a red hazmat suit, close on his impassive face, fluorescent lab light behind him”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “a calm man in a red hazmat suit and apron standing very still in a bright underground laboratory, staring forward”,
+“characters”: [“Gus Fring”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 1,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “wide shot of a fluorescent underground lab, one figure in red hazmat centered, two men in ordinary clothes against a white tile wall”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 7,
+“header”: “ANGER TURNED INTO PROCEDURE”,
+“narration”: “Gus Fring may well be furious. Gale is dead. His entire plan has just been torn apart. But Gus does not do what furious men do. He does not explode. He takes that anger and quietly turns it into procedure. Into ritual.”,
+“narration_seconds”: 15,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S03E13”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “I’m sorry.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “a bespectacled chemist in a beige cardigan standing in a shabby apartment doorway at night, a young man in a hooded jacket pointing a gun at him”,
+“characters”: [“Gale Boetticher”, “Jesse Pinkman”],
+“setting”: “Gale’s apartment doorway, dim indoor light”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “close on the calm face of a man in glasses, tightly composed, no emotion, red hazmat collar visible”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “gloved hands methodically smoothing a white apron over a red hazmat suit, unhurried motion”,
+“characters”: [“Gus Fring”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+}
+],
+“images”: []
+},
+{
+“beat”: 8,
+“header”: “HE KILLS THE INNOCENT ONE”,
+“narration”: “And then he does something that makes no sense on the surface. He walks straight past the two men who actually crossed him, and he kills the one man in the room who hadn’t betrayed him at all.”,
+“narration_seconds”: 13,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “Well? Get back to work.”,
+“speaker”: “Gus Fring”,
+“dialogue_confidence”: “high”,
+“hook”: true,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “”,
+“visual”: “a man in a red hazmat suit and blood-splattered white apron walking past two terrified men against a tiled lab wall”,
+“characters”: [“Gus Fring”, “Walter White”, “Jesse Pinkman”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “a stocky man in a dark polo shirt on his knees in a bright lab, gloved hand gripping his forehead from behind”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 9,
+“header”: “WHY THEY ALL HAD TO WATCH”,
+“narration”: “So the real question is not why Gus is angry. The question is why he needed all of them to watch.”,
+“narration_seconds”: 7,
+“shots”: [
+{
+“kind”: “still”,
+“count”: 1,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “a balding man in a green shirt and a young man in a beige hoodie pressed side by side against a white tiled lab wall, both wide-eyed”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “an older man in a dark jacket standing near the lab stairs, hand hovering near a holstered pistol, watching”,
+“characters”: [“Mike Ehrmantraut”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+}
+],
+“images”: []
+},
+{
+“beat”: 10,
+“header”: “IT STARTS TWENTY YEARS EARLIER”,
+“narration”: “And the answer doesn’t start in this lab. It starts on the worst night of Gus Fring’s life. The same night that, more than twenty years later, quietly gets him killed. To understand the room, you first have to understand the week.”,
+“narration_seconds”: 15,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E08”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Do it.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “a younger man in a pale shirt kneeling at the edge of a turquoise pool at a Mexican hacienda, another man beside him bleeding into the water”,
+“characters”: [“Gus Fring”, “Max Arciniega”],
+“setting”: “cartel villa poolside, daylight”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “wide shot of a bright fluorescent underground laboratory with steel tanks, one man in red hazmat suit at center”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 11,
+“header”: “WALT’S DESPERATE PLAY”,
+“narration”: “At the end of the previous season, Walter White does something desperate. He knows Gus wants him dead, and he knows why. Gus has found a replacement, a gentle chemist named Gale who has been quietly learning Walt’s formula. The day Gale can cook alone is the day Walt becomes disposable.”,
+“narration_seconds”: 20,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S03E13”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “You know what to do.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “a balding man in a green shirt speaking urgently into a cell phone in a dusty industrial laundry backroom”,
+“characters”: [“Walter White”],
+“setting”: “laundry backroom”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S03E13”,
+“nearest_dialogue”: “You know what to do.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “a bespectacled chemist with long hair and a beige cardigan smiling gently in a bright underground lab”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S03E12”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Just tell me, is this it?”,
+“nearest_dialogue_position”: “during”,
+“visual”: “the same bespectacled chemist writing in a notebook beside a chemistry apparatus in a fluorescent lab”,
+“characters”: [“Gale Boetticher”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 3
+}
+],
+“images”: []
+},
+{
+“beat”: 12,
+“header”: “JESSE SHOOTS GALE”,
+“narration”: “So Walt sends Jesse to kill Gale. And Jesse does it. He shoots him in his own doorway. In Walt’s mind, that solves everything. The one man who made him replaceable is gone. Now Gus needs him again. Walt believes he has just won.”,
+“narration_seconds”: 15,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S03E13”,
+“se_confidence”: “high”,
+“exact_dialogue”: “I’m sorry.”,
+“speaker”: “Jesse Pinkman”,
+“dialogue_confidence”: “high”,
+“hook”: false,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “”,
+“visual”: “a young man in a hooded jacket standing at a dim apartment doorway at night, tears in his eyes, pointing a small pistol”,
+“characters”: [“Jesse Pinkman”, “Gale Boetticher”],
+“setting”: “Gale’s apartment doorway, dim indoor light”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S03E13”,
+“nearest_dialogue”: “I’m sorry.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “close on a shocked bespectacled chemist in a beige cardigan in a dim apartment doorway, gun pointed at him from off-frame”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 13,
+“header”: “VICTOR AT THE DOOR”,
+“narration”: “What Walt doesn’t know is that one of Gus’s men, Victor, showed up at Gale’s apartment moments too late. He was meant to handle the scene, but the neighbors had already crowded the hallway, and at least one of them got a clear look at his face.”,
+“narration_seconds”: 18,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “a stocky man in a dark polo shirt hurrying up a dim apartment building staircase at night”,
+“characters”: [“Victor”],
+“setting”: “apartment building hallway at night”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “a stocky man in a dark polo shirt visible in a dim apartment hallway, neighbors in bathrobes watching from open doorways”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 14,
+“header”: “THE ASSUMPTION”,
+“narration”: “So when Gus arrives, everyone makes the same assumption. Walt, Jesse, and you at home. Gus is here for the two of them. They killed his man. Now he collects. That assumption is the trap.”,
+“narration_seconds”: 13,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “a bespectacled calm man in a dark suit descending metal lab stairs into a bright underground laboratory”,
+“characters”: [“Gus Fring”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “two men, one balding in a green shirt and one young in a beige hoodie, pressed against a white tile wall, watching the entrance”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 15,
+“header”: “HE KILLS VICTOR”,
+“narration”: “Because Gus doesn’t touch Walt. He doesn’t touch Jesse. He walks past both of them as if they aren’t even there. He kills Victor. The loyal one. The enforcer who had spent years doing exactly what Gus told him. And that single choice is the whole scene.”,
+“narration_seconds”: 17,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “a man in a red hazmat suit gripping a stocky man in a dark polo from behind, blade in gloved hand near the throat in a bright lab”,
+“characters”: [“Gus Fring”, “Victor”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “a stocky man in a dark polo shirt on the tiled lab floor bleeding heavily from the neck, red hazmat legs standing over him”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 16,
+“header”: “VICTOR’S TWO MISTAKES”,
+“narration”: “Now, morally, Victor is the one innocent man in that room. He betrayed no one. But in the world Gus runs, Victor had just made the two most dangerous mistakes a person can make. He got seen. And then he overstepped.”,
+“narration_seconds”: 15,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “a stocky man in a dark polo shirt stirring a large steel chemistry vessel in a bright underground lab”,
+“characters”: [“Victor”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “close on the stocky man’s face in a bright lab, sweating slightly, glancing sideways”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 17,
+“header”: “SEEN BY WITNESSES”,
+“narration”: “Getting seen was fatal on its own. A witness who can describe your man is a loose thread, and the police only need one to unravel everything.”,
+“narration_seconds”: 11,
+“shots”: [
+{
+“kind”: “still”,
+“count”: 1,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “neighbors in bathrobes standing in a dim apartment hallway, staring toward an open doorway with police tape visible”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “a stocky man in a dark polo shirt walking quickly down a dim apartment corridor past open doors”,
+“characters”: [“Victor”],
+“setting”: “apartment corridor at night”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 3
+}
+],
+“images”: []
+},
+{
+“beat”: 18,
+“header”: “COOKING TO PROVE A POINT”,
+“narration”: “But it’s the second mistake that’s colder. While the others waited for Gus, Victor walked over to Walt’s equipment and started cooking. He had watched Walt closely enough to run the whole process himself, and he wanted the room to see it. Whether that was ambition or just panic trying to look useful, the message was the same. Walt can be replaced. And Victor was ready to move up.”,
+“narration_seconds”: 26,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “a stocky man in a dark polo pouring chemical from a beaker into a stainless steel reaction vessel in a bright lab”,
+“characters”: [“Victor”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “a balding man in a green shirt watching from against a white tile wall, brow furrowed, wary”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “close on gloved hands adjusting a temperature dial on a large metal chemistry apparatus in a bright underground lab”,
+“characters”: [“Victor”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “the stocky man wearing safety goggles at the reaction vessel, half-smile of concentration, other men out of focus behind him”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 19,
+“header”: “VISIBLE TWICE”,
+“narration”: “He had made himself visible twice. First to the witnesses. Then to the one man he should never have tried to impress. Gus takes all of it in without a word.”,
+“narration_seconds”: 12,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “a calm man in glasses and a dark suit standing very still at the base of the metal lab stairs, watching a stocky man cook”,
+“characters”: [“Gus Fring”, “Victor”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “extreme close on the calm bespectacled face, no expression, fluorescent light reflecting off the lenses”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 20,
+“header”: “METHOD IS THE MEANING”,
+“narration”: “Now watch how he does it, because with Gus, the method is the meaning. He doesn’t rush. The first thing he does, in a lab where three grown men expect him to start killing, is get changed. He removes his suit and tie and puts on protective gear, slowly, precisely, in silence.”,
+“narration_seconds”: 18,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “a bespectacled man in a white dress shirt loosening a dark tie in a bright underground lab”,
+“characters”: [“Gus Fring”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “close on hands folding a dark suit jacket neatly and setting it on a metal lab bench”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “a man zipping up a bright red hazmat suit in a fluorescent underground laboratory”,
+“characters”: [“Gus Fring”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+}
+],
+“images”: []
+},
+{
+“beat”: 21,
+“header”: “WALT CAN’T STOP TALKING”,
+“narration”: “Listen to what that silence does to Walt. Walt talks. He can’t help it. He explains, he argues, he bargains, he reminds Gus how valuable he is. He even starts firing off chemistry questions to prove that Victor can’t really do what he does. Walt is bargaining for his life with organic chemistry, because words are the only weapon he has left, and Gus won’t even grant him the dignity of a reply.”,
+“narration_seconds”: 26,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “Whatever it is you think I did, let me explain.”,
+“speaker”: “Walter White”,
+“dialogue_confidence”: “high”,
+“hook”: false,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “”,
+“visual”: “a balding man in a green shirt against a white tiled lab wall, mouth open in mid-sentence, gesturing with one hand”,
+“characters”: [“Walter White”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “close on the balding man’s face, sweating, eyes darting toward the man in red hazmat”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “the balding man pointing toward a chemistry apparatus, still against a tile wall, arguing at the red-suited figure”,
+“characters”: [“Walter White”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+}
+],
+“images”: []
+},
+{
+“beat”: 22,
+“header”: “SILENCE IS PRESSURE”,
+“narration”: “The silence isn’t empty. The silence is pressure.”,
+“narration_seconds”: 4,
+“shots”: [
+{
+“kind”: “still”,
+“count”: 1,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “wide low angle of a red-suited figure standing motionless in a bright underground lab, small figures against a wall in the background”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 23,
+“header”: “THREE KINDS OF QUIET”,
+“narration”: “And here is the detail almost every breakdown skips. Watch how three different men handle that same silence. Walt talks because he is terrified. Gus says nothing because he controls the terms. And Jesse, who has not spoken a single word in the entire episode up to this point, stays silent because part of him never left Gale’s doorway. One room. Three kinds of quiet. And Gus is calmly reading the two men he came to teach.”,
+“narration_seconds”: 27,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “close on the balding man in a green shirt, lips moving in urgent whispered argument against a tile wall”,
+“characters”: [“Walter White”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “close on the calm bespectacled face in a red hazmat collar, mouth closed, eyes steady”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Whatever it is you think I did, let me explain.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “close on a young man in a beige hoodie against a white tile wall, staring blankly downward, eyes hollow”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “the calm red-suited figure standing still in a bright lab, gaze fixed forward at two men against a wall”,
+“characters”: [“Gus Fring”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+}
+],
+“images”: []
+},
+{
+“beat”: 24,
+“header”: “HE PICKS UP THE BLADE”,
+“narration”: “Then he picks up the box cutter, and still, he says nothing.”,
+“narration_seconds”: 5,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “a gloved hand closing around a green and yellow box cutter on a metal lab bench”,
+“characters”: [“Gus Fring”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+}
+],
+“images”: []
+},
+{
+“beat”: 25,
+“header”: “STEPS SIDEWAYS AND CUTS”,
+“narration”: “He turns toward Walt and Jesse. And at the last possible moment, he steps sideways, takes hold of Victor, and opens his throat.”,
+“narration_seconds”: 9,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “the red-suited figure walking directly toward two men against a white tile wall, blade held at his side”,
+“characters”: [“Gus Fring”, “Walter White”, “Jesse Pinkman”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 3
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “the red-suited figure gripping a stocky man in a dark polo from behind, blade at his throat in a bright lab”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 26,
+“header”: “BLOOD ON THE WITNESSES”,
+“narration”: “The blood comes fast, enough that it soaks the clothes of the men standing there. And here the show hands you the most revealing reaction in the scene. It isn’t Walt, who can’t even bring himself to look. It isn’t Jesse, who locks eyes with Gus like a cornered animal. It’s Mike. Gus’s own most trusted man, a professional who has seen everything, so shaken for half a second that he instinctively brings up his gun.”,
+“narration_seconds”: 25,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “close on a blood-splattered white apron over a red hazmat suit under fluorescent lab light”,
+“characters”: [“Gus Fring”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “a balding man in a green shirt turning his face down and away from the sight, blood spots on his cheek”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “a young man in a beige hoodie against a white tile wall, staring straight ahead with wide, cornered eyes”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “an older man in a dark jacket near lab stairs, hand snapping up toward the pistol at his hip, expression shocked”,
+“characters”: [“Mike Ehrmantraut”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+}
+],
+“images”: []
+},
+{
+“beat”: 27,
+“header”: “GUN AS REFLEX”,
+“narration”: “That gun is not rebellion. It’s reflex. For one second, even the man who knows Gus best doesn’t recognize him.”,
+“narration_seconds”: 8,
+“shots”: [
+{
+“kind”: “still”,
+“count”: 1,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “close on an older man’s weathered face, tight-jawed, hand out of frame near a holstered pistol”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “the older man lowering his hand back down slowly, gaze still fixed on the red-suited figure across the lab”,
+“characters”: [“Mike Ehrmantraut”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 3
+}
+],
+“images”: []
+},
+{
+“beat”: 28,
+“header”: “EYES ON WALT AND JESSE”,
+“narration”: “And through all of it, Gus keeps his eyes fixed on Walt and Jesse. Not on the man dying in his hands. On the two who were meant to learn something.”,
+“narration_seconds”: 11,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “close on the bespectacled face in a red hazmat collar, eyes locked forward, blood specks on his cheek”,
+“characters”: [“Gus Fring”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “over the red-suited figure’s shoulder, blurred, toward two men in green shirt and beige hoodie against a tile wall”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 29,
+“header”: “FIVE ORDINARY WORDS”,
+“narration”: “Only when Victor is gone does Gus finally break his silence. Not with a threat. Not with a speech. With five ordinary words. Well? Get back to work.”,
+“narration_seconds”: 11,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “Well? Get back to work.”,
+“speaker”: “Gus Fring”,
+“dialogue_confidence”: “high”,
+“hook”: false,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “”,
+“visual”: “close on the bespectacled calm face in a bloodstained white apron, mouth slightly open, speaking quietly in a bright lab”,
+“characters”: [“Gus Fring”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “the two men against a tile wall staring at the red-suited figure, the balding man beginning to move away from the wall”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 30,
+“header”: “CLOCKING OFF”,
+“narration”: “Then he changes out of the bloody suit, washes his hands, and walks out like a man clocking off a shift.”,
+“narration_seconds”: 7,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “gloved hands rinsing under a running metal faucet in a stainless steel lab sink, blood swirling in the drain”,
+“characters”: [“Gus Fring”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 1,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “a bespectacled man once again in a crisp white shirt and dark tie walking up the metal lab stairs, back to camera”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 31,
+“header”: “WRITERS AND ACTOR”,
+“narration”: “That silence was not luck. It was a decision made long before the cameras ever rolled. The writers settled early that Gus would barely speak, because a wordless Gus was more frightening than any monologue. Vince Gilligan, who wrote the episode, later said something telling. He admitted he barely discussed the scene with Giancarlo Esposito at all, because the actor’s instincts were so good he simply trusted him to find it.”,
+“narration_seconds”: 28,
+“shots”: [
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Vince Gilligan press portrait”,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “”,
+“visual”: “a bearded middle-aged man with glasses in a dark shirt, formal press portrait, plain background”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Giancarlo Esposito press portrait”,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “”,
+“visual”: “a bald Black actor in a dark suit smiling calmly at a red carpet event, formal press photograph”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “wide overhead of a bright fluorescent underground lab with a red-suited figure standing motionless at center”,
+“characters”: [“Gus Fring”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+}
+],
+“images”: [
+{“subject”: “Vince Gilligan, formal press portrait”, “type”: “real_world”},
+{“subject”: “Giancarlo Esposito, formal press portrait”, “type”: “real_world”}
+]
+},
+{
+“beat”: 32,
+“header”: “ESPOSITO’S READING”,
+“narration”: “And Esposito’s own reading of the murder tells you everything. He explained it in plain terms. Someone got seen. It was about survival. But then he added the line that unlocks the whole scene. He said he could do it in a way that also sent a message to the people who weren’t listening.”,
+“narration_seconds”: 20,
+“shots”: [
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Giancarlo Esposito interview photograph”,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “”,
+“visual”: “a bald Black actor speaking in a television interview, seated in a studio armchair, warm lighting”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “a stocky man in a dark polo shirt cooking at a chemistry vessel in a fluorescent underground lab”,
+“characters”: [“Victor”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “close on the calm bespectacled face, eyes narrowing slightly, in a red hazmat collar”,
+“duration_target_sec”: 5
+}
+],
+“images”: [
+{“subject”: “Giancarlo Esposito interview still”, “type”: “real_world”}
+]
+},
+{
+“beat”: 33,
+“header”: “THE REAL AUDIENCE”,
+“narration”: “The people who weren’t listening. That is Walt and Jesse. So the killing was never really about Victor. Victor was only the surface it was written on. The real message was aimed at the two men against the wall. I cannot kill you yet. But do not mistake that for safety. Look at what I will do to a man who was loyal, and imagine what I will do to you.”,
+“narration_seconds”: 24,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “two men, a balding man in a green shirt and a young man in a beige hoodie, side by side against a white tiled lab wall”,
+“characters”: [“Walter White”, “Jesse Pinkman”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “close on the young man’s face in a beige hoodie, tear tracks visible, staring downward”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “a stocky man in a dark polo on his knees on tile floor, the red-suited figure standing behind him with a blade”,
+“characters”: [“Gus Fring”, “Victor”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “close on the balding man’s face, blood spots on his cheek, jaw clenched, eyes averted”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 34,
+“header”: “ESPOSITO STAYED SILENT”,
+“narration”: “Two facts tell you how deep this scene cut, on both sides of the camera. The actor first. Giancarlo Esposito said he was afraid of filming it without damaging something in himself. To reach that stillness, he stayed silent and focused throughout, rarely speaking to anyone on set. He carried that dead calm between takes, to become a man who kills without a flicker.”,
+“narration_seconds”: 22,
+“shots”: [
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Giancarlo Esposito behind the scenes photograph”,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “”,
+“visual”: “a bald Black actor in a red hazmat suit standing quietly between takes on a lab set, crew equipment visible around him”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “close on the bespectacled face of a calm man in a red hazmat collar, absolutely still, no blink”,
+“characters”: [“Gus Fring”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “medium shot of the red-suited figure standing still in a bright underground lab, arms at his sides”,
+“duration_target_sec”: 5
+}
+],
+“images”: [
+{“subject”: “Giancarlo Esposito on set behind the scenes”, “type”: “real_world”}
+]
+},
+{
+“beat”: 35,
+“header”: “AUDIENCE FAINTED”,
+“narration”: “And the audience. When the episode was first screened in a Hollywood theater, before it had ever aired, the scene was so bloody that Bryan Cranston’s seventeen year old daughter fainted in her seat, and the screening had to be stopped so someone could ask for a doctor in the room. That is the effect of a man quietly getting dressed and saying five words.”,
+“narration_seconds”: 22,
+“shots”: [
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Hollywood movie theater interior photograph”,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “”,
+“visual”: “rows of empty red velvet cinema seats in a dim Hollywood theater with a lit screen at the front”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Bryan Cranston press portrait”,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “”,
+“visual”: “a balding older white man in a dark suit smiling at a formal press event, professional photograph”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “close on gloved hands smoothing a white apron over a red hazmat suit, unhurried motion”,
+“characters”: [“Gus Fring”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+}
+],
+“images”: [
+{“subject”: “Bryan Cranston, formal press portrait”, “type”: “real_world”},
+{“subject”: “Hollywood movie theater interior”, “type”: “stock”}
+]
+},
+{
+“beat”: 36,
+“header”: “THE OBJECTION”,
+“narration”: “Now, before we go any further, the scene deserves an honest objection. You could argue there is nothing mysterious here at all. That this was simply smart. Victor was a real liability, and Gus couldn’t afford to kill Walt or Jesse. A punishment people can see keeps a whole organization in line. Fear, used on purpose, is a tool powerful men rely on because it works. By that reading, the display isn’t weakness. It’s good management.”,
+“narration_seconds”: 27,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S03E01”,
+“se_confidence”: “guess”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “before”,
+“visual”: “a bespectacled calm man in a yellow polo shirt with a Los Pollos Hermanos logo, standing behind a fast food counter”,
+“characters”: [“Gus Fring”],
+“setting”: “Los Pollos Hermanos restaurant, bright interior”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “the two frightened men against a white tile wall of an underground lab, one balding, one young in a hoodie”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “the calm red-suited figure standing very still, watching the two men against the wall”,
+“characters”: [“Gus Fring”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+}
+],
+“images”: []
+},
+{
+“beat”: 37,
+“header”: “IT DOESN’T EXPLAIN THE REST”,
+“narration”: “And that’s fair. It explains why the room had to see a punishment. But it doesn’t fully explain the rest. If the only goal was to erase a loose end, Victor could have simply disappeared, quietly, somewhere far from the lab. It doesn’t explain why Gus chose to do it himself, by hand, at close range, and drag out every slow second of it. He didn’t just need Victor gone. He needed the room to watch.”,
+“narration_seconds”: 27,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “the red-suited figure gripping a stocky man in a dark polo from behind, drawing a small blade across his throat”,
+“characters”: [“Gus Fring”, “Victor”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “wide shot of a bright underground lab with a red-suited figure crouched over a body on tile, two men against a wall watching”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “close on the bespectacled calm face of the red-suited man, eyes locked on someone off-frame”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 38,
+“header”: “GO BACK TWENTY YEARS”,
+“narration”: “And to understand why a man like Gus needs people to watch, you have to leave this lab, and go back more than twenty years.”,
+“narration_seconds”: 9,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E08”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Do it.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “a younger bespectacled man kneeling by a turquoise swimming pool at a Mexican hacienda in bright daylight”,
+“characters”: [“Gus Fring”],
+“setting”: “cartel villa poolside”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 1,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E08”,
+“nearest_dialogue”: “Do it.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “wide shot of a sunny Mexican villa courtyard with a turquoise pool and men in white lounging around”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 39,
+“header”: “GUS AND MAX”,
+“narration”: “Long before he was the polite king of a chicken empire, Gustavo Fring was one half of a partnership. The other half was a man named Max. Gus had pulled him out of poverty, put him through chemistry school, and built their very first restaurant with him. In every way the show is willing to imply, Max was the person Gus loved most in the world.”,
+“narration_seconds”: 25,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E08”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Do it.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “two younger men in matching pale shirts standing side by side on a sunny hacienda patio, one bespectacled”,
+“characters”: [“Gus Fring”, “Max Arciniega”],
+“setting”: “cartel villa patio, daylight”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E08”,
+“nearest_dialogue”: “Do it.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “close on a younger dark-haired man in a pale shirt smiling gently at his companion in bright sunlight”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S03E01”,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “before”,
+“visual”: “a bright fast food restaurant interior with a Los Pollos Hermanos yellow sign and a counter with a chicken logo”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 40,
+“header”: “MAX IS SHOT”,
+“narration”: “Together they went to pitch the cartel. It went badly. And in front of Gus, a younger Hector Salamanca lifted a gun and shot Max through the head.”,
+“narration_seconds”: 11,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E08”,
+“se_confidence”: “high”,
+“exact_dialogue”: “Do it.”,
+“speaker”: “Don Eladio”,
+“dialogue_confidence”: “high”,
+“hook”: false,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “”,
+“visual”: “a stocky younger man in a white guayabera raising a pistol beside a turquoise pool at a sunny Mexican villa”,
+“characters”: [“Hector Salamanca”, “Max Arciniega”],
+“setting”: “cartel villa poolside, daylight”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E08”,
+“nearest_dialogue”: “Do it.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “a younger dark-haired man in a pale shirt collapsing at the edge of a turquoise pool, blood spreading into the water”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 41,
+“header”: “FORCED TO LOOK”,
+“narration”: “But the cruelty did not end with the killing. As Max lay bleeding into the pool, the cartel held Gus down and forced him to look into his partner’s dead eyes. They didn’t just take Max from him. They made him watch, on his knees, unable to move, unable to save the one thing he loved.”,
+“narration_seconds”: 20,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E08”,
+“se_confidence”: “high”,
+“exact_dialogue”: “Look at him.”,
+“speaker”: “Don Eladio”,
+“dialogue_confidence”: “guess”,
+“hook”: false,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “”,
+“visual”: “a younger bespectacled man in a pale shirt held on his knees at the tile edge of a turquoise pool, two men gripping his shoulders”,
+“characters”: [“Gus Fring”],
+“setting”: “cartel villa poolside”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E08”,
+“nearest_dialogue”: “Do it.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “close on the younger bespectacled face contorted with grief, tears on cheeks, staring down at pool water”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E08”,
+“nearest_dialogue”: “Do it.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “close on a dead man’s open eyes underwater, blood clouds spreading through turquoise pool water”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 42,
+“header”: “ARMOR AGAINST HELPLESSNESS”,
+“narration”: “We never learn everything about who Gus was before that day. His past stays deliberately in shadow. But this is the wound the show lets us see. And much of what he becomes afterward reads as armor against ever feeling that helpless again. The composure, the control, the endless patient discipline. All of it so that Gus is never again the one who is forced to watch. From here on, he decides who watches.”,
+“narration_seconds”: 27,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S03E01”,
+“se_confidence”: “guess”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “before”,
+“visual”: “a bespectacled calm man in a yellow Pollos Hermanos polo neatly straightening napkin holders at a bright restaurant counter”,
+“characters”: [“Gus Fring”],
+“setting”: “Los Pollos Hermanos restaurant interior”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S03E11”,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “before”,
+“visual”: “the bespectacled calm man in a dark suit standing perfectly still with hands clasped in a fluorescent underground lab”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “the calm bespectacled man in glasses watching two frightened men against a white tiled lab wall”,
+“characters”: [“Gus Fring”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+}
+],
+“images”: []
+},
+{
+“beat”: 43,
+“header”: “PATTERN OF THE BOX CUTTER”,
+“narration”: “Seen through that memory, the box cutter scene starts to look like more than a killing. A man in total control, making a room full of people witness a death they cannot stop. The very thing once done to him, turned around, with the blade in his hand this time. Whether Gus knows it or not, the pattern is hard to miss.”,
+“narration_seconds”: 22,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “the red-suited figure gripping a stocky man from behind, drawing a small green box cutter across his throat in a bright lab”,
+“characters”: [“Gus Fring”, “Victor”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E08”,
+“nearest_dialogue”: “Do it.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “a stocky younger man in a white guayabera pressing a gun against a dark-haired man’s head at a sunny Mexican poolside”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “the two men, one balding in a green shirt, one young in a beige hoodie, watching from a white tile lab wall”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 44,
+“header”: “SALAMANCAS FALL”,
+“narration”: “It is also why Gus can never simply let the Salamancas go. Over the years, he helps engineer the destruction of that family, piece by piece, and makes certain Hector knows his hand is in it. He doesn’t just want them dead. He needs Hector to watch his own family fall.”,
+“narration_seconds”: 18,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E10”,
+“se_confidence”: “guess”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Look at me, Hector.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “an elderly bald man in a wheelchair with a small silver bell at his fingertips in a dim nursing home room”,
+“characters”: [“Hector Salamanca”],
+“setting”: “nursing home room”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E10”,
+“nearest_dialogue”: “Look at me, Hector.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “the calm bespectacled man in a dark suit leaning down close to the elderly man in the wheelchair”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 45,
+“header”: “LEAN IN, LOOK AT ME”,
+“narration”: “On one visit, he leans in and orders Hector to look at him. The same demand, more than twenty years later. The wound never closed.”,
+“narration_seconds”: 9,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E10”,
+“se_confidence”: “guess”,
+“exact_dialogue”: “Look at me, Hector.”,
+“speaker”: “Gus Fring”,
+“dialogue_confidence”: “guess”,
+“hook”: false,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “”,
+“visual”: “close on the calm bespectacled face very near an elderly bald man’s face in a dim nursing home room”,
+“characters”: [“Gus Fring”, “Hector Salamanca”],
+“setting”: “nursing home room”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+}
+],
+“images”: []
+},
+{
+“beat”: 46,
+“header”: “WALT’S DOOR”,
+“narration”: “And that need is the exact door Walt walks through. Near the end, Hector makes a show of going to the DEA. Gus reads it as the old man finally breaking, turning informant. That insult is more than Gus can leave alone. He decides to kill Hector himself. His man Tyrus offers to handle it, the safe way. Gus refuses. I do this, he tells him. He could send anyone. But he has to be in that room. He has to be the last thing Hector ever sees.”,
+“narration_seconds”: 34,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E13”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Last chance to look at me, Hector.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “an elderly bald man in a wheelchair being pushed by DEA agents down a beige government office corridor”,
+“characters”: [“Hector Salamanca”],
+“setting”: “DEA office corridor”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E13”,
+“nearest_dialogue”: “Last chance to look at me, Hector.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “the calm bespectacled man reading a folded newspaper across a table from a taller man in dark clothing”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E13”,
+“se_confidence”: “high”,
+“exact_dialogue”: “I do this.”,
+“speaker”: “Gus Fring”,
+“dialogue_confidence”: “guess”,
+“hook”: false,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “”,
+“visual”: “the bespectacled calm man in a dark suit and pale shirt, speaking softly to a taller man beside a black car”,
+“characters”: [“Gus Fring”, “Tyrus”],
+“setting”: “outdoor parking area”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E13”,
+“nearest_dialogue”: “Last chance to look at me, Hector.”,
+“nearest_dialogue_position”: “after”,
+“visual”: “the calm bespectacled man in a dark suit walking alone across a nursing home parking lot toward the entrance”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 47,
+“header”: “LAST CHANCE TO LOOK”,
+“narration”: “He walks into the nursing home, leans down to the old man in the wheelchair, and gives him one final command. Last chance to look at me, Hector. In other words, look at me. Watch me finish this.”,
+“narration_seconds”: 12,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E13”,
+“se_confidence”: “high”,
+“exact_dialogue”: “Last chance to look at me, Hector.”,
+“speaker”: “Gus Fring”,
+“dialogue_confidence”: “high”,
+“hook”: false,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “”,
+“visual”: “close on the bespectacled calm face leaning down toward an elderly bald man’s head in a dim nursing home room”,
+“characters”: [“Gus Fring”, “Hector Salamanca”],
+“setting”: “nursing home room”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E13”,
+“nearest_dialogue”: “Last chance to look at me, Hector.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “close on the elderly bald man’s face in a wheelchair, glaring upward with red-rimmed eyes and clenched jaw”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 48,
+“header”: “THE BELL”,
+“narration”: “And Hector finally does look, with pure hatred, and he rings the little bell in his hand. The bell Walt has wired to a bomb beneath the wheelchair.”,
+“narration_seconds”: 10,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E13”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Last chance to look at me, Hector.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “close on a wrinkled hand striking a small silver bell attached to a wheelchair armrest, repeatedly”,
+“characters”: [“Hector Salamanca”],
+“setting”: “nursing home room”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E13”,
+“nearest_dialogue”: “Last chance to look at me, Hector.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “close on a red pipe bomb taped beneath a wheelchair seat, wires running to the armrest”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“beat”: 49,
+“header”: “STRAIGHTENS THE TIE”,
+“narration”: “Then comes the image that ends him. Gus walks out of that room with half his face torn away, and in his last seconds, before he drops to the floor, he calmly straightens his tie. Even dying, his final instinct is the one that governed his whole life. Fix the surface. Finish the ritual. Let no disorder show.”,
+“narration_seconds”: 21,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E13”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Last chance to look at me, Hector.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “a bespectacled man in a dark suit stepping out of a nursing home room doorway, right side of his face charred and torn”,
+“characters”: [“Gus Fring”],
+“setting”: “nursing home corridor”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E13”,
+“nearest_dialogue”: “Last chance to look at me, Hector.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “close on a scarred hand adjusting a dark tie against a pale dress shirt, one side of the face out of focus and burned”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E13”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Last chance to look at me, Hector.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “the bespectacled man collapsing sideways onto a beige nursing home corridor floor, tie still visible”,
+“characters”: [“Gus Fring”],
+“setting”: “nursing home corridor”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 3
+}
+],
+“images”: []
+},
+{
+“beat”: 50,
+“header”: “THE PATTERN WALT EXPLOITS”,
+“narration”: “The box cutter scene did not hand Walt the plan. That came from something simpler, learning that Gus visits Hector in person, and using their shared hatred as bait. But looking back, that lab reveals the very pattern Walt would exploit. When the killing turns personal, Gus has to be in the room. And a man who has to be in the room can be found.”,
+“narration_seconds”: 22,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E12”,
+“se_confidence”: “guess”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “before”,
+“visual”: “a balding man in a pale shirt sitting alone at a small kitchen table with a pistol placed on the surface in dim light”,
+“characters”: [“Walter White”],
+“setting”: “domestic kitchen at night”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E13”,
+“nearest_dialogue”: “Last chance to look at me, Hector.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “the bespectacled calm man in a dark suit walking alone toward the glass entrance of a nursing home in daylight”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “the calm bespectacled man in a red hazmat suit standing very still in a bright underground laboratory”,
+“characters”: [“Gus Fring”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+}
+],
+“images”: []
+},
+{
+“beat”: 51,
+“header”: “WATCH ONE MORE TIME”,
+“narration”: “So watch the box cutter scene one more time, knowing what you know now. It’s tempting to say Gus Fring simply needed an audience. But that isn’t quite true. For twenty years, his entire genius was being invisible. Ordinary. The last person you’d ever suspect. He didn’t need the world to see his power. He spent his life making sure it never could.”,
+“narration_seconds”: 23,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S03E01”,
+“se_confidence”: “guess”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “before”,
+“visual”: “the bespectacled calm man in a yellow Pollos Hermanos polo politely handing a paper bag across a bright fast food counter”,
+“characters”: [“Gus Fring”],
+“setting”: “Los Pollos Hermanos restaurant interior”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S03E01”,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “before”,
+“visual”: “the bespectacled man in a yellow polo wiping down a bright fast food counter with a cloth”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “the calm bespectacled man in a red hazmat suit, motionless in a bright underground lab”,
+“characters”: [“Gus Fring”],
+“setting”: “underground superlab”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+}
+],
+“images”: []
+},
+{
+“beat”: 52,
+“header”: “NARROWER, SADDER”,
+“narration”: “The truth is narrower, and sadder. Victor’s death is terrifying because Gus forced everyone in that room to see it. Gus’s death becomes possible because, when revenge finally mattered most, he needed his oldest enemy to look back at him.”,
+“narration_seconds”: 17,
+“shots”: [
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “the two men against a white tile lab wall, one balding in green, one young in beige hoodie, staring at a red-suited figure”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E13”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Last chance to look at me, Hector.”,
+“nearest_dialogue_position”: “during”,
+“visual”: “close on the elderly bald man’s face in a wheelchair glaring at the bespectacled man leaning over him”,
+“characters”: [“Hector Salamanca”, “Gus Fring”],
+“setting”: “nursing home room”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+}
+],
+“images”: []
+},
+{
+“beat”: 53,
+“header”: “REVERSING THAT MOMENT”,
+“narration”: “The man Hector once forced to watch Max die spent more than twenty years reversing that moment. Turning helplessness into control. Making others see what he could not stop. Until he walked into one last room expecting to be the one in command, and became the victim instead.”,
+“narration_seconds”: 19,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E08”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Do it.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “a younger bespectacled man held on his knees beside a turquoise pool, tears on his face, unable to look away”,
+“characters”: [“Gus Fring”],
+“setting”: “cartel villa poolside”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E01”,
+“nearest_dialogue”: “Well? Get back to work.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “the calm bespectacled man in a red hazmat suit standing over a body in a bright underground lab”,
+“duration_target_sec”: 5
+},
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E13”,
+“se_confidence”: “high”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “Last chance to look at me, Hector.”,
+“nearest_dialogue_position”: “before”,
+“visual”: “the bespectacled man in a dark suit collapsing sideways in a nursing home corridor, half his face torn away”,
+“characters”: [“Gus Fring”],
+“setting”: “nursing home corridor”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+}
+],
+“images”: []
+},
+{
+“beat”: 54,
+“header”: “OUTRO — WHERE HE FIRST SLIPS”,
+“narration”: “If you want to see the moment all of that control cracks for the very first time, the scene where the calmest man on television finally slips, I’ve broken that one down too. It’s on screen right now.”,
+“narration_seconds”: 13,
+“shots”: [
+{
+“kind”: “clip”,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E10”,
+“se_confidence”: “guess”,
+“exact_dialogue”: “”,
+“speaker”: “”,
+“dialogue_confidence”: “”,
+“hook”: false,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “before”,
+“visual”: “the bespectacled calm man in a dark suit standing on a rocky cliff overlook at dusk, faint city lights in the distance”,
+“characters”: [“Gus Fring”],
+“setting”: “desert overlook at dusk”,
+“must_not_have”: [“talking head commentary”, “burned-in subtitles”],
+“duration_target_sec”: 4
+},
+{
+“kind”: “still”,
+“count”: 2,
+“source”: “Breaking Bad”,
+“season_episode”: “S04E10”,
+“nearest_dialogue”: “”,
+“nearest_dialogue_position”: “before”,
+“visual”: “close on the bespectacled face, jaw tight, faint tremor at the corner of the mouth, dim outdoor light”,
+“duration_target_sec”: 5
+}
+],
+“images”: []
+},
+{
+“summary”: {
+“narration_words”: 2320,
+“narration_seconds”: 928,
+“visual_seconds_planned”: 936,
+“coverage_percent”: 100,
+“beats”: 54,
+“clips”: 61,
+“stills”: 78,
+“verbatim_lines”: 10,
+“longest_gap_between_verbatim_lines”: 9,
+“runs_without_any_verbatim_line”: 0,
+“runs_with_only_one_verbatim_line”: 0,
+“shots_with_a_visible_caption”: 139,
+“shots_total”: 139
+}
+}
+]

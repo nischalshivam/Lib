@@ -1,0 +1,16 @@
+settings.txt
+__pycache__/
+*.pyc
+*.catalog.json
+library.db
+*.tmp
+*.writing
+models/
+*.bin
+*.safetensors
+*.onnx
+*.pt
+*.mp4
+*.mkv
+*.wav
+*.mp3

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  body { margin:0; background:#0b0d10; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:#262b33; border-radius:6px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  a { color:#3d8bfd; text-decoration:none; }
+  a:hover { color:#6ba6ff; }
+  @keyframes shimmer { 0% { background-position:-400px 0; } 100% { background-position:400px 0; } }
+</style>
+</helmet>
+<div style="display:flex; height:100vh; min-height:720px; background:#0b0d10; color:#dfe4ea; font-family:-apple-system, 'Segoe UI', Roboto, sans-serif; font-size:13px; -webkit-font-smoothing:antialiased;">
+
+  <div style="width:216px; flex:0 0 216px; background:#0e1115; border-right:1px solid #1d2229; display:flex; flex-direction:column;">
+    <div style="padding:18px 16px 14px 16px; display:flex; align-items:center; gap:9px;">
+      <div style="width:20px; height:20px; border-radius:5px; background:#3d8bfd; display:flex; align-items:center; justify-content:center;">
+        <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M3 2l6 4-6 4V2z" fill="#0b0d10"></path></svg>
+      </div>
+      <div style="font-size:13px; font-weight:600; letter-spacing:-0.01em;">Movie Editor</div>
+    </div>
+
+    <div style="padding:10px 10px 0 10px; display:flex; flex-direction:column; gap:2px;">
+      <div style="padding:6px 6px 6px 6px; font-size:10px; font-weight:600; letter-spacing:0.09em; color:#5a6472;">MOVIE EDITOR</div>
+      <div onClick="{{ goNewVideo }}" style="{{ navNewVideo }}" style-hover="background:#171b21; color:#dfe4ea;">New Video</div>
+      <div onClick="{{ goQueue }}" style="{{ navQueue }}" style-hover="background:#171b21; color:#dfe4ea;">Queue</div>
+      <div onClick="{{ goEditor }}" style="{{ navEditor }}" style-hover="background:#171b21; color:#dfe4ea;">Editor</div>
+      <div onClick="{{ goLibrary }}" style="{{ navLibrary }}" style-hover="background:#171b21; color:#dfe4ea;">Library</div>
+      <div onClick="{{ goSettings }}" style="{{ navSettings }}" style-hover="background:#171b21; color:#dfe4ea;">Settings</div>
+    </div>
+
+    <div style="padding:18px 10px 0 10px; display:flex; flex-direction:column; gap:2px;">
+      <div style="padding:6px; font-size:10px; font-weight:600; letter-spacing:0.09em; color:#5a6472;">COMING SOON</div>
+      <div style="padding:6px 10px; border-radius:5px; color:#454e5b; cursor:not-allowed;">Documentary</div>
+      <div style="padding:6px 10px; border-radius:5px; color:#454e5b; cursor:not-allowed;">Cartoon Essay</div>
+      <div style="padding:6px 10px; border-radius:5px; color:#454e5b; cursor:not-allowed;">Anime</div>
+    </div>
+
+    <div style="flex:1;"></div>
+
+    <div style="padding:12px 16px 14px 16px; border-top:1px solid #1d2229; font-family:'Cascadia Code', Consolas, monospace; font-size:10.5px; color:#5a6472; line-height:1.5;">
+      library: E:\Libraries<br>4 titles
+    </div>
+  </div>
+
+  <div style="flex:1; min-width:0; overflow:auto; position:relative;">
+
+    <sc-if value="{{ onLibrary }}" hint-placeholder-val="{{ true }}">
+    <div style="padding:26px 30px 60px 30px; max-width:1240px; min-width:1120px;">
+
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:24px; padding-bottom:20px;">
+        <div>
+          <div style="font-size:21px; font-weight:600; letter-spacing:-0.02em;">Library</div>
+          <div style="font-size:12.5px; color:#7f8a99; padding-top:4px;">Har title ek baar index hota hai</div>
+        </div>
+        <div onClick="{{ openPanel }}" style="display:flex; align-items:center; gap:6px; background:#3d8bfd; color:#04070c; font-size:12.5px; font-weight:600; padding:8px 14px; border-radius:6px; cursor:pointer; user-select:none;" style-hover="background:#5b9dff;" style-active="background:#3579e0;">
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M6 1.5v9M1.5 6h9" stroke="#04070c" stroke-width="1.8" stroke-linecap="round"></path></svg>
+          Add title
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:8px;">
+
+        <div onMouseEnter="{{ hover1 }}" onMouseLeave="{{ hoverOut }}" style="background:#13161b; border:1px solid #232830; border-radius:8px; padding:14px 16px; display:flex; align-items:center; gap:16px;" style-hover="border-color:#31394454;">
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:center; gap:9px;">
+              <div style="font-size:15px; font-weight:600; letter-spacing:-0.01em;">Breaking Bad</div>
+              <div style="font-size:10px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#8f9aa8; background:#1b2028; border:1px solid #2a313a; padding:2px 6px; border-radius:4px;">series</div>
+            </div>
+            <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:11px; color:#5a6472; padding-top:6px;">E:\Media\Breaking Bad</div>
+          </div>
+          <div style="width:150px; flex:0 0 150px; font-size:12px; color:#7f8a99; white-space:nowrap;">62 episodes · 271 MB</div>
+          <div style="width:150px; flex:0 0 150px;">
+            <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:500; color:#37c47a; background:#37c47a14; border:1px solid #37c47a33; padding:3px 9px; border-radius:20px; white-space:nowrap;">
+              <div style="width:5px; height:5px; border-radius:50%; background:#37c47a;"></div>ready
+            </div>
+          </div>
+          <div style="width:250px; flex:0 0 250px; display:flex; justify-content:flex-end; gap:4px; white-space:nowrap; opacity:{{ act1 }}; transition:opacity .12s;">
+            <div style="padding:5px 9px; border-radius:5px; font-size:11.5px; color:#a8b2bf; border:1px solid #262b33; cursor:pointer;" style-hover="background:#1b2028; color:#dfe4ea;">Check</div>
+            <div style="padding:5px 9px; border-radius:5px; font-size:11.5px; color:#a8b2bf; border:1px solid #262b33; cursor:pointer;" style-hover="background:#1b2028; color:#dfe4ea;">Rebuild</div>
+            <div style="padding:5px 9px; border-radius:5px; font-size:11.5px; color:#a8b2bf; border:1px solid #262b33; cursor:pointer;" style-hover="background:#1b2028; color:#dfe4ea;">Change folder</div>
+            <div style="padding:5px 9px; border-radius:5px; font-size:11.5px; color:#8a5f5c; border:1px solid #262b33; cursor:pointer;" style-hover="background:#ef5f5214; color:#ef5f52; border-color:#ef5f5233;">Remove</div>
+          </div>
+        </div>
+
+        <div onMouseEnter="{{ hover2 }}" onMouseLeave="{{ hoverOut }}" style="background:#13161b; border:1px solid #232830; border-radius:8px; padding:14px 16px;">
+          <div style="display:flex; align-items:center; gap:16px;">
+            <div style="flex:1; min-width:0;">
+              <div style="display:flex; align-items:center; gap:9px;">
+                <div style="font-size:15px; font-weight:600; letter-spacing:-0.01em;">Game of Thrones</div>
+                <div style="font-size:10px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#8f9aa8; background:#1b2028; border:1px solid #2a313a; padding:2px 6px; border-radius:4px;">series</div>
+              </div>
+              <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:11px; color:#5a6472; padding-top:6px;">E:\Media\Game of Thrones</div>
+            </div>
+            <div style="width:150px; flex:0 0 150px; font-size:12px; color:#7f8a99; white-space:nowrap;">73 episodes · 318 MB</div>
+            <div style="width:150px; flex:0 0 150px;">
+              <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:500; color:#4a9eff; background:#4a9eff14; border:1px solid #4a9eff33; padding:3px 9px; border-radius:20px; white-space:nowrap;">
+                <div style="width:5px; height:5px; border-radius:50%; background:#4a9eff;"></div>indexing 23/73
+              </div>
+            </div>
+            <div style="width:250px; flex:0 0 250px; display:flex; justify-content:flex-end; gap:4px; white-space:nowrap; opacity:{{ act2 }}; transition:opacity .12s;">
+              <div style="padding:5px 9px; border-radius:5px; font-size:11.5px; color:#a8b2bf; border:1px solid #262b33; cursor:pointer;" style-hover="background:#1b2028; color:#dfe4ea;">Check</div>
+              <div style="padding:5px 9px; border-radius:5px; font-size:11.5px; color:#a8b2bf; border:1px solid #262b33; cursor:pointer;" style-hover="background:#1b2028; color:#dfe4ea;">Rebuild</div>
+              <div style="padding:5px 9px; border-radius:5px; font-size:11.5px; color:#a8b2bf; border:1px solid #262b33; cursor:pointer;" style-hover="background:#1b2028; color:#dfe4ea;">Change folder</div>
+              <div style="padding:5px 9px; border-radius:5px; font-size:11.5px; color:#8a5f5c; border:1px solid #262b33; cursor:pointer;" style-hover="background:#ef5f5214; color:#ef5f52; border-color:#ef5f5233;">Remove</div>
+            </div>
+          </div>
+
+          <div style="margin-top:14px; padding:14px 16px; background:#0f1216; border:1px solid #1d2229; border-radius:7px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding-bottom:10px;">
+              <div style="display:flex; align-items:baseline; gap:14px;">
+                <div style="font-size:12.5px; font-weight:600; color:#dfe4ea;">Episode 23 / 73</div>
+                <div style="font-size:12px; color:#7f8a99;">3h 10m bacha</div>
+              </div>
+              <div onClick="{{ togglePause }}" style="padding:5px 12px; border-radius:5px; font-size:11.5px; font-weight:500; color:#dfe4ea; border:1px solid #333a44; background:#191d23; cursor:pointer;" style-hover="background:#222731;">{{ pauseLabel }}</div>
+            </div>
+            <div style="height:6px; border-radius:3px; background:#1e232b; overflow:hidden;">
+              <div style="width:31.5%; height:100%; background:#4a9eff; border-radius:3px;"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding-top:8px; font-family:'Cascadia Code', Consolas, monospace; font-size:10.5px; color:#5a6472;">
+              <div>picture index · S03E10</div><div>31%</div>
+            </div>
+          </div>
+        </div>
+
+        <div onMouseEnter="{{ hover3 }}" onMouseLeave="{{ hoverOut }}" style="background:#13161b; border:1px solid #232830; border-radius:8px; padding:14px 16px; display:flex; align-items:center; gap:16px;" style-hover="border-color:#313944;">
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:center; gap:9px;">
+              <div style="font-size:15px; font-weight:600; letter-spacing:-0.01em;">Titanic</div>
+              <div style="font-size:10px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#8f9aa8; background:#1b2028; border:1px solid #2a313a; padding:2px 6px; border-radius:4px;">movie</div>
+            </div>
+            <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:11px; color:#5a6472; padding-top:6px;">E:\Media\Titanic</div>
+          </div>
+          <div style="width:150px; flex:0 0 150px; font-size:12px; color:#7f8a99; white-space:nowrap;">14 MB</div>
+          <div style="width:150px; flex:0 0 150px;">
+            <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:500; color:#37c47a; background:#37c47a14; border:1px solid #37c47a33; padding:3px 9px; border-radius:20px; white-space:nowrap;">
+              <div style="width:5px; height:5px; border-radius:50%; background:#37c47a;"></div>ready
+            </div>
+          </div>
+          <div style="width:250px; flex:0 0 250px; display:flex; justify-content:flex-end; gap:4px; white-space:nowrap; opacity:{{ act3 }}; transition:opacity .12s;">
+            <div style="padding:5px 9px; border-radius:5px; font-size:11.5px; color:#a8b2bf; border:1px solid #262b33; cursor:pointer;" style-hover="background:#1b2028; color:#dfe4ea;">Check</div>
+            <div style="padding:5px 9px; border-radius:5px; font-size:11.5px; color:#a8b2bf; border:1px solid #262b33; cursor:pointer;" style-hover="background:#1b2028; color:#dfe4ea;">Rebuild</div>
+            <div style="padding:5px 9px; border-radius:5px; font-size:11.5px; color:#a8b2bf; border:1px solid #262b33; cursor:pointer;" style-hover="background:#1b2028; color:#dfe4ea;">Change folder</div>
+            <div style="padding:5px 9px; border-radius:5px; font-size:11.5px; color:#8a5f5c; border:1px solid #262b33; cursor:pointer;" style-hover="background:#ef5f5214; color:#ef5f52; border-color:#ef5f5233;">Remove</div>
+          </div>
+        </div>
+
+        <div onMouseEnter="{{ hover4 }}" onMouseLeave="{{ hoverOut }}" style="background:#13161b; border:1px solid #232830; border-radius:8px; padding:14px 16px; display:flex; align-items:center; gap:16px;" style-hover="border-color:#313944;">
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:center; gap:9px;">
+              <div style="font-size:15px; font-weight:600; letter-spacing:-0.01em;">The Shawshank Redemption</div>
+              <div style="font-size:10px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#8f9aa8; background:#1b2028; border:1px solid #2a313a; padding:2px 6px; border-radius:4px;">movie</div>
+            </div>
+            <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:11px; color:#5a6472; padding-top:6px;">E:\Media\The Shawshank Redemption</div>
+          </div>
+          <div style="width:150px; flex:0 0 150px; font-size:12px; color:#5a6472; white-space:nowrap;">—</div>
+          <div style="width:150px; flex:0 0 150px;">
+            <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:500; color:#e0a53a; background:#e0a53a14; border:1px solid #e0a53a33; padding:3px 9px; border-radius:20px; white-space:nowrap;">
+              <div style="width:5px; height:5px; border-radius:50%; background:#e0a53a;"></div>4 without subtitles
+            </div>
+          </div>
+          <div style="width:250px; flex:0 0 250px; display:flex; justify-content:flex-end; gap:4px; white-space:nowrap; opacity:{{ act4 }}; transition:opacity .12s;">
+            <div style="padding:5px 9px; border-radius:5px; font-size:11.5px; color:#a8b2bf; border:1px solid #262b33; cursor:pointer;" style-hover="background:#1b2028; color:#dfe4ea;">Check</div>
+            <div style="padding:5px 9px; border-radius:5px; font-size:11.5px; color:#a8b2bf; border:1px solid #262b33; cursor:pointer;" style-hover="background:#1b2028; color:#dfe4ea;">Rebuild</div>
+            <div style="padding:5px 9px; border-radius:5px; font-size:11.5px; color:#a8b2bf; border:1px solid #262b33; cursor:pointer;" style-hover="background:#1b2028; color:#dfe4ea;">Change folder</div>
+            <div style="padding:5px 9px; border-radius:5px; font-size:11.5px; color:#8a5f5c; border:1px solid #262b33; cursor:pointer;" style-hover="background:#ef5f5214; color:#ef5f52; border-color:#ef5f5233;">Remove</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div style="height:1px; background:#1d2229; margin:44px 0 0 0;"></div>
+
+      <div style="padding-top:30px;">
+        <div style="font-size:10px; font-weight:600; letter-spacing:0.11em; color:#5a6472;">FOUNDATION</div>
+        <div style="font-size:17px; font-weight:600; letter-spacing:-0.015em; padding-top:6px;">Components</div>
+        <div style="font-size:12.5px; color:#7f8a99; padding-top:4px;">Baaki screens isi set pe banengi</div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(330px, 1fr)); gap:14px; padding-top:20px;">
+
+        <div style="background:#13161b; border:1px solid #232830; border-radius:8px; padding:16px;">
+          <div style="font-size:10px; font-weight:600; letter-spacing:0.09em; color:#5a6472; padding-bottom:14px;">COLOUR TOKENS</div>
+          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px;">
+            <div><div style="height:34px; border-radius:5px; background:#0b0d10; border:1px solid #262b33;"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:#7f8a99; padding-top:5px;">bg<br>#0b0d10</div></div>
+            <div><div style="height:34px; border-radius:5px; background:#13161b; border:1px solid #262b33;"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:#7f8a99; padding-top:5px;">surface<br>#13161b</div></div>
+            <div><div style="height:34px; border-radius:5px; background:#191d23; border:1px solid #262b33;"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:#7f8a99; padding-top:5px;">raised<br>#191d23</div></div>
+            <div><div style="height:34px; border-radius:5px; background:#262b33;"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:#7f8a99; padding-top:5px;">border<br>#262b33</div></div>
+            <div><div style="height:34px; border-radius:5px; background:#dfe4ea;"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:#7f8a99; padding-top:5px;">text<br>#dfe4ea</div></div>
+            <div><div style="height:34px; border-radius:5px; background:#7f8a99;"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:#7f8a99; padding-top:5px;">muted<br>#7f8a99</div></div>
+            <div><div style="height:34px; border-radius:5px; background:#5a6472;"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:#7f8a99; padding-top:5px;">faint<br>#5a6472</div></div>
+            <div><div style="height:34px; border-radius:5px; background:#3d8bfd;"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:#7f8a99; padding-top:5px;">accent<br>#3d8bfd</div></div>
+            <div><div style="height:34px; border-radius:5px; background:#37c47a;"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:#7f8a99; padding-top:5px;">ok<br>#37c47a</div></div>
+            <div><div style="height:34px; border-radius:5px; background:#e0a53a;"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:#7f8a99; padding-top:5px;">warn<br>#e0a53a</div></div>
+            <div><div style="height:34px; border-radius:5px; background:#ef5f52;"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:#7f8a99; padding-top:5px;">bad<br>#ef5f52</div></div>
+            <div><div style="height:34px; border-radius:5px; background:#4a9eff;"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:#7f8a99; padding-top:5px;">busy<br>#4a9eff</div></div>
+          </div>
+        </div>
+
+        <div style="background:#13161b; border:1px solid #232830; border-radius:8px; padding:16px;">
+          <div style="font-size:10px; font-weight:600; letter-spacing:0.09em; color:#5a6472; padding-bottom:14px;">TYPE SCALE</div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; align-items:baseline; gap:12px;"><div style="width:78px; flex:0 0 78px; font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:#5a6472;">21 / 600</div><div style="font-size:21px; font-weight:600; letter-spacing:-0.02em;">Page title</div></div>
+            <div style="display:flex; align-items:baseline; gap:12px;"><div style="width:78px; flex:0 0 78px; font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:#5a6472;">17 / 600</div><div style="font-size:17px; font-weight:600; letter-spacing:-0.015em;">Section</div></div>
+            <div style="display:flex; align-items:baseline; gap:12px;"><div style="width:78px; flex:0 0 78px; font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:#5a6472;">15 / 600</div><div style="font-size:15px; font-weight:600; letter-spacing:-0.01em;">Item title</div></div>
+            <div style="display:flex; align-items:baseline; gap:12px;"><div style="width:78px; flex:0 0 78px; font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:#5a6472;">13 / 400</div><div style="font-size:13px;">Body — default UI text</div></div>
+            <div style="display:flex; align-items:baseline; gap:12px;"><div style="width:78px; flex:0 0 78px; font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:#5a6472;">12 / 400</div><div style="font-size:12px; color:#7f8a99;">Secondary / muted</div></div>
+            <div style="display:flex; align-items:baseline; gap:12px;"><div style="width:78px; flex:0 0 78px; font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:#5a6472;">10 / 600</div><div style="font-size:10px; font-weight:600; letter-spacing:0.09em; color:#5a6472;">SECTION LABEL</div></div>
+            <div style="display:flex; align-items:baseline; gap:12px;"><div style="width:78px; flex:0 0 78px; font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:#5a6472;">11 mono</div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:11px; color:#5a6472;">E:\Media\Path</div></div>
+          </div>
+        </div>
+
+        <div style="background:#13161b; border:1px solid #232830; border-radius:8px; padding:16px;">
+          <div style="font-size:10px; font-weight:600; letter-spacing:0.09em; color:#5a6472; padding-bottom:14px;">BUTTONS</div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; padding-bottom:12px;">
+            <div style="background:#3d8bfd; color:#04070c; font-size:12.5px; font-weight:600; padding:8px 14px; border-radius:6px; cursor:pointer;" style-hover="background:#5b9dff;" style-active="background:#3579e0;">Primary</div>
+            <div style="background:#191d23; border:1px solid #333a44; color:#dfe4ea; font-size:12.5px; font-weight:500; padding:7px 13px; border-radius:6px; cursor:pointer;" style-hover="background:#222731;">Secondary</div>
+            <div style="color:#a8b2bf; font-size:12.5px; font-weight:500; padding:8px 12px; border-radius:6px; cursor:pointer;" style-hover="background:#191d23; color:#dfe4ea;">Ghost</div>
+            <div style="background:#ef5f5214; border:1px solid #ef5f5233; color:#ef5f52; font-size:12.5px; font-weight:500; padding:7px 13px; border-radius:6px; cursor:pointer;" style-hover="background:#ef5f5222;">Danger</div>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            <div style="background:#1b2029; color:#4d5765; font-size:12.5px; font-weight:600; padding:8px 14px; border-radius:6px; cursor:not-allowed;">Primary</div>
+            <div style="background:#13161b; border:1px solid #23282f; color:#4d5765; font-size:12.5px; font-weight:500; padding:7px 13px; border-radius:6px; cursor:not-allowed;">Secondary</div>
+            <div style="color:#4d5765; font-size:12.5px; font-weight:500; padding:8px 12px; border-radius:6px; cursor:not-allowed;">Ghost</div>
+            <div style="font-size:11px; color:#5a6472; align-self:center;">disabled</div>
+          </div>
+        </div>
+
+        <div style="background:#13161b; border:1px solid #232830; border-radius:8px; padding:16px;">
+          <div style="font-size:10px; font-weight:600; letter-spacing:0.09em; color:#5a6472; padding-bottom:14px;">BADGES</div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:500; color:#37c47a; background:#37c47a14; border:1px solid #37c47a33; padding:3px 9px; border-radius:20px;"><div style="width:5px; height:5px; border-radius:50%; background:#37c47a;"></div>ready</div>
+            <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:500; color:#e0a53a; background:#e0a53a14; border:1px solid #e0a53a33; padding:3px 9px; border-radius:20px;"><div style="width:5px; height:5px; border-radius:50%; background:#e0a53a;"></div>4 without subtitles</div>
+            <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:500; color:#4a9eff; background:#4a9eff14; border:1px solid #4a9eff33; padding:3px 9px; border-radius:20px;"><div style="width:5px; height:5px; border-radius:50%; background:#4a9eff;"></div>indexing 23/62</div>
+            <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:500; color:#7f8a99; background:#7f8a9914; border:1px solid #7f8a9933; padding:3px 9px; border-radius:20px;"><div style="width:5px; height:5px; border-radius:50%; background:#7f8a99;"></div>not indexed</div>
+            <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:500; color:#ef5f52; background:#ef5f5214; border:1px solid #ef5f5233; padding:3px 9px; border-radius:20px;"><div style="width:5px; height:5px; border-radius:50%; background:#ef5f52;"></div>failed</div>
+            <div style="font-size:10px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#8f9aa8; background:#1b2028; border:1px solid #2a313a; padding:2px 6px; border-radius:4px;">series</div>
+            <div style="font-size:10px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#8f9aa8; background:#1b2028; border:1px solid #2a313a; padding:2px 6px; border-radius:4px;">movie</div>
+          </div>
+        </div>
+
+        <div style="background:#13161b; border:1px solid #232830; border-radius:8px; padding:16px;">
+          <div style="font-size:10px; font-weight:600; letter-spacing:0.09em; color:#5a6472; padding-bottom:14px;">FORM CONTROLS</div>
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div>
+              <div style="font-size:11.5px; color:#8f9aa8; padding-bottom:6px;">Text input</div>
+              <input type="text" value="Breaking Bad" style="width:100%; box-sizing:border-box; background:#0f1216; border:1px solid #2a313a; border-radius:6px; padding:8px 10px; color:#dfe4ea; font-size:12.5px; font-family:inherit; outline:none;" style-focus="border-color:#3d8bfd;">
+            </div>
+            <div>
+              <div style="font-size:11.5px; color:#8f9aa8; padding-bottom:6px;">Disabled input</div>
+              <input type="text" value="E:\Libraries\Breaking Bad" disabled style="width:100%; box-sizing:border-box; background:#0d1014; border:1px solid #23282f; border-radius:6px; padding:8px 10px; color:#4d5765; font-size:12px; font-family:'Cascadia Code', Consolas, monospace; outline:none;">
+            </div>
+            <div>
+              <div style="font-size:11.5px; color:#8f9aa8; padding-bottom:6px;">Select</div>
+              <select style="width:100%; box-sizing:border-box; background:#0f1216; border:1px solid #2a313a; border-radius:6px; padding:8px 10px; color:#dfe4ea; font-size:12.5px; font-family:inherit; outline:none;">
+                <option>Breaking Bad</option>
+                <option>Game of Thrones</option>
+              </select>
+            </div>
+            <div style="display:flex; align-items:center; gap:20px; padding-top:2px;">
+              <div onClick="{{ toggleCheckbox }}" style="display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none;">
+                <div style="{{ cbBox }}"><sc-if value="{{ cbOn }}" hint-placeholder-val="{{ true }}"><svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M1.5 5.2l2.3 2.3L8.5 2.8" stroke="#04070c" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if></div>
+                <div style="font-size:12.5px; color:#dfe4ea;">Checkbox</div>
+              </div>
+              <div onClick="{{ toggleSwitch }}" style="display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none;">
+                <div style="{{ swTrack }}"><div style="{{ swKnob }}"></div></div>
+                <div style="font-size:12.5px; color:#dfe4ea;">Toggle</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:#13161b; border:1px solid #232830; border-radius:8px; padding:16px;">
+          <div style="font-size:10px; font-weight:600; letter-spacing:0.09em; color:#5a6472; padding-bottom:14px;">PROGRESS &amp; FEEDBACK</div>
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <div>
+              <div style="height:6px; border-radius:3px; background:#1e232b; overflow:hidden;"><div style="width:64%; height:100%; background:#4a9eff; border-radius:3px;"></div></div>
+              <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:10.5px; color:#5a6472; padding-top:6px;">determinate · 64%</div>
+            </div>
+            <div>
+              <div style="height:6px; border-radius:3px; background:#1e232b; overflow:hidden;"><div style="width:34%; height:100%; background:#37c47a; border-radius:3px;"></div></div>
+              <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:10.5px; color:#5a6472; padding-top:6px;">success tone</div>
+            </div>
+            <div style="display:flex; align-items:flex-start; gap:10px; background:#191d23; border:1px solid #333a44; border-radius:7px; padding:11px 13px;">
+              <div style="width:6px; height:6px; border-radius:50%; background:#37c47a; margin-top:5px; flex:0 0 6px;"></div>
+              <div style="flex:1;">
+                <div style="font-size:12.5px; font-weight:500;">Index built</div>
+                <div style="font-size:11.5px; color:#7f8a99; padding-top:2px;">Breaking Bad · 62 episodes</div>
+              </div>
+              <div style="color:#5a6472; cursor:pointer; font-size:14px; line-height:1;" style-hover="color:#dfe4ea;">×</div>
+            </div>
+            <div style="display:flex; align-items:flex-start; gap:9px; background:#ef5f520f; border:1px solid #ef5f5233; border-radius:7px; padding:10px 12px;">
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="margin-top:1px; flex:0 0 13px;"><circle cx="7" cy="7" r="6" stroke="#ef5f52" stroke-width="1.4"></circle><path d="M7 4v3.5M7 9.8v.1" stroke="#ef5f52" stroke-width="1.5" stroke-linecap="round"></path></svg>
+              <div style="font-size:12px; color:#ef8d84; line-height:1.5;">Folder <span style="font-family:'Cascadia Code', Consolas, monospace;">E:\Media\Dune</span> nahi mila</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:#13161b; border:1px solid #232830; border-radius:8px; padding:16px;">
+          <div style="font-size:10px; font-weight:600; letter-spacing:0.09em; color:#5a6472; padding-bottom:14px;">EMPTY STATE</div>
+          <div style="border:1px dashed #2a313a; border-radius:8px; padding:34px 20px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:5px;">
+            <div style="width:34px; height:34px; border-radius:8px; background:#191d23; border:1px solid #2a313a; display:flex; align-items:center; justify-content:center; margin-bottom:6px;">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5" stroke="#5a6472" stroke-width="1.3"></rect><path d="M6.5 6.3l3.5 1.7-3.5 1.7V6.3z" fill="#5a6472"></path></svg>
+            </div>
+            <div style="font-size:14px; font-weight:600;">Abhi koi title nahi</div>
+            <div style="font-size:12px; color:#7f8a99; max-width:250px; line-height:1.5;">Ek movie ya series add karo — index ek baar banega, phir har video me kaam aayega.</div>
+            <div style="background:#3d8bfd; color:#04070c; font-size:12.5px; font-weight:600; padding:8px 14px; border-radius:6px; cursor:pointer; margin-top:10px;" style-hover="background:#5b9dff;">+ Add title</div>
+          </div>
+        </div>
+
+        <div style="background:#13161b; border:1px solid #232830; border-radius:8px; padding:16px;">
+          <div style="font-size:10px; font-weight:600; letter-spacing:0.09em; color:#5a6472; padding-bottom:14px;">LOADING</div>
+          <div style="display:flex; flex-direction:column; gap:9px;">
+            <div style="height:14px; width:58%; border-radius:4px; background:linear-gradient(90deg,#191d23 0%,#232932 50%,#191d23 100%); background-size:400px 100%; animation:shimmer 1.4s linear infinite;"></div>
+            <div style="height:11px; width:82%; border-radius:4px; background:linear-gradient(90deg,#191d23 0%,#232932 50%,#191d23 100%); background-size:400px 100%; animation:shimmer 1.4s linear infinite;"></div>
+            <div style="height:11px; width:40%; border-radius:4px; background:linear-gradient(90deg,#191d23 0%,#232932 50%,#191d23 100%); background-size:400px 100%; animation:shimmer 1.4s linear infinite;"></div>
+            <div style="height:44px; border-radius:6px; background:linear-gradient(90deg,#191d23 0%,#232932 50%,#191d23 100%); background-size:400px 100%; animation:shimmer 1.4s linear infinite; margin-top:4px;"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ onStub }}" hint-placeholder-val="{{ false }}">
+      <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:60px;">
+        <div style="font-size:17px; font-weight:600;">{{ stubTitle }}</div>
+        <div style="font-size:12.5px; color:#7f8a99;">Ye screen abhi design nahi hui — agle message me banegi.</div>
+        <div onClick="{{ goLibrary }}" style="margin-top:12px; background:#191d23; border:1px solid #333a44; color:#dfe4ea; font-size:12.5px; font-weight:500; padding:7px 13px; border-radius:6px; cursor:pointer;" style-hover="background:#222731;">← Library</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ panelOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closePanel }}" style="position:fixed; inset:0; background:#04070ca8; z-index:40;"></div>
+      <div style="position:fixed; top:0; right:0; bottom:0; width:424px; background:#101317; border-left:1px solid #262b33; z-index:41; display:flex; flex-direction:column; box-shadow:-24px 0 48px #04070c66;">
+
+        <div style="padding:18px 20px; border-bottom:1px solid #1d2229; display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div style="font-size:15px; font-weight:600; letter-spacing:-0.01em;">Add title</div>
+            <div style="font-size:11.5px; color:#7f8a99; padding-top:3px;">Index ek baar banta hai</div>
+          </div>
+          <div onClick="{{ closePanel }}" style="color:#7f8a99; cursor:pointer; font-size:18px; line-height:1; padding:2px 6px; border-radius:5px;" style-hover="background:#191d23; color:#dfe4ea;">×</div>
+        </div>
+
+        <div style="flex:1; overflow-y:auto; padding:18px 20px; display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <div style="font-size:11.5px; color:#8f9aa8; padding-bottom:6px;">Title</div>
+            <input type="text" value="Better Call Saul" style="width:100%; box-sizing:border-box; background:#0f1216; border:1px solid #2a313a; border-radius:6px; padding:8px 10px; color:#dfe4ea; font-size:12.5px; font-family:inherit; outline:none;" style-focus="border-color:#3d8bfd;">
+          </div>
+
+          <div>
+            <div style="font-size:11.5px; color:#8f9aa8; padding-bottom:6px;">Video folder</div>
+            <div style="display:flex; gap:6px;">
+              <input type="text" value="E:\Media\Better Call Saul" style="flex:1; min-width:0; background:#0f1216; border:1px solid #2a313a; border-radius:6px; padding:8px 10px; color:#dfe4ea; font-size:12px; font-family:'Cascadia Code', Consolas, monospace; outline:none;" style-focus="border-color:#3d8bfd;">
+              <div style="background:#191d23; border:1px solid #333a44; color:#dfe4ea; font-size:12.5px; font-weight:500; padding:7px 13px; border-radius:6px; cursor:pointer; white-space:nowrap;" style-hover="background:#222731;">Browse</div>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:11.5px; color:#8f9aa8; padding-bottom:6px;">Library folder</div>
+            <input type="text" value="E:\Libraries\Better Call Saul" disabled style="width:100%; box-sizing:border-box; background:#0d1014; border:1px solid #23282f; border-radius:6px; padding:8px 10px; color:#4d5765; font-size:12px; font-family:'Cascadia Code', Consolas, monospace; outline:none;">
+            <div style="font-size:11px; color:#5a6472; padding-top:5px;">Title ke naam se apne aap banta hai</div>
+          </div>
+
+          <div style="display:flex; gap:8px; padding-top:2px;">
+            <div onClick="{{ runCheck }}" style="background:#191d23; border:1px solid #333a44; color:#dfe4ea; font-size:12.5px; font-weight:500; padding:7px 13px; border-radius:6px; cursor:pointer;" style-hover="background:#222731;">Check</div>
+            <sc-if value="{{ checked }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#3d8bfd; color:#04070c; font-size:12.5px; font-weight:600; padding:8px 14px; border-radius:6px; cursor:pointer; white-space:nowrap;" style-hover="background:#5b9dff;">Build index</div>
+            </sc-if>
+            <sc-if value="{{ notChecked }}" hint-placeholder-val="{{ true }}">
+              <div style="background:#1b2029; color:#4d5765; font-size:12.5px; font-weight:600; padding:8px 14px; border-radius:6px; cursor:not-allowed; white-space:nowrap;">Build index</div>
+            </sc-if>
+          </div>
+
+          <sc-if value="{{ notChecked }}" hint-placeholder-val="{{ true }}">
+            <div style="border:1px dashed #262b33; border-radius:7px; padding:22px 16px; text-align:center; font-size:12px; color:#5a6472; line-height:1.6;">
+              Pehle <span style="color:#8f9aa8;">Check</span> chalao —<br>folder me kya hai wo yahan dikhega.
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ checked }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#0f1216; border:1px solid #1d2229; border-radius:7px; padding:14px 15px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; padding-bottom:11px;">
+                <div style="font-size:10px; font-weight:600; letter-spacing:0.09em; color:#5a6472;">CHECK RESULT</div>
+                <div style="display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600; color:#e0a53a; background:#e0a53a14; border:1px solid #e0a53a33; padding:2px 8px; border-radius:20px;">GAPS</div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:9px; font-size:12px; line-height:1.45;">
+                <div style="display:flex; gap:9px;"><div style="color:#37c47a; flex:0 0 12px;">✓</div><div style="color:#c3cad4;">62 video files mile</div></div>
+                <div style="display:flex; gap:9px;"><div style="color:#37c47a; flex:0 0 12px;">✓</div><div style="color:#c3cad4;">58 episodes — subtitles theek</div></div>
+                <div style="display:flex; gap:9px;"><div style="color:#e0a53a; flex:0 0 12px;">⚠</div><div style="color:#c3cad4;">2 episodes — subtitle image-based hai <span style="color:#7f8a99;">(.srt chahiye)</span></div></div>
+                <div style="display:flex; gap:9px;"><div style="color:#ef5f52; flex:0 0 12px;">✗</div><div style="color:#c3cad4;">2 episodes — subtitle hai hi nahi<div style="font-family:'Cascadia Code', Consolas, monospace; font-size:11px; color:#7f8a99; padding-top:3px;">S02E07, S05E03</div></div></div>
+                <div style="display:flex; gap:9px;"><div style="color:#37c47a; flex:0 0 12px;">✓</div><div style="color:#c3cad4;">disk pe 340 GB jagah hai</div></div>
+                <div style="display:flex; gap:9px;"><div style="flex:0 0 12px;"></div><div style="color:#7f8a99;">picture index me lagega: <span style="color:#c3cad4;">~4 ghante</span></div></div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { nav: 'Library', panelOpen: false, checked: false, paused: false, hover: 0, cb: true, sw: false };
+
+  nav(name) {
+    const active = this.state.nav === name;
+    return 'padding:6px 10px; border-radius:5px; cursor:pointer; user-select:none; font-size:12.5px; '
+      + (active ? 'background:#1b232e; color:#dfe4ea; font-weight:500; box-shadow:inset 2px 0 0 #3d8bfd;' : 'color:#8f9aa8;');
+  }
+
+  renderVals() {
+    const s = this.state;
+    const go = (n) => () => this.setState({ nav: n });
+    return {
+      onLibrary: s.nav === 'Library',
+      onStub: s.nav !== 'Library',
+      stubTitle: s.nav,
+      navNewVideo: this.nav('New Video'), navQueue: this.nav('Queue'), navEditor: this.nav('Editor'),
+      navLibrary: this.nav('Library'), navSettings: this.nav('Settings'),
+      goNewVideo: go('New Video'), goQueue: go('Queue'), goEditor: go('Editor'),
+      goLibrary: go('Library'), goSettings: go('Settings'),
+      openPanel: () => this.setState({ panelOpen: true }),
+      closePanel: () => this.setState({ panelOpen: false, checked: false }),
+      runCheck: () => this.setState({ checked: true }),
+      panelOpen: s.panelOpen, checked: s.checked, notChecked: !s.checked,
+      togglePause: () => this.setState({ paused: !s.paused }),
+      pauseLabel: s.paused ? 'Resume' : 'Pause',
+      hover1: () => this.setState({ hover: 1 }), hover2: () => this.setState({ hover: 2 }),
+      hover3: () => this.setState({ hover: 3 }), hover4: () => this.setState({ hover: 4 }),
+      hoverOut: () => this.setState({ hover: 0 }),
+      act1: s.hover === 1 ? 1 : 0, act2: s.hover === 2 ? 1 : 0,
+      act3: s.hover === 3 ? 1 : 0, act4: s.hover === 4 ? 1 : 0,
+      cbOn: s.cb,
+      toggleCheckbox: () => this.setState({ cb: !s.cb }),
+      cbBox: 'width:15px; height:15px; border-radius:4px; display:flex; align-items:center; justify-content:center; '
+        + (s.cb ? 'background:#3d8bfd; border:1px solid #3d8bfd;' : 'background:#0f1216; border:1px solid #333a44;'),
+      toggleSwitch: () => this.setState({ sw: !s.sw }),
+      swTrack: 'width:30px; height:17px; border-radius:9px; padding:2px; display:flex; transition:background .15s; '
+        + (s.sw ? 'background:#3d8bfd; justify-content:flex-end;' : 'background:#2a313a; justify-content:flex-start;'),
+      swKnob: 'width:13px; height:13px; border-radius:50%; background:' + (s.sw ? '#04070c' : '#8f9aa8') + ';'
+    };
+  }
+}
+
+</script>
+</body>
+</html>

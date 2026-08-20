@@ -1,0 +1,149 @@
+[
+  {
+    "beat": 1,
+    "header": "THE VALLEY OWES HIM",
+    "narration": "Marlow never had to threaten anyone. He simply reminded them what they owed.",
+    "shots": [
+      {
+        "source": "Iron Harvest",
+        "season_episode": "S01E01",
+        "exact_dialogue": "Every man in this valley owes me something",
+        "speaker": "Marlow",
+        "dialogue_confidence": "high",
+        "visual": "Marlow on the porch at dusk, addressing the farmers.",
+        "duration_target_sec": 4
+      }
+    ]
+  },
+  {
+    "beat": 2,
+    "header": "WHAT HE ACTUALLY WANTED",
+    "narration": "The harvest was never the point.",
+    "shots": [
+      {
+        "source": "Iron Harvest",
+        "season_episode": "S01E01",
+        "exact_dialogue": "I never wanted the harvest. I wanted the land it grew on.",
+        "dialogue_confidence": "high",
+        "visual": "Close on Marlow, wheat field behind him going out of focus.",
+        "duration_target_sec": 5
+      }
+    ]
+  },
+  {
+    "beat": 3,
+    "header": "THE WRONG EPISODE",
+    "narration": "By the second season the debt had become the whole relationship.",
+    "shots": [
+      {
+        "source": "Iron Harvest",
+        "season_episode": "S01E03",
+        "exact_dialogue": "A debt isn't a rope. It's a road. It goes both directions.",
+        "dialogue_confidence": "high",
+        "visual": "Two men walking the frozen access road.",
+        "duration_target_sec": 5
+      }
+    ]
+  },
+  {
+    "beat": 4,
+    "header": "BURN IT",
+    "narration": "Twice in one season, the same answer.",
+    "shots": [
+      {
+        "source": "Iron Harvest",
+        "season_episode": "unknown",
+        "exact_dialogue": "Then we burn the field",
+        "dialogue_confidence": "high",
+        "visual": "Wide shot of the field at night.",
+        "duration_target_sec": 3
+      }
+    ]
+  },
+  {
+    "beat": 5,
+    "header": "A MONTAGE",
+    "narration": "The winter closes in on all of them at once.",
+    "shots": [
+      {
+        "source": "The Long Winter",
+        "season_episode": "unknown",
+        "exact_dialogue": "We ration from tonight. No exceptions.",
+        "dialogue_confidence": "high",
+        "visual": "Holt at the head of the table, lamp swinging.",
+        "duration_target_sec": 3
+      },
+      {
+        "source": "The Long Winter",
+        "season_episode": "unknown",
+        "exact_dialogue": "Something is walking the perimeter",
+        "dialogue_confidence": "high",
+        "visual": "Torchlight on the snow fence.",
+        "duration_target_sec": 3
+      }
+    ]
+  },
+  {
+    "beat": 6,
+    "header": "SLIGHTLY MISREMEMBERED",
+    "narration": "Nobody gets out of that county untouched.",
+    "shots": [
+      {
+        "source": "Iron Harvest",
+        "season_episode": "S01E01",
+        "exact_dialogue": "Nobody leaves Kessler County clean",
+        "dialogue_confidence": "approximate",
+        "visual": "Marlow watching a truck leave.",
+        "duration_target_sec": 4
+      }
+    ]
+  },
+  {
+    "beat": 7,
+    "header": "SILENT SHOT",
+    "narration": "The field itself does the talking.",
+    "shots": [
+      {
+        "source": "Iron Harvest",
+        "season_episode": "S01E01",
+        "exact_dialogue": "",
+        "nearest_dialogue": "You can't bury a thing that keeps growing back",
+        "nearest_dialogue_position": "before",
+        "dialogue_confidence": "none",
+        "visual": "Slow aerial over the burnt field at sunrise. No dialogue.",
+        "duration_target_sec": 5
+      }
+    ]
+  },
+  {
+    "beat": 8,
+    "header": "NOT IN THE LIBRARY",
+    "narration": "Another story ends the same way.",
+    "shots": [
+      {
+        "source": "The Salt Road",
+        "season_episode": "S01E04",
+        "exact_dialogue": "You never asked me what it cost",
+        "dialogue_confidence": "high",
+        "visual": "Night market, rain.",
+        "duration_target_sec": 4
+      }
+    ]
+  },
+  {
+    "beat": 9,
+    "header": "PURE B-ROLL",
+    "narration": "And the ground stays frozen.",
+    "shots": [
+      {
+        "source": "Iron Harvest",
+        "season_episode": "S02E01",
+        "exact_dialogue": "",
+        "nearest_dialogue": "",
+        "dialogue_confidence": "none",
+        "visual": "Macro of frost forming on soil. No dialogue anywhere near.",
+        "duration_target_sec": 4
+      }
+    ]
+  }
+]

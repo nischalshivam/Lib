@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+<template id="__bundler_thumbnail" data-bg-color="#f6f7f9">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#f6f7f9"/>
+    <rect x="380" y="290" width="440" height="220" rx="36" fill="#2563eb"/>
+    <path d="M540 350l180 100-180 100V350z" fill="#ffffff"/>
+  </svg>
+</template>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  body { margin:0; background:#f6f7f9; }
+  body:has([data-theme="dark"]) { background:#0b0e13; }
+  [data-theme="light"] {
+    --bg:#f6f7f9; --surface:#ffffff; --raised:#f1f3f6; --sidebar:#ffffff;
+    --border:#e8eaee; --border-strong:#d6dae1; --line:#eef0f3;
+    --text:#0f1418; --muted:#6b7280; --faint:#9aa2ad;
+    --accent:#2563eb; --accent-hover:#1d4ed8; --accent-soft:#eef4ff; --on-accent:#ffffff;
+    --hover:#f3f5f8;
+    --ok:#15803d; --ok-soft:#ecf8f0; --ok-line:#cfead9;
+    --warn:#b45309; --warn-soft:#fdf5e8; --warn-line:#f0dfbe;
+    --bad:#dc2626; --bad-soft:#fdf1f0; --bad-line:#f3d3d0;
+    --busy:#2563eb; --busy-soft:#eef4ff; --busy-line:#d3e2fd;
+    --shadow-sm:0 1px 2px rgba(16,24,40,.05);
+    --shadow-md:0 4px 14px rgba(16,24,40,.07);
+    --shadow-lg:-24px 0 60px rgba(16,24,40,.12);
+    --shimmer:linear-gradient(90deg,#f1f3f6 0%,#e7eaef 50%,#f1f3f6 100%);
+  }
+  [data-theme="dark"] {
+    --bg:#0b0e13; --surface:#12161d; --raised:#1a1f28; --sidebar:#0e1218;
+    --border:#1e232b; --border-strong:#2c333e; --line:#191e26;
+    --text:#e6e9ee; --muted:#8b93a1; --faint:#626b78;
+    --accent:#3b82f6; --accent-hover:#5b9aff; --accent-soft:#3b82f61f; --on-accent:#ffffff;
+    --hover:#171c24;
+    --ok:#4ade80; --ok-soft:#4ade8014; --ok-line:#4ade8030;
+    --warn:#fbbf24; --warn-soft:#fbbf2414; --warn-line:#fbbf2430;
+    --bad:#f87171; --bad-soft:#f8717114; --bad-line:#f8717130;
+    --busy:#60a5fa; --busy-soft:#60a5fa14; --busy-line:#60a5fa30;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.3);
+    --shadow-md:0 4px 16px rgba(0,0,0,.35);
+    --shadow-lg:-24px 0 60px rgba(0,0,0,.45);
+    --shimmer:linear-gradient(90deg,#1a1f28 0%,#232935 50%,#1a1f28 100%);
+  }
+  a { color:#2563eb; text-decoration:none; }
+  a:hover { color:#1d4ed8; }
+  input, select, button { font-family:inherit; }
+  ::placeholder { color:var(--faint); }
+  @keyframes shimmer { 0% { background-position:-420px 0; } 100% { background-position:420px 0; } }
+  @keyframes slidein { from { transform:translateX(28px); opacity:0; } to { transform:translateX(0); opacity:1; } }
+  @keyframes fadein { from { opacity:0; } to { opacity:1; } }
+</style>
+</helmet>
+<div data-theme="{{ theme }}" style="display:flex; height:100vh; min-height:700px; background:var(--bg); color:var(--text); font-family:-apple-system, 'Segoe UI', Roboto, sans-serif; font-size:13.5px; -webkit-font-smoothing:antialiased;">
+
+  <div style="{{ sidebarStyle }}">
+    <div style="padding:18px 16px 14px 16px; display:flex; align-items:center; gap:10px; justify-content:space-between;">
+      <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+        <div onClick="{{ toggleSidebar }}" style="width:28px; height:28px; flex:0 0 28px; border-radius:9px; background:var(--accent); display:flex; align-items:center; justify-content:center; cursor:pointer;">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2.6l5 3.4-5 3.4V2.6z" fill="#fff"></path></svg>
+        </div>
+        <div style="font-size:14.5px; font-weight:650; letter-spacing:-0.02em; white-space:nowrap; {{ labelStyle }}">Movie<span style="color:var(--accent);">Editor</span></div>
+      </div>
+      <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}">
+        <div onClick="{{ toggleSidebar }}" title="Sidebar band karo" style="width:26px; height:26px; flex:0 0 26px; display:flex; align-items:center; justify-content:center; border-radius:7px; color:var(--faint); cursor:pointer; transition:all .12s ease;" style-hover="background:var(--hover); color:var(--text);">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="2.2" stroke="currentColor" stroke-width="1.3"></rect><path d="M6.4 3v10" stroke="currentColor" stroke-width="1.3"></path><path d="M11.4 6.6L9.8 8l1.6 1.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </div>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{ collapsed }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:0 10px 8px 10px;">
+        <div onClick="{{ toggleSidebar }}" title="Sidebar kholo" style="height:32px; display:flex; align-items:center; justify-content:center; border-radius:8px; color:var(--faint); cursor:pointer; transition:all .12s ease;" style-hover="background:var(--hover); color:var(--text);">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="2.2" stroke="currentColor" stroke-width="1.3"></rect><path d="M6.4 3v10" stroke="currentColor" stroke-width="1.3"></path><path d="M9.4 6.6L11 8l-1.6 1.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </div>
+      </div>
+    </sc-if>
+
+    <div style="{{ sideGroupStyle }}">
+      <div style="{{ groupLabel }}">CREATE</div>
+      <div onClick="{{ goNewVideo }}" style="{{ navNewVideo }}" style-hover="background:var(--hover);">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style="flex:0 0 15px;"><rect x="2" y="3.5" width="12" height="9" rx="2" stroke="currentColor" stroke-width="1.3"></rect><path d="M8 6.6v3M6.5 8.1h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"></path></svg>
+        <span style="{{ labelStyle }}">New Video</span>
+      </div>
+      <div onClick="{{ goQueue }}" style="{{ navQueue }}" style-hover="background:var(--hover);">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style="flex:0 0 15px;"><path d="M3 4.5h10M3 8h10M3 11.5h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"></path></svg>
+        <span style="{{ labelStyle }}">Queue</span>
+      </div>
+      <div onClick="{{ goEditor }}" style="{{ navEditor }}" style-hover="background:var(--hover);">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style="flex:0 0 15px;"><path d="M2.5 5.5h11M2.5 10.5h11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"></path><circle cx="6" cy="5.5" r="1.7" fill="var(--sidebar)" stroke="currentColor" stroke-width="1.3"></circle><circle cx="10.5" cy="10.5" r="1.7" fill="var(--sidebar)" stroke="currentColor" stroke-width="1.3"></circle></svg>
+        <span style="{{ labelStyle }}">Editor</span>
+      </div>
+    </div>
+
+    <div style="{{ sideGroup2Style }}">
+      <div style="{{ groupLabel }}">SETUP</div>
+      <div onClick="{{ goLibrary }}" style="{{ navLibrary }}" style-hover="background:var(--hover);">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style="flex:0 0 15px;"><path d="M2.2 5.2c0-.9.7-1.6 1.6-1.6h2l1.3 1.4h5.1c.9 0 1.6.7 1.6 1.6v4.6c0 .9-.7 1.6-1.6 1.6H3.8c-.9 0-1.6-.7-1.6-1.6V5.2z" stroke="currentColor" stroke-width="1.3"></path></svg>
+        <span style="{{ labelStyle }}">Library</span>
+      </div>
+      <div onClick="{{ goSettings }}" style="{{ navSettings }}" style-hover="background:var(--hover);">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style="flex:0 0 15px;"><circle cx="8" cy="8" r="2.1" stroke="currentColor" stroke-width="1.3"></circle><path d="M8 1.8v1.6M8 12.6v1.6M14.2 8h-1.6M3.4 8H1.8M12.4 3.6l-1.1 1.1M4.7 11.3l-1.1 1.1M12.4 12.4l-1.1-1.1M4.7 4.7L3.6 3.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"></path></svg>
+        <span style="{{ labelStyle }}">Settings</span>
+      </div>
+    </div>
+
+    <div style="{{ sideGroup2Style }}">
+      <div style="{{ groupLabel }}">COMING SOON</div>
+      <div style="{{ soonItem }}">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style="flex:0 0 15px;"><rect x="2.5" y="2.5" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.3"></rect></svg>
+        <span style="{{ labelStyle }}">Documentary</span>
+      </div>
+      <div style="{{ soonItem }}">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style="flex:0 0 15px;"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.3"></circle></svg>
+        <span style="{{ labelStyle }}">Cartoon Essay</span>
+      </div>
+      <div style="{{ soonItem }}">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style="flex:0 0 15px;"><path d="M8 2.5l5.5 3.2v6.6L8 15.5 2.5 12.3V5.7L8 2.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"></path></svg>
+        <span style="{{ labelStyle }}">Anime</span>
+      </div>
+    </div>
+
+    <div style="flex:1;"></div>
+
+    <div style="padding:14px 12px 16px 12px; display:flex; flex-direction:column; gap:12px;">
+      <sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex; padding:3px; background:var(--raised); border-radius:10px; gap:3px;">
+        <div onClick="{{ setLight }}" style="{{ lightBtn }}">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2.6" stroke="currentColor" stroke-width="1.3"></circle><path d="M7 1.2v1.4M7 11.4v1.4M12.8 7h-1.4M2.6 7H1.2M11.1 2.9l-1 1M3.9 10.1l-1 1M11.1 11.1l-1-1M3.9 3.9l-1-1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"></path></svg>
+          Light
+        </div>
+        <div onClick="{{ setDark }}" style="{{ darkBtn }}">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M11.4 8.4A5 5 0 015.6 2.6a5 5 0 105.8 5.8z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"></path></svg>
+          Dark
+        </div>
+      </div>
+      <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:10.5px; color:var(--faint); line-height:1.6; padding-left:4px; white-space:nowrap;">
+        E:\Libraries · 4 titles
+      </div>
+      </sc-if>
+      <sc-if value="{{ collapsed }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ toggleTheme }}" title="Theme badlo" style="height:34px; display:flex; align-items:center; justify-content:center; border-radius:9px; background:var(--raised); color:var(--muted); cursor:pointer; transition:all .13s ease;" style-hover="color:var(--text);">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M11.4 8.4A5 5 0 015.6 2.6a5 5 0 105.8 5.8z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"></path></svg>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <div style="flex:1; min-width:0; overflow:auto; position:relative;">
+
+    <sc-if value="{{ onLibrary }}" hint-placeholder-val="{{ true }}">
+    <div style="padding:38px 40px 64px 40px; max-width:1180px; min-width:1180px;">
+
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:28px;">
+        <div>
+          <div style="font-size:30px; font-weight:700; letter-spacing:-0.035em; line-height:1.1;">Library.</div>
+          <div style="font-size:14px; color:var(--muted); padding-top:8px; max-width:460px; line-height:1.55;">Har title ek baar index hota hai — uske baad har video me kaam aata hai.</div>
+        </div>
+        <div onClick="{{ openPanel }}" style="display:flex; align-items:center; gap:7px; background:var(--accent); color:var(--on-accent); font-size:13px; font-weight:600; padding:10px 16px; border-radius:9px; cursor:pointer; user-select:none; box-shadow:var(--shadow-sm); transition:background .15s ease, transform .12s ease; white-space:nowrap;" style-hover="background:var(--accent-hover);" style-active="transform:translateY(1px);">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+          Add title
+        </div>
+      </div>
+
+      <div style="display:flex; gap:8px; padding:26px 0 18px 0;">
+        <div onClick="{{ filterAll }}" style="{{ chipAll }}">All <span style="opacity:.6;">4</span></div>
+        <div onClick="{{ filterSeries }}" style="{{ chipSeries }}">Series <span style="opacity:.6;">2</span></div>
+        <div onClick="{{ filterMovie }}" style="{{ chipMovie }}">Movies <span style="opacity:.6;">2</span></div>
+        <div onClick="{{ filterIssue }}" style="{{ chipIssue }}">Needs attention <span style="opacity:.6;">1</span></div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+
+        <sc-if value="{{ show1 }}" hint-placeholder-val="{{ true }}">
+        <div onMouseEnter="{{ hover1 }}" onMouseLeave="{{ hoverOut }}" style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px; display:flex; align-items:center; gap:18px; box-shadow:var(--shadow-sm); transition:border-color .15s ease, box-shadow .15s ease;" style-hover="border-color:var(--border-strong); box-shadow:var(--shadow-md);">
+          <div style="width:40px; height:40px; flex:0 0 40px; border-radius:11px; background:var(--accent-soft); color:var(--accent); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:650; letter-spacing:-0.02em;">BB</div>
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:center; gap:9px;">
+              <div style="font-size:15px; font-weight:640; letter-spacing:-0.015em;">Breaking Bad</div>
+              <div style="font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:var(--muted); background:var(--raised); padding:2.5px 7px; border-radius:6px;">series</div>
+            </div>
+            <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:11px; color:var(--faint); padding-top:6px;">E:\Media\Breaking Bad</div>
+          </div>
+          <div style="width:150px; flex:0 0 150px; font-size:12.5px; color:var(--muted); white-space:nowrap;">62 episodes · 271 MB</div>
+          <div style="width:158px; flex:0 0 158px;">
+            <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:550; color:var(--ok); background:var(--ok-soft); border:1px solid var(--ok-line); padding:4px 10px; border-radius:999px; white-space:nowrap;">
+              <div style="width:5px; height:5px; border-radius:50%; background:var(--ok);"></div>ready
+            </div>
+          </div>
+          <div style="width:256px; flex:0 0 256px; display:flex; justify-content:flex-end; gap:4px; white-space:nowrap; opacity:{{ act1 }}; transition:opacity .15s ease;">
+            <div style="padding:6px 10px; border-radius:8px; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; transition:all .12s ease;" style-hover="background:var(--hover); color:var(--text);">Check</div>
+            <div style="padding:6px 10px; border-radius:8px; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; transition:all .12s ease;" style-hover="background:var(--hover); color:var(--text);">Rebuild</div>
+            <div style="padding:6px 10px; border-radius:8px; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; transition:all .12s ease;" style-hover="background:var(--hover); color:var(--text);">Change folder</div>
+            <div style="padding:6px 10px; border-radius:8px; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; transition:all .12s ease;" style-hover="background:var(--bad-soft); color:var(--bad);">Remove</div>
+          </div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ show2 }}" hint-placeholder-val="{{ true }}">
+        <div onMouseEnter="{{ hover2 }}" onMouseLeave="{{ hoverOut }}" style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px; box-shadow:var(--shadow-sm); transition:border-color .15s ease, box-shadow .15s ease;" style-hover="border-color:var(--border-strong); box-shadow:var(--shadow-md);">
+          <div style="display:flex; align-items:center; gap:18px;">
+            <div style="width:40px; height:40px; flex:0 0 40px; border-radius:11px; background:var(--busy-soft); color:var(--busy); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:650; letter-spacing:-0.02em;">GT</div>
+            <div style="flex:1; min-width:0;">
+              <div style="display:flex; align-items:center; gap:9px;">
+                <div style="font-size:15px; font-weight:640; letter-spacing:-0.015em;">Game of Thrones</div>
+                <div style="font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:var(--muted); background:var(--raised); padding:2.5px 7px; border-radius:6px;">series</div>
+              </div>
+              <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:11px; color:var(--faint); padding-top:6px;">E:\Media\Game of Thrones</div>
+            </div>
+            <div style="width:150px; flex:0 0 150px; font-size:12.5px; color:var(--muted); white-space:nowrap;">73 episodes · 318 MB</div>
+            <div style="width:158px; flex:0 0 158px;">
+              <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:550; color:var(--busy); background:var(--busy-soft); border:1px solid var(--busy-line); padding:4px 10px; border-radius:999px; white-space:nowrap;">
+                <div style="width:5px; height:5px; border-radius:50%; background:var(--busy);"></div>indexing 23/73
+              </div>
+            </div>
+            <div style="width:256px; flex:0 0 256px; display:flex; justify-content:flex-end; gap:4px; white-space:nowrap; opacity:{{ act2 }}; transition:opacity .15s ease;">
+              <div style="padding:6px 10px; border-radius:8px; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; transition:all .12s ease;" style-hover="background:var(--hover); color:var(--text);">Check</div>
+              <div style="padding:6px 10px; border-radius:8px; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; transition:all .12s ease;" style-hover="background:var(--hover); color:var(--text);">Rebuild</div>
+              <div style="padding:6px 10px; border-radius:8px; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; transition:all .12s ease;" style-hover="background:var(--hover); color:var(--text);">Change folder</div>
+              <div style="padding:6px 10px; border-radius:8px; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; transition:all .12s ease;" style-hover="background:var(--bad-soft); color:var(--bad);">Remove</div>
+            </div>
+          </div>
+
+          <div style="margin-top:16px; padding:15px 16px; background:var(--bg); border:1px solid var(--line); border-radius:11px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding-bottom:11px;">
+              <div style="display:flex; align-items:baseline; gap:14px;">
+                <div style="font-size:13px; font-weight:600;">Episode 23 / 73</div>
+                <div style="font-size:12.5px; color:var(--muted);">3h 10m bacha</div>
+              </div>
+              <div onClick="{{ togglePause }}" style="padding:6px 13px; border-radius:8px; font-size:12px; font-weight:550; color:var(--text); border:1px solid var(--border-strong); background:var(--surface); cursor:pointer; transition:background .12s ease; white-space:nowrap;" style-hover="background:var(--hover);">{{ pauseLabel }}</div>
+            </div>
+            <div style="height:7px; border-radius:999px; background:var(--raised); overflow:hidden;">
+              <div style="width:31.5%; height:100%; background:var(--busy); border-radius:999px; transition:width .3s ease;"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding-top:9px; font-family:'Cascadia Code', Consolas, monospace; font-size:10.5px; color:var(--faint);">
+              <div>picture index · S03E10</div><div>31%</div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ show3 }}" hint-placeholder-val="{{ true }}">
+        <div onMouseEnter="{{ hover3 }}" onMouseLeave="{{ hoverOut }}" style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px; display:flex; align-items:center; gap:18px; box-shadow:var(--shadow-sm); transition:border-color .15s ease, box-shadow .15s ease;" style-hover="border-color:var(--border-strong); box-shadow:var(--shadow-md);">
+          <div style="width:40px; height:40px; flex:0 0 40px; border-radius:11px; background:var(--raised); color:var(--muted); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:650; letter-spacing:-0.02em;">TI</div>
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:center; gap:9px;">
+              <div style="font-size:15px; font-weight:640; letter-spacing:-0.015em;">Titanic</div>
+              <div style="font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:var(--muted); background:var(--raised); padding:2.5px 7px; border-radius:6px;">movie</div>
+            </div>
+            <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:11px; color:var(--faint); padding-top:6px;">E:\Media\Titanic</div>
+          </div>
+          <div style="width:150px; flex:0 0 150px; font-size:12.5px; color:var(--muted); white-space:nowrap;">14 MB</div>
+          <div style="width:158px; flex:0 0 158px;">
+            <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:550; color:var(--ok); background:var(--ok-soft); border:1px solid var(--ok-line); padding:4px 10px; border-radius:999px; white-space:nowrap;">
+              <div style="width:5px; height:5px; border-radius:50%; background:var(--ok);"></div>ready
+            </div>
+          </div>
+          <div style="width:256px; flex:0 0 256px; display:flex; justify-content:flex-end; gap:4px; white-space:nowrap; opacity:{{ act3 }}; transition:opacity .15s ease;">
+            <div style="padding:6px 10px; border-radius:8px; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; transition:all .12s ease;" style-hover="background:var(--hover); color:var(--text);">Check</div>
+            <div style="padding:6px 10px; border-radius:8px; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; transition:all .12s ease;" style-hover="background:var(--hover); color:var(--text);">Rebuild</div>
+            <div style="padding:6px 10px; border-radius:8px; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; transition:all .12s ease;" style-hover="background:var(--hover); color:var(--text);">Change folder</div>
+            <div style="padding:6px 10px; border-radius:8px; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; transition:all .12s ease;" style-hover="background:var(--bad-soft); color:var(--bad);">Remove</div>
+          </div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ show4 }}" hint-placeholder-val="{{ true }}">
+        <div onMouseEnter="{{ hover4 }}" onMouseLeave="{{ hoverOut }}" style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px; display:flex; align-items:center; gap:18px; box-shadow:var(--shadow-sm); transition:border-color .15s ease, box-shadow .15s ease;" style-hover="border-color:var(--border-strong); box-shadow:var(--shadow-md);">
+          <div style="width:40px; height:40px; flex:0 0 40px; border-radius:11px; background:var(--warn-soft); color:var(--warn); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:650; letter-spacing:-0.02em;">SR</div>
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:center; gap:9px;">
+              <div style="font-size:15px; font-weight:640; letter-spacing:-0.015em;">The Shawshank Redemption</div>
+              <div style="font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:var(--muted); background:var(--raised); padding:2.5px 7px; border-radius:6px;">movie</div>
+            </div>
+            <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:11px; color:var(--faint); padding-top:6px;">E:\Media\The Shawshank Redemption</div>
+          </div>
+          <div style="width:150px; flex:0 0 150px; font-size:12.5px; color:var(--faint); white-space:nowrap;">—</div>
+          <div style="width:158px; flex:0 0 158px;">
+            <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:550; color:var(--warn); background:var(--warn-soft); border:1px solid var(--warn-line); padding:4px 10px; border-radius:999px; white-space:nowrap;">
+              <div style="width:5px; height:5px; border-radius:50%; background:var(--warn);"></div>4 without subtitles
+            </div>
+          </div>
+          <div style="width:256px; flex:0 0 256px; display:flex; justify-content:flex-end; gap:4px; white-space:nowrap; opacity:{{ act4 }}; transition:opacity .15s ease;">
+            <div style="padding:6px 10px; border-radius:8px; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; transition:all .12s ease;" style-hover="background:var(--hover); color:var(--text);">Check</div>
+            <div style="padding:6px 10px; border-radius:8px; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; transition:all .12s ease;" style-hover="background:var(--hover); color:var(--text);">Rebuild</div>
+            <div style="padding:6px 10px; border-radius:8px; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; transition:all .12s ease;" style-hover="background:var(--hover); color:var(--text);">Change folder</div>
+            <div style="padding:6px 10px; border-radius:8px; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; transition:all .12s ease;" style-hover="background:var(--bad-soft); color:var(--bad);">Remove</div>
+          </div>
+        </div>
+        </sc-if>
+
+      </div>
+
+      <div style="height:1px; background:var(--border); margin:52px 0 0 0;"></div>
+
+      <div style="padding-top:34px;">
+        <div style="font-size:10px; font-weight:650; letter-spacing:0.11em; color:var(--faint);">FOUNDATION</div>
+        <div style="font-size:20px; font-weight:700; letter-spacing:-0.03em; padding-top:8px;">Components.</div>
+        <div style="font-size:13.5px; color:var(--muted); padding-top:6px;">Dono themes me kaam karte hai — baaki screens isi set pe banengi.</div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(330px, 1fr)); gap:14px; padding-top:22px;">
+
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; box-shadow:var(--shadow-sm);">
+          <div style="font-size:10px; font-weight:650; letter-spacing:0.1em; color:var(--faint); padding-bottom:14px;">COLOUR TOKENS</div>
+          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:9px;">
+            <div><div style="height:32px; border-radius:8px; background:var(--bg); border:1px solid var(--border);"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:var(--muted); padding-top:5px;">bg</div></div>
+            <div><div style="height:32px; border-radius:8px; background:var(--surface); border:1px solid var(--border);"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:var(--muted); padding-top:5px;">surface</div></div>
+            <div><div style="height:32px; border-radius:8px; background:var(--raised); border:1px solid var(--border);"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:var(--muted); padding-top:5px;">raised</div></div>
+            <div><div style="height:32px; border-radius:8px; background:var(--border-strong);"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:var(--muted); padding-top:5px;">border</div></div>
+            <div><div style="height:32px; border-radius:8px; background:var(--text);"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:var(--muted); padding-top:5px;">text</div></div>
+            <div><div style="height:32px; border-radius:8px; background:var(--muted);"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:var(--muted); padding-top:5px;">muted</div></div>
+            <div><div style="height:32px; border-radius:8px; background:var(--faint);"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:var(--muted); padding-top:5px;">faint</div></div>
+            <div><div style="height:32px; border-radius:8px; background:var(--accent);"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:var(--muted); padding-top:5px;">accent</div></div>
+            <div><div style="height:32px; border-radius:8px; background:var(--ok);"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:var(--muted); padding-top:5px;">ok</div></div>
+            <div><div style="height:32px; border-radius:8px; background:var(--warn);"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:var(--muted); padding-top:5px;">warn</div></div>
+            <div><div style="height:32px; border-radius:8px; background:var(--bad);"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:var(--muted); padding-top:5px;">bad</div></div>
+            <div><div style="height:32px; border-radius:8px; background:var(--busy);"></div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:var(--muted); padding-top:5px;">busy</div></div>
+          </div>
+        </div>
+
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; box-shadow:var(--shadow-sm);">
+          <div style="font-size:10px; font-weight:650; letter-spacing:0.1em; color:var(--faint); padding-bottom:14px;">TYPE SCALE</div>
+          <div style="display:flex; flex-direction:column; gap:11px;">
+            <div style="display:flex; align-items:baseline; gap:14px;"><div style="width:74px; flex:0 0 74px; font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:var(--faint);">30 / 700</div><div style="font-size:30px; font-weight:700; letter-spacing:-0.035em;">Page.</div></div>
+            <div style="display:flex; align-items:baseline; gap:14px;"><div style="width:74px; flex:0 0 74px; font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:var(--faint);">20 / 700</div><div style="font-size:20px; font-weight:700; letter-spacing:-0.03em;">Section.</div></div>
+            <div style="display:flex; align-items:baseline; gap:14px;"><div style="width:74px; flex:0 0 74px; font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:var(--faint);">15 / 640</div><div style="font-size:15px; font-weight:640; letter-spacing:-0.015em;">Item title</div></div>
+            <div style="display:flex; align-items:baseline; gap:14px;"><div style="width:74px; flex:0 0 74px; font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:var(--faint);">13.5 / 400</div><div style="font-size:13.5px;">Body — default UI text</div></div>
+            <div style="display:flex; align-items:baseline; gap:14px;"><div style="width:74px; flex:0 0 74px; font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:var(--faint);">12.5 / 400</div><div style="font-size:12.5px; color:var(--muted);">Secondary / muted</div></div>
+            <div style="display:flex; align-items:baseline; gap:14px;"><div style="width:74px; flex:0 0 74px; font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:var(--faint);">10 / 650</div><div style="font-size:10px; font-weight:650; letter-spacing:0.1em; color:var(--faint);">SECTION LABEL</div></div>
+            <div style="display:flex; align-items:baseline; gap:14px;"><div style="width:74px; flex:0 0 74px; font-family:'Cascadia Code', Consolas, monospace; font-size:9.5px; color:var(--faint);">11 mono</div><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:11px; color:var(--faint);">E:\Media\Path</div></div>
+          </div>
+        </div>
+
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; box-shadow:var(--shadow-sm);">
+          <div style="font-size:10px; font-weight:650; letter-spacing:0.1em; color:var(--faint); padding-bottom:14px;">BUTTONS</div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; padding-bottom:12px;">
+            <div style="background:var(--accent); color:var(--on-accent); font-size:13px; font-weight:600; padding:9px 15px; border-radius:9px; cursor:pointer; box-shadow:var(--shadow-sm); transition:background .15s ease;" style-hover="background:var(--accent-hover);">Primary</div>
+            <div style="background:var(--surface); border:1px solid var(--border-strong); color:var(--text); font-size:13px; font-weight:550; padding:8px 14px; border-radius:9px; cursor:pointer; transition:background .15s ease;" style-hover="background:var(--hover);">Secondary</div>
+            <div style="color:var(--muted); font-size:13px; font-weight:550; padding:9px 13px; border-radius:9px; cursor:pointer; transition:all .15s ease;" style-hover="background:var(--hover); color:var(--text);">Ghost</div>
+            <div style="background:var(--bad-soft); border:1px solid var(--bad-line); color:var(--bad); font-size:13px; font-weight:550; padding:8px 14px; border-radius:9px; cursor:pointer; transition:opacity .15s ease;" style-hover="opacity:.82;">Danger</div>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+            <div style="background:var(--raised); color:var(--faint); font-size:13px; font-weight:600; padding:9px 15px; border-radius:9px; cursor:not-allowed;">Primary</div>
+            <div style="background:var(--surface); border:1px solid var(--border); color:var(--faint); font-size:13px; font-weight:550; padding:8px 14px; border-radius:9px; cursor:not-allowed;">Secondary</div>
+            <div style="color:var(--faint); font-size:13px; font-weight:550; padding:9px 13px; border-radius:9px; cursor:not-allowed;">Ghost</div>
+            <div style="font-size:11.5px; color:var(--faint);">disabled</div>
+          </div>
+        </div>
+
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; box-shadow:var(--shadow-sm);">
+          <div style="font-size:10px; font-weight:650; letter-spacing:0.1em; color:var(--faint); padding-bottom:14px;">BADGES &amp; CHIPS</div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:550; color:var(--ok); background:var(--ok-soft); border:1px solid var(--ok-line); padding:4px 10px; border-radius:999px;"><div style="width:5px; height:5px; border-radius:50%; background:var(--ok);"></div>ready</div>
+            <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:550; color:var(--warn); background:var(--warn-soft); border:1px solid var(--warn-line); padding:4px 10px; border-radius:999px;"><div style="width:5px; height:5px; border-radius:50%; background:var(--warn);"></div>4 without subtitles</div>
+            <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:550; color:var(--busy); background:var(--busy-soft); border:1px solid var(--busy-line); padding:4px 10px; border-radius:999px;"><div style="width:5px; height:5px; border-radius:50%; background:var(--busy);"></div>indexing 23/62</div>
+            <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:550; color:var(--muted); background:var(--raised); border:1px solid var(--border); padding:4px 10px; border-radius:999px;"><div style="width:5px; height:5px; border-radius:50%; background:var(--faint);"></div>not indexed</div>
+            <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:550; color:var(--bad); background:var(--bad-soft); border:1px solid var(--bad-line); padding:4px 10px; border-radius:999px;"><div style="width:5px; height:5px; border-radius:50%; background:var(--bad);"></div>failed</div>
+            <div style="font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:var(--muted); background:var(--raised); padding:2.5px 7px; border-radius:6px;">series</div>
+            <div style="font-size:12.5px; font-weight:550; color:var(--on-accent); background:var(--accent); padding:6px 13px; border-radius:999px;">Filter active</div>
+            <div style="font-size:12.5px; font-weight:500; color:var(--muted); background:var(--raised); padding:6px 13px; border-radius:999px;">Filter idle</div>
+          </div>
+        </div>
+
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; box-shadow:var(--shadow-sm);">
+          <div style="font-size:10px; font-weight:650; letter-spacing:0.1em; color:var(--faint); padding-bottom:14px;">FORM CONTROLS</div>
+          <div style="display:flex; flex-direction:column; gap:13px;">
+            <div>
+              <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">Text input</div>
+              <input type="text" value="Breaking Bad" style="width:100%; box-sizing:border-box; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:9px 12px; color:var(--text); font-size:13px; outline:none; transition:border-color .15s ease;" style-focus="border-color:var(--accent);">
+            </div>
+            <div>
+              <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">Disabled input</div>
+              <input type="text" value="E:\Libraries\Breaking Bad" disabled style="width:100%; box-sizing:border-box; background:var(--raised); border:1px solid var(--border); border-radius:9px; padding:9px 12px; color:var(--faint); font-size:12px; font-family:'Cascadia Code', Consolas, monospace; outline:none;">
+            </div>
+            <div>
+              <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">Select</div>
+              <select style="width:100%; box-sizing:border-box; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:9px 12px; color:var(--text); font-size:13px; outline:none;">
+                <option>Breaking Bad</option>
+                <option>Game of Thrones</option>
+              </select>
+            </div>
+            <div style="display:flex; align-items:center; gap:22px; padding-top:2px;">
+              <div onClick="{{ toggleCheckbox }}" style="display:flex; align-items:center; gap:9px; cursor:pointer; user-select:none;">
+                <div style="{{ cbBox }}"><sc-if value="{{ cbOn }}" hint-placeholder-val="{{ true }}"><svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M1.5 5.2l2.3 2.3L8.5 2.8" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if></div>
+                <div style="font-size:13px;">Checkbox</div>
+              </div>
+              <div onClick="{{ toggleSwitch }}" style="display:flex; align-items:center; gap:9px; cursor:pointer; user-select:none;">
+                <div style="{{ swTrack }}"><div style="{{ swKnob }}"></div></div>
+                <div style="font-size:13px;">Toggle</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; box-shadow:var(--shadow-sm);">
+          <div style="font-size:10px; font-weight:650; letter-spacing:0.1em; color:var(--faint); padding-bottom:14px;">PROGRESS &amp; FEEDBACK</div>
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <div>
+              <div style="height:7px; border-radius:999px; background:var(--raised); overflow:hidden;"><div style="width:64%; height:100%; background:var(--busy); border-radius:999px;"></div></div>
+              <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:10.5px; color:var(--faint); padding-top:7px;">determinate · 64%</div>
+            </div>
+            <div>
+              <div style="height:7px; border-radius:999px; background:var(--raised); overflow:hidden;"><div style="width:34%; height:100%; background:var(--ok); border-radius:999px;"></div></div>
+              <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:10.5px; color:var(--faint); padding-top:7px;">success tone</div>
+            </div>
+            <div style="display:flex; align-items:flex-start; gap:11px; background:var(--surface); border:1px solid var(--border-strong); border-radius:11px; padding:12px 14px; box-shadow:var(--shadow-md);">
+              <div style="width:7px; height:7px; border-radius:50%; background:var(--ok); margin-top:5px; flex:0 0 7px;"></div>
+              <div style="flex:1;">
+                <div style="font-size:13px; font-weight:600;">Index built</div>
+                <div style="font-size:12px; color:var(--muted); padding-top:2px;">Breaking Bad · 62 episodes</div>
+              </div>
+              <div style="color:var(--faint); cursor:pointer; font-size:15px; line-height:1;" style-hover="color:var(--text);">×</div>
+            </div>
+            <div style="display:flex; align-items:flex-start; gap:10px; background:var(--bad-soft); border:1px solid var(--bad-line); border-radius:11px; padding:11px 13px;">
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="margin-top:2px; flex:0 0 13px;"><circle cx="7" cy="7" r="6" stroke="var(--bad)" stroke-width="1.4"></circle><path d="M7 4v3.5M7 9.8v.1" stroke="var(--bad)" stroke-width="1.5" stroke-linecap="round"></path></svg>
+              <div style="font-size:12.5px; color:var(--bad); line-height:1.5;">Folder <span style="font-family:'Cascadia Code', Consolas, monospace;">E:\Media\Dune</span> nahi mila</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; box-shadow:var(--shadow-sm);">
+          <div style="font-size:10px; font-weight:650; letter-spacing:0.1em; color:var(--faint); padding-bottom:14px;">EMPTY STATE</div>
+          <div style="border:1px dashed var(--border-strong); border-radius:12px; padding:34px 20px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:5px;">
+            <div style="width:38px; height:38px; border-radius:11px; background:var(--accent-soft); display:flex; align-items:center; justify-content:center; margin-bottom:8px;">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1.8" y="3.5" width="12.4" height="9" rx="2" stroke="var(--accent)" stroke-width="1.3"></rect><path d="M6.6 6.3l3.4 1.7-3.4 1.7V6.3z" fill="var(--accent)"></path></svg>
+            </div>
+            <div style="font-size:15px; font-weight:640; letter-spacing:-0.015em;">Abhi koi title nahi</div>
+            <div style="font-size:12.5px; color:var(--muted); max-width:250px; line-height:1.55;">Ek movie ya series add karo — index ek baar banega, phir har video me kaam aayega.</div>
+            <div style="background:var(--accent); color:var(--on-accent); font-size:13px; font-weight:600; padding:9px 15px; border-radius:9px; cursor:pointer; margin-top:12px; box-shadow:var(--shadow-sm);" style-hover="background:var(--accent-hover);">+ Add title</div>
+          </div>
+        </div>
+
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; box-shadow:var(--shadow-sm);">
+          <div style="font-size:10px; font-weight:650; letter-spacing:0.1em; color:var(--faint); padding-bottom:14px;">LOADING</div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="height:14px; width:58%; border-radius:6px; background:var(--shimmer); background-size:420px 100%; animation:shimmer 1.4s linear infinite;"></div>
+            <div style="height:11px; width:82%; border-radius:6px; background:var(--shimmer); background-size:420px 100%; animation:shimmer 1.4s linear infinite;"></div>
+            <div style="height:11px; width:40%; border-radius:6px; background:var(--shimmer); background-size:420px 100%; animation:shimmer 1.4s linear infinite;"></div>
+            <div style="height:46px; border-radius:10px; background:var(--shimmer); background-size:420px 100%; animation:shimmer 1.4s linear infinite; margin-top:4px;"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ onNewVideo }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:38px 40px 64px 40px; min-width:1180px;">
+
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:28px; padding-bottom:26px;">
+        <div>
+          <div style="font-size:30px; font-weight:700; letter-spacing:-0.035em; line-height:1.1;">New Video.</div>
+          <div style="font-size:14px; color:var(--muted); padding-top:8px;">Script aur voiceover do — baaki tool sambhal lega.</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div onClick="{{ openCheck }}" style="background:var(--surface); border:1px solid var(--border-strong); color:var(--text); font-size:13px; font-weight:550; padding:9px 15px; border-radius:9px; cursor:pointer; white-space:nowrap; transition:background .15s ease;" style-hover="background:var(--hover);">Check</div>
+          <div style="color:var(--muted); font-size:12.5px; font-weight:550; padding:9px 13px; border-radius:9px; cursor:pointer; white-space:nowrap; transition:all .14s ease;" style-hover="background:var(--hover); color:var(--text);">Build → Export</div>
+          <div style="display:flex; align-items:center; gap:7px; background:var(--accent); color:var(--on-accent); font-size:13px; font-weight:600; padding:10px 16px; border-radius:9px; cursor:pointer; white-space:nowrap; box-shadow:var(--shadow-sm); transition:background .15s ease;" style-hover="background:var(--accent-hover);">
+            Build → Editor
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6h7M6.6 3.1L9.5 6l-2.9 2.9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:flex-start; gap:20px;">
+        <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:14px;">
+
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="font-size:11px; font-weight:650; letter-spacing:0.08em; color:var(--faint);">VIDEO 1</div>
+            <div style="flex:1; height:1px; background:var(--border);"></div>
+          </div>
+
+          <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:22px; box-shadow:var(--shadow-sm);">
+            <div style="font-size:15px; font-weight:640; letter-spacing:-0.015em; padding-bottom:18px;">Source</div>
+            <div style="display:flex; flex-direction:column; gap:16px;">
+
+              <div>
+                <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">Title</div>
+                <div onClick="{{ toggleSrc }}" style="display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:10px 12px; cursor:pointer; user-select:none; transition:border-color .14s ease;" style-hover="border-color:var(--accent);">
+                  <div style="width:6px; height:6px; border-radius:50%; background:var(--ok);"></div>
+                  <div style="flex:1; font-size:13px; font-weight:550;">Breaking Bad</div>
+                  <div style="font-size:12.5px; color:var(--muted);">62 episodes · ready</div>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="color:var(--faint);"><path d="M3 4.6L6 7.6l3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                </div>
+                <sc-if value="{{ srcOpen }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:6px; background:var(--surface); border:1px solid var(--border-strong); border-radius:11px; padding:5px; box-shadow:var(--shadow-md); animation:fadein .14s ease;">
+                    <div style="display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:8px; cursor:pointer; background:var(--accent-soft);">
+                      <div style="width:6px; height:6px; border-radius:50%; background:var(--ok);"></div>
+                      <div style="flex:1; font-size:13px; font-weight:550; color:var(--accent);">Breaking Bad</div>
+                      <div style="font-size:12px; color:var(--muted);">62 episodes</div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:8px; cursor:pointer;" style-hover="background:var(--hover);">
+                      <div style="width:6px; height:6px; border-radius:50%; background:var(--busy);"></div>
+                      <div style="flex:1; font-size:13px;">Game of Thrones</div>
+                      <div style="font-size:12px; color:var(--muted);">indexing 23/73</div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:8px; cursor:pointer;" style-hover="background:var(--hover);">
+                      <div style="width:6px; height:6px; border-radius:50%; background:var(--ok);"></div>
+                      <div style="flex:1; font-size:13px;">Titanic</div>
+                      <div style="font-size:12px; color:var(--muted);">movie</div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:8px; cursor:pointer;" style-hover="background:var(--hover);">
+                      <div style="width:6px; height:6px; border-radius:50%; background:var(--warn);"></div>
+                      <div style="flex:1; font-size:13px;">The Shawshank Redemption</div>
+                      <div style="font-size:12px; color:var(--muted);">4 without subtitles</div>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+
+              <div>
+                <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">Script <span style="color:var(--faint); font-weight:400;">· .json</span></div>
+                <div style="display:flex; gap:7px;">
+                  <div style="flex:1; min-width:0; display:flex; align-items:center; gap:9px; background:var(--raised); border:1px solid var(--border); border-radius:9px; padding:9px 12px;">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="color:var(--muted); flex:0 0 14px;"><path d="M4 2.5h5l3 3v8H4v-11z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"></path><path d="M9 2.5v3h3" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"></path></svg>
+                    <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:12px; color:var(--text);">heisenberg-essay.json</div>
+                  </div>
+                  <div style="background:var(--surface); border:1px solid var(--border-strong); color:var(--text); font-size:13px; font-weight:550; padding:9px 14px; border-radius:9px; cursor:pointer; white-space:nowrap; transition:background .15s ease;" style-hover="background:var(--hover);">Choose</div>
+                </div>
+                <div style="margin-top:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; background:var(--accent-soft); border:1px solid var(--busy-line); border-radius:9px; padding:10px 13px;">
+                  <div style="font-size:13px; font-weight:640; color:var(--accent);">55 scenes</div>
+                  <div style="width:1px; height:12px; background:var(--busy-line);"></div>
+                  <div style="font-size:13px; font-weight:640; color:var(--accent);">132 shots</div>
+                  <div style="width:1px; height:12px; background:var(--busy-line);"></div>
+                  <div style="font-size:12.5px; color:var(--muted);">episodes: <span style="font-family:'Cascadia Code', Consolas, monospace; color:var(--text);">S04E01, S03E13, S04E08, S04E10</span></div>
+                </div>
+              </div>
+
+              <div>
+                <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">Voiceover <span style="color:var(--faint); font-weight:400;">· .m4a / .mp3 / .wav</span></div>
+                <div style="display:flex; gap:7px;">
+                  <div style="flex:1; min-width:0; display:flex; align-items:center; gap:9px; background:var(--raised); border:1px solid var(--border); border-radius:9px; padding:9px 12px;">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="color:var(--muted); flex:0 0 14px;"><path d="M8 2.5a2 2 0 012 2v3.5a2 2 0 11-4 0V4.5a2 2 0 012-2z" stroke="currentColor" stroke-width="1.3"></path><path d="M4 8a4 4 0 008 0M8 12v1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"></path></svg>
+                    <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:12px; color:var(--text);">vo-final.m4a</div>
+                    <div style="flex:1; height:20px; display:flex; align-items:center; overflow:hidden; opacity:.55; background:repeating-linear-gradient(90deg, var(--muted) 0 1.5px, transparent 1.5px 4px); mask-image:linear-gradient(180deg, transparent 8%, #000 30%, #000 70%, transparent 92%); -webkit-mask-image:linear-gradient(180deg, transparent 8%, #000 30%, #000 70%, transparent 92%);"></div>
+                    <div style="font-size:12.5px; font-weight:600; white-space:nowrap;">11m 09s</div>
+                  </div>
+                  <div style="background:var(--surface); border:1px solid var(--border-strong); color:var(--text); font-size:13px; font-weight:550; padding:9px 14px; border-radius:9px; cursor:pointer; white-space:nowrap; transition:background .15s ease;" style-hover="background:var(--hover);">Choose</div>
+                </div>
+              </div>
+
+              <div style="display:flex; gap:14px;">
+                <div style="flex:1;">
+                  <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">Video title</div>
+                  <input type="text" value="Why Walter White Broke Bad" style="width:100%; box-sizing:border-box; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:9px 12px; color:var(--text); font-size:13px; outline:none; transition:border-color .15s ease;" style-focus="border-color:var(--accent);">
+                </div>
+                <div style="flex:1;">
+                  <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">Output folder</div>
+                  <div style="display:flex; gap:7px;">
+                    <input type="text" value="E:\Exports" style="flex:1; min-width:0; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:9px 12px; color:var(--text); font-size:12px; font-family:'Cascadia Code', Consolas, monospace; outline:none;" style-focus="border-color:var(--accent);">
+                    <div style="background:var(--surface); border:1px solid var(--border-strong); color:var(--text); font-size:13px; font-weight:550; padding:9px 14px; border-radius:9px; cursor:pointer; white-space:nowrap; transition:background .15s ease;" style-hover="background:var(--hover);">Browse</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:22px; box-shadow:var(--shadow-sm);">
+            <div style="font-size:15px; font-weight:640; letter-spacing:-0.015em; padding-bottom:16px;">Look</div>
+
+            <div style="display:flex; gap:10px; padding-bottom:18px;">
+              <div onClick="{{ setAuto }}" style="{{ presetAuto }}">
+                <div style="display:flex; align-items:center; gap:7px;">
+                  <div style="font-size:13.5px; font-weight:640;">Auto</div>
+                  <div style="font-size:9.5px; font-weight:650; letter-spacing:0.04em; text-transform:uppercase; color:var(--accent); background:var(--accent-soft); border:1px solid var(--busy-line); padding:1.5px 6px; border-radius:5px;">rec</div>
+                </div>
+                <div style="font-size:12px; color:var(--muted); padding-top:6px; line-height:1.45;">Script ke mood se khud chunta hai</div>
+              </div>
+              <div onClick="{{ setCine }}" style="{{ presetCine }}">
+                <div style="font-size:13.5px; font-weight:640;">Cinematic</div>
+                <div style="font-size:12px; color:var(--muted); padding-top:6px; line-height:1.45;">Lambe shots, teal-orange</div>
+              </div>
+              <div onClick="{{ setTense }}" style="{{ presetTense }}">
+                <div style="font-size:13.5px; font-weight:640;">Tense</div>
+                <div style="font-size:12px; color:var(--muted); padding-top:6px; line-height:1.45;">Chhote cuts, high contrast</div>
+              </div>
+              <div onClick="{{ setDoc }}" style="{{ presetDoc }}">
+                <div style="font-size:13.5px; font-weight:640;">Documentary</div>
+                <div style="font-size:12px; color:var(--muted); padding-top:6px; line-height:1.45;">Slow push, flat grade</div>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:26px; align-items:flex-start;">
+              <div style="flex:0 0 300px;">
+                <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:7px;">Quality</div>
+                <div style="display:flex; padding:3px; background:var(--raised); border-radius:10px; gap:3px;">
+                  <div onClick="{{ set1080 }}" style="{{ q1080 }}">1080p</div>
+                  <div onClick="{{ set4k }}" style="{{ q4k }}">4K (upscaled)</div>
+                </div>
+                <sc-if value="{{ is4k }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; align-items:flex-start; gap:8px; padding-top:9px; animation:fadein .16s ease;">
+                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="margin-top:1px; flex:0 0 13px;"><path d="M7 1.8l5.5 9.6H1.5L7 1.8z" stroke="var(--warn)" stroke-width="1.3" stroke-linejoin="round"></path><path d="M7 5.6v2.4M7 9.7v.1" stroke="var(--warn)" stroke-width="1.4" stroke-linecap="round"></path></svg>
+                    <div style="font-size:12px; color:var(--warn); line-height:1.45;">source 1080p hai — file 4x badi hogi</div>
+                  </div>
+                </sc-if>
+              </div>
+              <div style="flex:1;">
+                <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:7px;">Captions</div>
+                <div onClick="{{ toggleCaptions }}" style="display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none; padding-top:5px;">
+                  <div style="{{ capTrack }}"><div style="{{ capKnob }}"></div></div>
+                  <div style="font-size:13px;">Video pe captions jalao</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow-sm);">
+            <div onClick="{{ toggleAdv }}" style="display:flex; align-items:center; gap:10px; padding:18px 22px; cursor:pointer; user-select:none;">
+              <div style="{{ advChevron }}">
+                <svg width="13" height="13" viewBox="0 0 12 12" fill="none" style="color:var(--muted);"><path d="M4.4 2.6l3 3.4-3 3.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              </div>
+              <div style="font-size:15px; font-weight:640; letter-spacing:-0.015em;">Advanced</div>
+              <div style="font-size:12.5px; color:var(--faint);">transitions · filters · animation · pace</div>
+            </div>
+
+            <sc-if value="{{ advOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:0 22px 22px 22px; display:flex; flex-direction:column; gap:18px; animation:fadein .18s ease;">
+                <div style="height:1px; background:var(--border);"></div>
+
+                <div>
+                  <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:8px;">Transitions</div>
+                  <div style="display:flex; gap:8px; align-items:center;">
+                    <div onClick="{{ setTransAuto }}" style="{{ transAuto }}">Auto</div>
+                    <div onClick="{{ setTransManual }}" style="{{ transManual }}">Manual</div>
+                    <sc-if value="{{ transIsManual }}" hint-placeholder-val="{{ false }}">
+                      <select style="flex:1; min-width:0; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:8px 11px; color:var(--text); font-size:12.5px; outline:none;">
+                        <sc-for list="{{ transitions }}" as="t" hint-placeholder-count="4"><option>{{ t }}</option></sc-for>
+                      </select>
+                    </sc-if>
+                  </div>
+                </div>
+
+                <div>
+                  <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:8px;">Filters</div>
+                  <div style="display:flex; gap:8px; align-items:center;">
+                    <div onClick="{{ setFiltNone }}" style="{{ filtNone }}">None</div>
+                    <div onClick="{{ setFiltAuto }}" style="{{ filtAuto }}">Auto</div>
+                    <div onClick="{{ setFiltManual }}" style="{{ filtManual }}">Manual</div>
+                    <sc-if value="{{ filtIsManual }}" hint-placeholder-val="{{ false }}">
+                      <select style="flex:1; min-width:0; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:8px 11px; color:var(--text); font-size:12.5px; outline:none;">
+                        <sc-for list="{{ filters }}" as="t" hint-placeholder-count="4"><option>{{ t }}</option></sc-for>
+                      </select>
+                    </sc-if>
+                  </div>
+                </div>
+
+                <div>
+                  <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:8px;">Animation</div>
+                  <div style="display:flex; gap:8px; align-items:center;">
+                    <div onClick="{{ setAnimAuto }}" style="{{ animAuto }}">Auto</div>
+                    <div onClick="{{ setAnimManual }}" style="{{ animManual }}">Manual</div>
+                    <sc-if value="{{ animIsManual }}" hint-placeholder-val="{{ false }}">
+                      <select style="flex:1; min-width:0; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:8px 11px; color:var(--text); font-size:12.5px; outline:none;">
+                        <sc-for list="{{ animations }}" as="t" hint-placeholder-count="4"><option>{{ t }}</option></sc-for>
+                      </select>
+                    </sc-if>
+                  </div>
+                </div>
+
+                <div style="display:flex; gap:26px; align-items:flex-start;">
+                  <div style="flex:1;">
+                    <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:8px;">Pace</div>
+                    <div style="display:flex; padding:3px; background:var(--raised); border-radius:10px; gap:3px;">
+                      <div onClick="{{ setCalm }}" style="{{ paceCalm }}">Calm</div>
+                      <div onClick="{{ setNormal }}" style="{{ paceNormal }}">Normal</div>
+                      <div onClick="{{ setQuick }}" style="{{ paceQuick }}">Quick</div>
+                      <div onClick="{{ setRapid }}" style="{{ paceRapid }}">Rapid</div>
+                    </div>
+                  </div>
+                  <div style="flex:0 0 200px;">
+                    <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:8px;">Clip length</div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                      <input type="number" value="4.0" step="0.5" style="width:96px; box-sizing:border-box; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:9px 12px; color:var(--text); font-size:13px; outline:none;" style-focus="border-color:var(--accent);">
+                      <div style="font-size:12.5px; color:var(--muted);">seconds</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:10px; padding-top:6px;">
+            <div style="font-size:11px; font-weight:650; letter-spacing:0.08em; color:var(--faint);">VIDEO 2</div>
+            <div style="flex:1; height:1px; background:var(--border);"></div>
+          </div>
+
+          <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 20px; display:flex; align-items:center; gap:14px; box-shadow:var(--shadow-sm); cursor:pointer; transition:border-color .15s ease;" style-hover="border-color:var(--border-strong);">
+            <svg width="13" height="13" viewBox="0 0 12 12" fill="none" style="color:var(--muted); flex:0 0 13px;"><path d="M4.4 2.6l3 3.4-3 3.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:14px; font-weight:600; letter-spacing:-0.01em;">Gus Fring — The Quiet Villain</div>
+              <div style="font-size:12px; color:var(--muted); padding-top:3px;">Breaking Bad · 38 scenes · 7m 42s</div>
+            </div>
+            <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:550; color:var(--muted); background:var(--raised); border:1px solid var(--border); padding:4px 10px; border-radius:999px; white-space:nowrap;">
+              <div style="width:5px; height:5px; border-radius:50%; background:var(--faint);"></div>not checked
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; justify-content:center; gap:8px; padding:13px; border:1px dashed var(--border-strong); border-radius:12px; color:var(--muted); font-size:13px; font-weight:550; cursor:pointer; transition:all .14s ease;" style-hover="background:var(--hover); color:var(--text); border-color:var(--accent);">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path></svg>
+            Add another video
+          </div>
+        </div>
+
+        <sc-if value="{{ checkOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:0 0 400px; position:sticky; top:38px; background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow-md); animation:fadein .18s ease;">
+            <div style="padding:18px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+              <div style="font-size:15px; font-weight:640; letter-spacing:-0.015em;">Check</div>
+              <div onClick="{{ closeCheck }}" style="color:var(--faint); cursor:pointer; font-size:17px; line-height:1; padding:3px 7px; border-radius:7px;" style-hover="background:var(--hover); color:var(--text);">×</div>
+            </div>
+
+            <div style="padding:18px 20px;">
+              <sc-if value="{{ verdictOk }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; align-items:center; gap:12px; padding-bottom:16px;">
+                  <div style="font-size:12px; font-weight:700; letter-spacing:0.06em; color:var(--ok); background:var(--ok-soft); border:1px solid var(--ok-line); padding:5px 12px; border-radius:999px;">OK</div>
+                  <div style="font-size:12.5px; color:var(--muted);">94% shots resolve honge</div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ verdictGaps }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex; align-items:center; gap:12px; padding-bottom:16px;">
+                  <div style="font-size:12px; font-weight:700; letter-spacing:0.06em; color:var(--warn); background:var(--warn-soft); border:1px solid var(--warn-line); padding:5px 12px; border-radius:999px;">GAPS</div>
+                  <div style="font-size:12.5px; color:var(--muted);">83% shots resolve honge</div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ verdictBlocked }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; align-items:center; gap:12px; padding-bottom:16px;">
+                  <div style="font-size:12px; font-weight:700; letter-spacing:0.06em; color:var(--bad); background:var(--bad-soft); border:1px solid var(--bad-line); padding:5px 12px; border-radius:999px;">BLOCKED</div>
+                  <div style="font-size:12.5px; color:var(--muted);">build shuru nahi hoga</div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ verdictOk }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; flex-direction:column; gap:11px; font-size:12.5px; line-height:1.45;">
+                  <div style="display:flex; gap:10px;"><div style="color:var(--ok); flex:0 0 12px;">✓</div><div>script padh li — 55 scenes, 132 shots</div></div>
+                  <div style="display:flex; gap:10px;"><div style="color:var(--ok); flex:0 0 12px;">✓</div><div>Breaking Bad — saare episodes indexed</div></div>
+                  <div style="display:flex; gap:10px;"><div style="color:var(--ok); flex:0 0 12px;">✓</div><div>voiceover mil gaya — 11m 09s</div></div>
+                  <div style="display:flex; gap:10px;"><div style="color:var(--ok); flex:0 0 12px;">✓</div><div>disk pe jagah hai — 12 GB chahiye, 340 GB hai</div></div>
+                  <div style="display:flex; gap:10px;"><div style="color:var(--ok); flex:0 0 12px;">✓</div><div>ffmpeg mil gaya</div></div>
+                </div>
+                <div style="padding-top:18px;">
+                  <div style="text-align:center; background:var(--accent); color:var(--on-accent); font-size:13px; font-weight:600; padding:10px 16px; border-radius:9px; cursor:pointer; box-shadow:var(--shadow-sm);" style-hover="background:var(--accent-hover);">Build → Editor</div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ verdictGaps }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex; flex-direction:column; gap:11px; font-size:12.5px; line-height:1.45;">
+                  <div style="display:flex; gap:10px;"><div style="color:var(--ok); flex:0 0 12px;">✓</div><div>script padh li — 55 scenes, 132 shots</div></div>
+                  <div style="display:flex; gap:10px;"><div style="color:var(--ok); flex:0 0 12px;">✓</div><div>Breaking Bad — saare episodes indexed</div></div>
+                  <div style="display:flex; gap:10px;"><div style="color:var(--ok); flex:0 0 12px;">✓</div><div>voiceover mil gaya — 11m 09s</div></div>
+                  <div style="display:flex; gap:10px;"><div style="color:var(--ok); flex:0 0 12px;">✓</div><div>disk pe jagah hai — 12 GB chahiye, 340 GB hai</div></div>
+                  <div style="display:flex; gap:10px;"><div style="color:var(--warn); flex:0 0 12px;">⚠</div><div>8 scenes me koi quoted line nahi — footage anumaan hoga
+                    <div style="display:flex; flex-wrap:wrap; gap:5px; padding-top:8px;">
+                      <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:10.5px; color:var(--warn); background:var(--warn-soft); border:1px solid var(--warn-line); padding:2px 8px; border-radius:999px; cursor:pointer;" style-hover="background:var(--warn); color:var(--surface);">12</div>
+                      <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:10.5px; color:var(--warn); background:var(--warn-soft); border:1px solid var(--warn-line); padding:2px 8px; border-radius:999px; cursor:pointer;" style-hover="background:var(--warn); color:var(--surface);">19</div>
+                      <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:10.5px; color:var(--warn); background:var(--warn-soft); border:1px solid var(--warn-line); padding:2px 8px; border-radius:999px; cursor:pointer;" style-hover="background:var(--warn); color:var(--surface);">24</div>
+                      <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:10.5px; color:var(--warn); background:var(--warn-soft); border:1px solid var(--warn-line); padding:2px 8px; border-radius:999px; cursor:pointer;" style-hover="background:var(--warn); color:var(--surface);">31</div>
+                      <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:10.5px; color:var(--warn); background:var(--warn-soft); border:1px solid var(--warn-line); padding:2px 8px; border-radius:999px; cursor:pointer;" style-hover="background:var(--warn); color:var(--surface);">38</div>
+                      <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:10.5px; color:var(--warn); background:var(--warn-soft); border:1px solid var(--warn-line); padding:2px 8px; border-radius:999px; cursor:pointer;" style-hover="background:var(--warn); color:var(--surface);">44</div>
+                      <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:10.5px; color:var(--warn); background:var(--warn-soft); border:1px solid var(--warn-line); padding:2px 8px; border-radius:999px; cursor:pointer;" style-hover="background:var(--warn); color:var(--surface);">49</div>
+                      <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:10.5px; color:var(--warn); background:var(--warn-soft); border:1px solid var(--warn-line); padding:2px 8px; border-radius:999px; cursor:pointer;" style-hover="background:var(--warn); color:var(--surface);">52</div>
+                    </div>
+                  </div></div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:7px; padding-top:18px;">
+                  <div style="text-align:center; background:var(--accent); color:var(--on-accent); font-size:13px; font-weight:600; padding:10px 16px; border-radius:9px; cursor:pointer; box-shadow:var(--shadow-sm);" style-hover="background:var(--accent-hover);">Build anyway → Editor</div>
+                  <div style="text-align:center; color:var(--muted); font-size:13px; font-weight:550; padding:9px 16px; border-radius:9px; cursor:pointer; transition:all .14s ease;" style-hover="background:var(--hover); color:var(--text);">Script theek karo</div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ verdictBlocked }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; flex-direction:column; gap:11px; font-size:12.5px; line-height:1.45;">
+                  <div style="display:flex; gap:10px;"><div style="color:var(--ok); flex:0 0 12px;">✓</div><div>script padh li — 55 scenes, 132 shots</div></div>
+                  <div style="display:flex; gap:10px;"><div style="color:var(--bad); flex:0 0 12px;">✗</div><div>S05E14 library me nahi hai<div style="font-size:11.5px; color:var(--muted); padding-top:4px;">Library me jaake Breaking Bad rebuild karo</div></div></div>
+                  <div style="display:flex; gap:10px;"><div style="color:var(--bad); flex:0 0 12px;">✗</div><div>voiceover file nahi mili<div style="font-family:'Cascadia Code', Consolas, monospace; font-size:11px; color:var(--muted); padding-top:4px;">E:\Voice\vo-final.m4a</div></div></div>
+                  <div style="display:flex; gap:10px;"><div style="color:var(--ok); flex:0 0 12px;">✓</div><div>disk pe jagah hai</div></div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:7px; padding-top:18px;">
+                  <div style="text-align:center; background:var(--raised); color:var(--faint); font-size:13px; font-weight:600; padding:10px 16px; border-radius:9px; cursor:not-allowed;">Build → Editor</div>
+                  <div onClick="{{ goLibrary }}" style="text-align:center; background:var(--surface); border:1px solid var(--border-strong); color:var(--text); font-size:13px; font-weight:550; padding:9px 16px; border-radius:9px; cursor:pointer;" style-hover="background:var(--hover);">Library kholo</div>
+                </div>
+              </sc-if>
+            </div>
+
+            <div style="padding:14px 20px 18px 20px; border-top:1px solid var(--border);">
+              <div style="font-size:10px; font-weight:650; letter-spacing:0.1em; color:var(--faint); padding-bottom:9px;">VERDICT STATES</div>
+              <div style="display:flex; padding:3px; background:var(--raised); border-radius:10px; gap:3px;">
+                <div onClick="{{ setOk }}" style="{{ vOkStyle }}">OK</div>
+                <div onClick="{{ setGaps }}" style="{{ vGapsStyle }}">GAPS</div>
+                <div onClick="{{ setBlocked }}" style="{{ vBlockedStyle }}">BLOCKED</div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ onEditor }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex; height:100%; min-width:1180px;">
+      <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+
+        <div style="display:flex; align-items:center; gap:20px; padding:18px 24px; border-bottom:1px solid var(--border);">
+          <div style="min-width:0;">
+            <div style="font-size:15px; font-weight:640; letter-spacing:-0.015em;">Why Walter White Broke Bad</div>
+            <div style="font-size:12px; color:var(--muted); padding-top:3px;">11m 09s · 132 shots · Breaking Bad</div>
+          </div>
+          <div style="flex:1;"></div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="font-size:10px; font-weight:650; letter-spacing:0.1em; color:var(--faint);">STATE</div>
+            <div style="display:flex; padding:3px; background:var(--raised); border-radius:9px; gap:3px;">
+              <div onClick="{{ setReady }}" style="{{ stReady }}">Ready</div>
+              <div onClick="{{ setLoading }}" style="{{ stLoading }}">Loading</div>
+              <div onClick="{{ setEmpty }}" style="{{ stEmpty }}">Empty</div>
+            </div>
+          </div>
+          <div onClick="{{ openExport }}" style="display:flex; align-items:center; gap:7px; background:var(--accent); color:var(--on-accent); font-size:13px; font-weight:600; padding:10px 16px; border-radius:9px; cursor:pointer; box-shadow:var(--shadow-sm); white-space:nowrap; transition:background .15s ease;" style-hover="background:var(--accent-hover);">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 8.4V1.8M3.4 4.4L6 1.8l2.6 2.6M2 8.6v1.6h8V8.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            Export
+          </div>
+        </div>
+
+        <sc-if value="{{ edEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:60px;">
+            <div style="width:44px; height:44px; border-radius:13px; background:var(--accent-soft); display:flex; align-items:center; justify-content:center; margin-bottom:8px;">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><rect x="1.8" y="3.5" width="12.4" height="9" rx="2" stroke="var(--accent)" stroke-width="1.3"></rect><path d="M6.6 6.3l3.4 1.7-3.4 1.7V6.3z" fill="var(--accent)"></path></svg>
+            </div>
+            <div style="font-size:17px; font-weight:640; letter-spacing:-0.02em;">Build a video first</div>
+            <div style="font-size:13px; color:var(--muted); max-width:320px; text-align:center; line-height:1.55;">Editor tab khulta hai jab ek build complete ho jaye.</div>
+            <div onClick="{{ goNewVideo }}" style="margin-top:14px; background:var(--accent); color:var(--on-accent); font-size:13px; font-weight:600; padding:9px 15px; border-radius:9px; cursor:pointer; box-shadow:var(--shadow-sm);" style-hover="background:var(--accent-hover);">Go to New Video</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ edNotEmpty }}" hint-placeholder-val="{{ true }}">
+        <div style="flex:0 0 auto; padding:22px 24px; display:flex; justify-content:center; background:var(--bg); border-bottom:1px solid var(--border);">
+          <div style="width:100%; max-width:620px;">
+            <div style="aspect-ratio:16/9; border-radius:12px; border:1px solid var(--border); background:repeating-linear-gradient(135deg, var(--raised) 0 10px, var(--surface) 10px 20px); display:flex; align-items:center; justify-content:center;">
+              <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:11px; color:var(--faint); background:var(--surface); border:1px solid var(--border); padding:6px 12px; border-radius:8px;">preview · S04E01 37:12</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:14px; padding-top:14px;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <div style="width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--muted); cursor:pointer;" style-hover="background:var(--hover); color:var(--text);">
+                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M11 2.5v9L4.5 7 11 2.5zM3 2.5v9" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path></svg>
+                </div>
+                <div onClick="{{ togglePlay }}" style="width:34px; height:34px; border-radius:10px; background:var(--accent); color:var(--on-accent); display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:var(--shadow-sm);" style-hover="background:var(--accent-hover);">
+                  <sc-if value="{{ notPlaying }}" hint-placeholder-val="{{ true }}"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M4.5 2.6l7 4.4-7 4.4V2.6z" fill="currentColor"></path></svg></sc-if>
+                  <sc-if value="{{ playing }}" hint-placeholder-val="{{ false }}"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="3.6" y="2.8" width="2.6" height="8.4" rx="1" fill="currentColor"></rect><rect x="7.8" y="2.8" width="2.6" height="8.4" rx="1" fill="currentColor"></rect></svg></sc-if>
+                </div>
+                <div style="width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--muted); cursor:pointer;" style-hover="background:var(--hover); color:var(--text);">
+                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M3 2.5v9L9.5 7 3 2.5zM11 2.5v9" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path></svg>
+                </div>
+              </div>
+              <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:11.5px; color:var(--muted);">01:12 / 11:09</div>
+              <div style="flex:1; height:4px; border-radius:999px; background:var(--raised); overflow:hidden;"><div style="width:11%; height:100%; background:var(--accent); border-radius:999px;"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <sc-if value="{{ edLoading }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:1; padding:20px 24px; display:flex; flex-direction:column; gap:12px;">
+            <div style="height:12px; width:180px; border-radius:6px; background:var(--shimmer); background-size:420px 100%; animation:shimmer 1.4s linear infinite;"></div>
+            <div style="height:74px; border-radius:10px; background:var(--shimmer); background-size:420px 100%; animation:shimmer 1.4s linear infinite;"></div>
+            <div style="height:44px; border-radius:10px; background:var(--shimmer); background-size:420px 100%; animation:shimmer 1.4s linear infinite;"></div>
+            <div style="height:36px; border-radius:10px; background:var(--shimmer); background-size:420px 100%; animation:shimmer 1.4s linear infinite;"></div>
+            <div style="height:36px; border-radius:10px; background:var(--shimmer); background-size:420px 100%; animation:shimmer 1.4s linear infinite;"></div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ edReady }}" hint-placeholder-val="{{ true }}">
+        <div style="flex:1; min-height:0; overflow:auto; padding:16px 0 0 0; position:relative;">
+          <div style="display:flex; align-items:center; gap:0; padding:0 20px 8px 20px;">
+            <div style="flex:0 0 76px;"></div>
+            <div style="flex:1; display:flex; gap:0;">
+              <sc-for list="{{ ruler }}" as="t" hint-placeholder-count="8">
+                <div style="flex:1; font-family:'Cascadia Code', Consolas, monospace; font-size:10px; color:var(--faint); border-left:1px solid var(--border); padding-left:6px;">{{ t }}</div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="position:relative; padding:0 20px 20px 20px;">
+            <div style="position:absolute; left:246px; top:0; bottom:20px; width:1.5px; background:var(--accent); z-index:3;">
+              <div style="position:absolute; top:-5px; left:-5px; width:11px; height:11px; border-radius:3px; background:var(--accent);"></div>
+            </div>
+
+            <div style="display:flex; align-items:stretch; gap:10px; padding-bottom:8px;">
+              <div style="flex:0 0 66px; padding-top:6px; font-size:10px; font-weight:650; letter-spacing:0.08em; color:var(--faint);">SHOTS</div>
+              <div style="flex:1; min-width:0; overflow-x:auto; height:78px;">
+                <div style="display:flex; gap:4px; height:100%; align-items:stretch;">
+                  <sc-for list="{{ shots }}" as="s" hint-placeholder-count="8">
+                    <div onClick="{{ s.onSelect }}" style="{{ s.style }}">
+                      <div style="{{ s.badgeStyle }}">{{ s.kind }}</div>
+                      <div style="position:absolute; bottom:4px; left:6px; font-family:'Cascadia Code', Consolas, monospace; font-size:9px; color:var(--muted);">{{ s.ts }}</div>
+                    </div>
+                  </sc-for>
+                  <div style="flex:0 0 110px; height:100%; border-radius:9px; border:1.5px dashed var(--border-strong); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;">
+                    <div style="font-size:10.5px; color:var(--faint);">nothing here</div>
+                    <div style="font-size:10.5px; font-weight:600; color:var(--accent); background:var(--accent-soft); padding:3px 8px; border-radius:6px; cursor:pointer;">+ add shot</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; align-items:stretch; gap:10px; padding-bottom:8px;">
+              <div style="flex:0 0 66px; padding-top:4px; font-size:10px; font-weight:650; letter-spacing:0.08em; color:var(--faint);">VOICE</div>
+              <div style="flex:1; min-width:0; height:44px; border-radius:9px; border:1px solid var(--border); background:var(--surface); overflow:hidden; display:flex; align-items:center;">
+                <div style="width:100%; height:26px; opacity:.5; background:repeating-linear-gradient(90deg, var(--muted) 0 1.5px, transparent 1.5px 5px); mask-image:linear-gradient(180deg, transparent 4%, #000 26%, #000 74%, transparent 96%); -webkit-mask-image:linear-gradient(180deg, transparent 4%, #000 26%, #000 74%, transparent 96%);"></div>
+              </div>
+            </div>
+
+            <div style="display:flex; align-items:stretch; gap:10px; padding-bottom:8px;">
+              <div style="flex:0 0 66px; padding-top:4px; font-size:10px; font-weight:650; letter-spacing:0.08em; color:var(--faint);">TEXT</div>
+              <div style="flex:1; min-width:0; height:34px; border-radius:9px; border:1px solid var(--border); background:var(--surface); display:flex; align-items:center; padding:0 10px; gap:5px;">
+                <div style="height:20px; flex:0 0 120px; border-radius:6px; background:var(--raised); display:flex; align-items:center; padding:0 8px; font-size:10px; color:var(--muted); overflow:hidden; white-space:nowrap;">"He was the danger…"</div>
+                <div style="height:20px; flex:0 0 90px; border-radius:6px; background:var(--raised); display:flex; align-items:center; padding:0 8px; font-size:10px; color:var(--muted); overflow:hidden; white-space:nowrap;">"…the one who"</div>
+                <div style="height:20px; flex:0 0 140px; border-radius:6px; background:var(--raised); display:flex; align-items:center; padding:0 8px; font-size:10px; color:var(--muted); overflow:hidden; white-space:nowrap;">"knocks. And that"</div>
+              </div>
+            </div>
+
+            <div style="display:flex; align-items:stretch; gap:10px;">
+              <div style="flex:0 0 66px; padding-top:4px; font-size:10px; font-weight:650; letter-spacing:0.08em; color:var(--faint);">MUSIC</div>
+              <div style="flex:1; min-width:0; height:34px; border-radius:9px; border:1px dashed var(--border-strong); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:11.5px; font-weight:550; cursor:pointer; transition:all .14s ease;" style-hover="color:var(--accent); border-color:var(--accent);">+ add music</div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; align-items:center; gap:9px; padding-top:14px;">
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="color:var(--faint);"><circle cx="6.2" cy="6.2" r="4" stroke="currentColor" stroke-width="1.3"></circle><path d="M9.2 9.2l2.6 2.6M4.6 6.2h3.2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"></path></svg>
+              <input type="range" min="1" max="100" value="42" style="width:150px; accent-color:var(--accent);">
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="color:var(--faint);"><circle cx="6.2" cy="6.2" r="4" stroke="currentColor" stroke-width="1.3"></circle><path d="M9.2 9.2l2.6 2.6M4.6 6.2h3.2M6.2 4.6v3.2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"></path></svg>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+        </sc-if>
+      </div>
+
+      <sc-if value="{{ edReady }}" hint-placeholder-val="{{ true }}">
+      <div style="flex:0 0 330px; border-left:1px solid var(--border); background:var(--surface); overflow-y:auto; padding:20px;">
+        <div style="aspect-ratio:16/9; border-radius:11px; border:1px solid var(--border); background:repeating-linear-gradient(135deg, var(--raised) 0 8px, var(--surface) 8px 16px);"></div>
+
+        <div style="display:flex; align-items:center; gap:10px; padding-top:16px;">
+          <div style="font-size:16px; font-weight:640; letter-spacing:-0.02em;">Scene 12</div>
+          <div style="font-size:9.5px; font-weight:650; padding:2px 7px; border-radius:6px; color:var(--warn); background:var(--warn-soft); border:1px solid var(--warn-line);">interpolated</div>
+        </div>
+        <div style="font-size:12.5px; color:var(--muted); font-style:italic; line-height:1.6; padding-top:8px;">"By the fourth season, the mask is gone. What's left isn't a man protecting his family — it's a man protecting his empire."</div>
+
+        <div style="display:flex; align-items:center; gap:8px; padding-top:14px; font-size:12.5px;">
+          <div style="color:var(--muted);">Source</div>
+          <div style="font-weight:550;">Breaking Bad S04E01</div>
+          <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:11.5px; color:var(--muted);">37:12</div>
+        </div>
+
+        <div style="height:1px; background:var(--border); margin:18px 0;"></div>
+
+        <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:7px;">Duration</div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <input type="number" value="4.5" step="0.5" style="width:82px; box-sizing:border-box; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:8px 11px; color:var(--text); font-size:13px; outline:none;" style-focus="border-color:var(--accent);">
+          <input type="range" min="1" max="12" value="4.5" step="0.5" style="flex:1; accent-color:var(--accent);">
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:12px; padding-top:16px;">
+          <div>
+            <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">Transition</div>
+            <select style="width:100%; box-sizing:border-box; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:8px 11px; color:var(--text); font-size:12.5px; outline:none;">
+              <sc-for list="{{ transitions }}" as="t" hint-placeholder-count="3"><option>{{ t }}</option></sc-for>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">Filter</div>
+            <select style="width:100%; box-sizing:border-box; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:8px 11px; color:var(--text); font-size:12.5px; outline:none;">
+              <sc-for list="{{ filters }}" as="t" hint-placeholder-count="3"><option>{{ t }}</option></sc-for>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">Animation</div>
+            <select style="width:100%; box-sizing:border-box; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:8px 11px; color:var(--text); font-size:12.5px; outline:none;">
+              <sc-for list="{{ animations }}" as="t" hint-placeholder-count="3"><option>{{ t }}</option></sc-for>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:7px; padding-top:18px;">
+          <div onClick="{{ openFind }}" style="flex:1; text-align:center; background:var(--accent); color:var(--on-accent); font-size:12.5px; font-weight:600; padding:9px 12px; border-radius:9px; cursor:pointer; box-shadow:var(--shadow-sm); transition:background .15s ease;" style-hover="background:var(--accent-hover);">Find another</div>
+          <div style="flex:1; text-align:center; background:var(--surface); border:1px solid var(--border-strong); color:var(--text); font-size:12.5px; font-weight:550; padding:8px 12px; border-radius:9px; cursor:pointer; transition:background .15s ease;" style-hover="background:var(--hover);">Use previous</div>
+        </div>
+        <div style="display:flex; gap:7px; padding-top:7px;">
+          <div style="flex:1; text-align:center; color:var(--muted); font-size:12.5px; font-weight:550; padding:9px 12px; border-radius:9px; cursor:pointer; transition:all .14s ease;" style-hover="background:var(--hover); color:var(--text);">Split</div>
+          <div style="flex:1; text-align:center; color:var(--muted); font-size:12.5px; font-weight:550; padding:9px 12px; border-radius:9px; cursor:pointer; transition:all .14s ease;" style-hover="background:var(--hover); color:var(--text);">Duplicate</div>
+          <div style="flex:1; text-align:center; color:var(--muted); font-size:12.5px; font-weight:550; padding:9px 12px; border-radius:9px; cursor:pointer; transition:all .14s ease;" style-hover="background:var(--bad-soft); color:var(--bad);">Delete</div>
+        </div>
+      </div>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{ findOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeFind }}" style="position:fixed; inset:0; background:rgba(9,13,20,.42); z-index:50; animation:fadein .15s ease;"></div>
+      <div style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:860px; max-width:92vw; max-height:88vh; overflow-y:auto; background:var(--surface); border:1px solid var(--border); border-radius:16px; z-index:51; box-shadow:0 30px 80px rgba(9,13,20,.35); animation:fadein .18s ease;">
+        <div style="padding:22px 24px 0 24px;">
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px;">
+            <div>
+              <div style="font-size:19px; font-weight:700; letter-spacing:-0.03em;">Scene 12 ke liye dusra shot</div>
+              <div style="font-size:12.5px; color:var(--muted); font-style:italic; line-height:1.55; padding-top:8px; max-width:620px;">"By the fourth season, the mask is gone. What's left isn't a man protecting his family — it's a man protecting his empire."</div>
+              <div style="font-size:12.5px; color:var(--muted); padding-top:10px;">Breaking Bad S04E01 me se — <span style="color:var(--text); font-weight:550;">10 sabse milte-julte frames</span></div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="display:flex; padding:3px; background:var(--raised); border-radius:9px; gap:3px;">
+                <div onClick="{{ showResults }}" style="{{ fResStyle }}">10 mile</div>
+                <div onClick="{{ showNoResults }}" style="{{ fEmptyStyle }}">kuch nahi mila</div>
+              </div>
+              <div onClick="{{ closeFind }}" style="color:var(--faint); cursor:pointer; font-size:18px; line-height:1; padding:4px 8px; border-radius:8px;" style-hover="background:var(--hover); color:var(--text);">×</div>
+            </div>
+          </div>
+        </div>
+
+        <sc-if value="{{ findHasResults }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:20px 24px; display:grid; grid-template-columns:repeat(5, 1fr); gap:12px;">
+          <sc-for list="{{ candidates }}" as="c" hint-placeholder-count="10">
+            <div onClick="{{ c.onPick }}" style="{{ c.style }}" style-hover="border-color:var(--accent); box-shadow:var(--shadow-md);">
+              <div style="position:relative; aspect-ratio:16/9; background:repeating-linear-gradient(135deg, var(--raised) 0 8px, var(--surface) 8px 16px);">
+                <sc-if value="{{ c.cur }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute; top:6px; left:6px; font-size:9.5px; font-weight:650; color:var(--on-accent); background:var(--accent); padding:2px 7px; border-radius:5px;">current</div>
+                </sc-if>
+                <sc-if value="{{ c.sel }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute; top:6px; right:6px; width:18px; height:18px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center;">
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1.5 5.2l2.3 2.3L8.5 2.8" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                  </div>
+                </sc-if>
+              </div>
+              <div style="padding:8px 10px 10px 10px;">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                  <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:10.5px; color:var(--muted);">{{ c.ts }}</div>
+                  <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:10.5px; font-weight:600;">{{ c.score }}</div>
+                </div>
+                <div style="height:4px; border-radius:999px; background:var(--raised); overflow:hidden; margin-top:6px;">
+                  <div style="width:{{ c.bar }}; height:100%; background:var(--accent); border-radius:999px;"></div>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ findEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:20px 24px;">
+            <div style="border:1px dashed var(--border-strong); border-radius:12px; padding:56px 24px; display:flex; flex-direction:column; align-items:center; gap:6px;">
+              <div style="width:38px; height:38px; border-radius:11px; background:var(--raised); display:flex; align-items:center; justify-content:center; margin-bottom:6px;">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.6" stroke="var(--muted)" stroke-width="1.3"></circle><path d="M10.4 10.4l3 3" stroke="var(--muted)" stroke-width="1.3" stroke-linecap="round"></path></svg>
+              </div>
+              <div style="font-size:14.5px; font-weight:640; letter-spacing:-0.015em;">Is episode me aur koi milta-julta frame nahi mila</div>
+              <div style="font-size:12.5px; color:var(--muted); text-align:center; max-width:380px; line-height:1.55;">Doosra episode try karo, ya scene ki narration me koi quoted line jodo.</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <div style="padding:16px 24px 22px 24px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:16px;">
+          <div style="font-size:12px; color:var(--faint);">score jitna zyada, match utna pakka</div>
+          <div style="display:flex; gap:8px;">
+            <div onClick="{{ closeFind }}" style="color:var(--muted); font-size:13px; font-weight:550; padding:9px 15px; border-radius:9px; cursor:pointer; transition:all .14s ease;" style-hover="background:var(--hover); color:var(--text);">Cancel</div>
+            <sc-if value="{{ findHasResults }}" hint-placeholder-val="{{ true }}">
+              <div onClick="{{ closeFind }}" style="background:var(--accent); color:var(--on-accent); font-size:13px; font-weight:600; padding:10px 16px; border-radius:9px; cursor:pointer; box-shadow:var(--shadow-sm); transition:background .15s ease;" style-hover="background:var(--accent-hover);">Use this shot</div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ exportOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeExport }}" style="position:fixed; inset:0; background:rgba(9,13,20,.42); z-index:50; animation:fadein .15s ease;"></div>
+      <div style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:440px; max-width:92vw; background:var(--surface); border:1px solid var(--border); border-radius:16px; z-index:51; box-shadow:0 30px 80px rgba(9,13,20,.35); animation:fadein .18s ease;">
+        <div style="padding:22px 24px 0 24px; display:flex; align-items:flex-start; justify-content:space-between;">
+          <div style="font-size:19px; font-weight:700; letter-spacing:-0.03em;">Export.</div>
+          <div onClick="{{ closeExport }}" style="color:var(--faint); cursor:pointer; font-size:18px; line-height:1; padding:4px 8px; border-radius:8px;" style-hover="background:var(--hover); color:var(--text);">×</div>
+        </div>
+        <sc-if value="{{ expForm }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:18px 24px; display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">Output folder</div>
+            <div style="display:flex; gap:7px;">
+              <input type="text" value="E:\Exports\walter-essay" style="flex:1; min-width:0; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:9px 12px; color:var(--text); font-size:12px; font-family:'Cascadia Code', Consolas, monospace; outline:none;" style-focus="border-color:var(--accent);">
+              <div style="background:var(--surface); border:1px solid var(--border-strong); color:var(--text); font-size:13px; font-weight:550; padding:9px 14px; border-radius:9px; cursor:pointer; white-space:nowrap;" style-hover="background:var(--hover);">Browse</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">File name</div>
+            <input type="text" value="why-walter-white-broke-bad.mp4" style="width:100%; box-sizing:border-box; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:9px 12px; color:var(--text); font-size:12px; font-family:'Cascadia Code', Consolas, monospace; outline:none;" style-focus="border-color:var(--accent);">
+          </div>
+          <div>
+            <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:7px;">Quality</div>
+            <div style="display:flex; padding:3px; background:var(--raised); border-radius:10px; gap:3px;">
+              <div onClick="{{ setE1080 }}" style="{{ e1080 }}">1080p</div>
+              <div onClick="{{ setE4k }}" style="{{ e4k }}">4K (upscaled)</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:12px 14px;">
+            <div style="font-size:12.5px; color:var(--muted);">Estimated</div>
+            <div style="font-size:13px; font-weight:640;">~2.1 GB</div>
+            <div style="width:1px; height:12px; background:var(--border-strong);"></div>
+            <div style="font-size:13px; font-weight:640;">~18 minute lagenge</div>
+          </div>
+        </div>
+        <div style="padding:0 24px 22px 24px; display:flex; justify-content:flex-end; gap:8px;">
+          <div onClick="{{ closeExportAll }}" style="color:var(--muted); font-size:13px; font-weight:550; padding:9px 15px; border-radius:9px; cursor:pointer;" style-hover="background:var(--hover); color:var(--text);">Cancel</div>
+          <div onClick="{{ startExport }}" style="background:var(--accent); color:var(--on-accent); font-size:13px; font-weight:600; padding:10px 18px; border-radius:9px; cursor:pointer; box-shadow:var(--shadow-sm);" style-hover="background:var(--accent-hover);">Export</div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ expRunning }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:20px 24px 22px 24px; display:flex; flex-direction:column; gap:13px; animation:fadein .18s ease;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between;">
+              <div style="font-size:16px; font-weight:640; letter-spacing:-0.02em;">Segment 84 / 132</div>
+              <div style="font-size:12.5px; color:var(--muted);">11m bacha</div>
+            </div>
+            <div style="height:8px; border-radius:999px; background:var(--raised); overflow:hidden;"><div style="width:64%; height:100%; background:var(--accent); border-radius:999px;"></div></div>
+            <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:11px; color:var(--muted);">why-walter-white-broke-bad.mp4 · 1080p</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:14px; padding-top:6px;">
+              <div style="font-size:11.5px; color:var(--faint); line-height:1.5; max-width:230px;">isko band karke doosra kaam kar sakte ho</div>
+              <div onClick="{{ closeExportAll }}" style="background:var(--surface); border:1px solid var(--border-strong); color:var(--text); font-size:13px; font-weight:550; padding:8px 16px; border-radius:9px; cursor:pointer;" style-hover="background:var(--hover);">Cancel</div>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+    </sc-if>
+
+    <sc-if value="{{ onQueue }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:38px 40px 64px 40px; max-width:1180px; min-width:1100px;">
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:28px; padding-bottom:26px;">
+        <div>
+          <div style="font-size:30px; font-weight:700; letter-spacing:-0.035em; line-height:1.1;">Queue.</div>
+          <div style="font-size:14px; color:var(--muted); padding-top:8px;">Jo ban rahi hai aur jo ban chuki hai</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div style="color:var(--muted); font-size:12.5px; font-weight:550; padding:9px 13px; border-radius:9px; cursor:pointer; white-space:nowrap; transition:all .14s ease;" style-hover="background:var(--hover); color:var(--text);">Pause all</div>
+          <div onClick="{{ goNewVideo }}" style="display:flex; align-items:center; gap:7px; background:var(--accent); color:var(--on-accent); font-size:13px; font-weight:600; padding:10px 16px; border-radius:9px; cursor:pointer; white-space:nowrap; box-shadow:var(--shadow-sm); transition:background .15s ease;" style-hover="background:var(--accent-hover);">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+            New Video
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px; display:flex; align-items:center; gap:18px; box-shadow:var(--shadow-sm); transition:all .15s ease;" style-hover="border-color:var(--border-strong); box-shadow:var(--shadow-md);">
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:15px; font-weight:640; letter-spacing:-0.015em;">Why Walter White Broke Bad</div>
+            <div style="font-size:12px; color:var(--muted); padding-top:4px;">Breaking Bad · 55 scenes · 11m 09s</div>
+          </div>
+          <div style="width:180px; flex:0 0 180px; display:flex; align-items:center; gap:10px;">
+            <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:550; color:var(--ok); background:var(--ok-soft); border:1px solid var(--ok-line); padding:4px 10px; border-radius:999px; white-space:nowrap;"><div style="width:5px; height:5px; border-radius:50%; background:var(--ok);"></div>done</div>
+            <div style="font-size:12px; color:var(--muted); white-space:nowrap;">12m 04s me bani</div>
+          </div>
+          <div style="width:250px; flex:0 0 250px; display:flex; justify-content:flex-end; gap:7px;">
+            <div onClick="{{ goEditor }}" style="background:var(--accent); color:var(--on-accent); font-size:12.5px; font-weight:600; padding:8px 13px; border-radius:8px; cursor:pointer; white-space:nowrap; box-shadow:var(--shadow-sm);" style-hover="background:var(--accent-hover);">Move to editor</div>
+            <div style="color:var(--muted); font-size:12.5px; font-weight:550; padding:8px 12px; border-radius:8px; cursor:pointer; white-space:nowrap; transition:all .13s ease;" style-hover="background:var(--hover); color:var(--text);">Folder kholo</div>
+          </div>
+        </div>
+
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px; box-shadow:var(--shadow-sm);">
+          <div style="display:flex; align-items:center; gap:18px;">
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:15px; font-weight:640; letter-spacing:-0.015em;">Gus Fring — The Quiet Villain</div>
+              <div style="font-size:12px; color:var(--muted); padding-top:4px;">Breaking Bad · 38 scenes · 7m 42s</div>
+            </div>
+            <div style="width:180px; flex:0 0 180px;">
+              <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:550; color:var(--busy); background:var(--busy-soft); border:1px solid var(--busy-line); padding:4px 10px; border-radius:999px; white-space:nowrap;"><div style="width:5px; height:5px; border-radius:50%; background:var(--busy);"></div>building</div>
+            </div>
+            <div style="width:250px; flex:0 0 250px; display:flex; justify-content:flex-end; gap:7px;">
+              <div style="background:var(--surface); border:1px solid var(--border-strong); color:var(--text); font-size:12.5px; font-weight:550; padding:7px 14px; border-radius:8px; cursor:pointer; white-space:nowrap;" style-hover="background:var(--hover);">Pause</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:14px; padding-top:14px;">
+            <div style="flex:1; height:6px; border-radius:999px; background:var(--raised); overflow:hidden;"><div style="width:82%; height:100%; background:var(--busy); border-radius:999px;"></div></div>
+            <div style="font-size:12px; color:var(--muted); white-space:nowrap;">scene 31 / 38</div>
+            <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:11px; color:var(--faint); white-space:nowrap;">6m bacha</div>
+          </div>
+        </div>
+
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px; display:flex; align-items:center; gap:18px; box-shadow:var(--shadow-sm); transition:all .15s ease;" style-hover="border-color:var(--border-strong); box-shadow:var(--shadow-md);">
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:15px; font-weight:640; letter-spacing:-0.015em;">The Cousins</div>
+            <div style="font-size:12px; color:var(--muted); padding-top:4px;">Breaking Bad · 24 scenes · 5m 18s</div>
+          </div>
+          <div style="width:180px; flex:0 0 180px; display:flex; align-items:center; gap:10px;">
+            <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:550; color:var(--muted); background:var(--raised); border:1px solid var(--border); padding:4px 10px; border-radius:999px; white-space:nowrap;"><div style="width:5px; height:5px; border-radius:50%; background:var(--faint);"></div>queued</div>
+            <div style="font-size:12px; color:var(--muted); white-space:nowrap;">#3 line me</div>
+          </div>
+          <div style="width:250px; flex:0 0 250px; display:flex; justify-content:flex-end; gap:7px;">
+            <div style="color:var(--muted); font-size:12.5px; font-weight:550; padding:8px 12px; border-radius:8px; cursor:pointer; white-space:nowrap; transition:all .13s ease;" style-hover="background:var(--hover); color:var(--text);">Upar karo</div>
+            <div style="color:var(--muted); font-size:12.5px; font-weight:550; padding:8px 12px; border-radius:8px; cursor:pointer; white-space:nowrap; transition:all .13s ease;" style-hover="background:var(--bad-soft); color:var(--bad);">Hatao</div>
+          </div>
+        </div>
+
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px; display:flex; align-items:center; gap:18px; box-shadow:var(--shadow-sm); transition:all .15s ease;" style-hover="border-color:var(--border-strong); box-shadow:var(--shadow-md);">
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:15px; font-weight:640; letter-spacing:-0.015em;">Jesse's Last Ride</div>
+            <div style="font-size:12px; color:var(--muted); padding-top:4px;">Breaking Bad · 41 scenes · 8m 55s</div>
+          </div>
+          <div style="width:180px; flex:0 0 180px; display:flex; align-items:center; gap:10px;">
+            <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:550; color:var(--warn); background:var(--warn-soft); border:1px solid var(--warn-line); padding:4px 10px; border-radius:999px; white-space:nowrap;"><div style="width:5px; height:5px; border-radius:50%; background:var(--warn);"></div>needs attention</div>
+          </div>
+          <div style="width:250px; flex:0 0 250px; display:flex; align-items:center; justify-content:flex-end; gap:10px;">
+            <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:11px; color:var(--muted); white-space:nowrap;">GAPS · 78% shots</div>
+            <div style="background:var(--surface); border:1px solid var(--border-strong); color:var(--text); font-size:12.5px; font-weight:550; padding:7px 13px; border-radius:8px; cursor:pointer; white-space:nowrap;" style-hover="background:var(--hover);">Check dekho</div>
+          </div>
+        </div>
+
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px; display:flex; align-items:center; gap:18px; box-shadow:var(--shadow-sm); transition:all .15s ease;" style-hover="border-color:var(--border-strong); box-shadow:var(--shadow-md);">
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:15px; font-weight:640; letter-spacing:-0.015em;">Mike's Rules</div>
+            <div style="font-size:12px; color:var(--muted); padding-top:4px;">Breaking Bad · 29 scenes · 6m 02s</div>
+          </div>
+          <div style="width:180px; flex:0 0 180px; display:flex; align-items:center; gap:10px;">
+            <div style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:550; color:var(--bad); background:var(--bad-soft); border:1px solid var(--bad-line); padding:4px 10px; border-radius:999px; white-space:nowrap;"><div style="width:5px; height:5px; border-radius:50%; background:var(--bad);"></div>failed</div>
+          </div>
+          <div style="width:250px; flex:0 0 250px; display:flex; align-items:center; justify-content:flex-end; gap:10px;">
+            <div style="font-size:12px; color:var(--bad); white-space:nowrap;">voiceover file nahi mili</div>
+            <div style="color:var(--muted); font-size:12.5px; font-weight:550; padding:8px 12px; border-radius:8px; cursor:pointer; white-space:nowrap; transition:all .13s ease;" style-hover="background:var(--hover); color:var(--text);">Theek karo</div>
+            <div style="color:var(--muted); font-size:12.5px; font-weight:550; padding:8px 12px; border-radius:8px; cursor:pointer; white-space:nowrap; transition:all .13s ease;" style-hover="background:var(--hover); color:var(--text);">Dobara chalao</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:18px; margin-top:14px; padding:13px 18px; background:var(--surface); border:1px solid var(--border); border-radius:12px;">
+        <div style="display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--muted);"><div style="width:6px; height:6px; border-radius:50%; background:var(--ok);"></div>2 done</div>
+        <div style="display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--muted);"><div style="width:6px; height:6px; border-radius:50%; background:var(--busy);"></div>1 building</div>
+        <div style="display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--muted);"><div style="width:6px; height:6px; border-radius:50%; background:var(--faint);"></div>1 queued</div>
+        <div style="display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--muted);"><div style="width:6px; height:6px; border-radius:50%; background:var(--bad);"></div>1 failed</div>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ onSettings }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:38px 40px 64px 40px; max-width:760px; min-width:700px;">
+      <div style="padding-bottom:26px;">
+        <div style="font-size:30px; font-weight:700; letter-spacing:-0.035em; line-height:1.1;">Settings.</div>
+        <div style="font-size:14px; color:var(--muted); padding-top:8px;">Ek baar set karo — har nayi video me yahi chalega.</div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:14px;">
+
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:22px; box-shadow:var(--shadow-sm);">
+          <div style="font-size:15px; font-weight:640; letter-spacing:-0.015em; padding-bottom:16px;">Folders</div>
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <div>
+              <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">Libraries folder</div>
+              <div style="display:flex; gap:7px;">
+                <input type="text" value="E:\Libraries" style="flex:1; min-width:0; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:9px 12px; color:var(--text); font-size:12px; font-family:'Cascadia Code', Consolas, monospace; outline:none;" style-focus="border-color:var(--accent);">
+                <div style="background:var(--surface); border:1px solid var(--border-strong); color:var(--text); font-size:13px; font-weight:550; padding:9px 14px; border-radius:9px; cursor:pointer;" style-hover="background:var(--hover);">Browse</div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">Default output folder</div>
+              <div style="display:flex; gap:7px;">
+                <input type="text" value="E:\Exports" style="flex:1; min-width:0; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:9px 12px; color:var(--text); font-size:12px; font-family:'Cascadia Code', Consolas, monospace; outline:none;" style-focus="border-color:var(--accent);">
+                <div style="background:var(--surface); border:1px solid var(--border-strong); color:var(--text); font-size:13px; font-weight:550; padding:9px 14px; border-radius:9px; cursor:pointer;" style-hover="background:var(--hover);">Browse</div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">Scratch / temp folder</div>
+              <div style="display:flex; gap:7px;">
+                <input type="text" value="E:\Temp" style="flex:1; min-width:0; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:9px 12px; color:var(--text); font-size:12px; font-family:'Cascadia Code', Consolas, monospace; outline:none;" style-focus="border-color:var(--accent);">
+                <div style="background:var(--surface); border:1px solid var(--border-strong); color:var(--text); font-size:13px; font-weight:550; padding:9px 14px; border-radius:9px; cursor:pointer;" style-hover="background:var(--hover);">Browse</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:22px; box-shadow:var(--shadow-sm);">
+          <div style="font-size:15px; font-weight:640; letter-spacing:-0.015em;">Defaults</div>
+          <div style="font-size:12.5px; color:var(--muted); padding-top:4px; padding-bottom:16px;">Nayi video pe ye pehle se bhare aayenge</div>
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <div style="display:flex; gap:20px;">
+              <div style="flex:1;">
+                <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:7px;">Quality</div>
+                <div style="display:flex; padding:3px; background:var(--raised); border-radius:10px; gap:3px;">
+                  <div onClick="{{ setSq1080 }}" style="{{ sq1080 }}">1080p</div>
+                  <div onClick="{{ setSq4k }}" style="{{ sq4k }}">4K</div>
+                </div>
+              </div>
+              <div style="flex:1.6;">
+                <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:7px;">Pace</div>
+                <div style="display:flex; padding:3px; background:var(--raised); border-radius:10px; gap:3px;">
+                  <div onClick="{{ setSpCalm }}" style="{{ spCalm }}">Calm</div>
+                  <div onClick="{{ setSpNormal }}" style="{{ spNormal }}">Normal</div>
+                  <div onClick="{{ setSpQuick }}" style="{{ spQuick }}">Quick</div>
+                  <div onClick="{{ setSpRapid }}" style="{{ spRapid }}">Rapid</div>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex; gap:20px; align-items:flex-end;">
+              <div style="flex:1;">
+                <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">Style preset</div>
+                <select style="width:100%; box-sizing:border-box; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:9px 12px; color:var(--text); font-size:13px; outline:none;">
+                  <option>Auto (recommended)</option>
+                  <option>Cinematic</option>
+                  <option>Tense</option>
+                  <option>Documentary</option>
+                </select>
+              </div>
+              <div style="flex:1; padding-bottom:9px;">
+                <div onClick="{{ toggleSetCap }}" style="display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none;">
+                  <div style="{{ setCapTrack }}"><div style="{{ swKnob }}"></div></div>
+                  <div style="font-size:13px;">Captions</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:22px; box-shadow:var(--shadow-sm);">
+          <div style="font-size:15px; font-weight:640; letter-spacing:-0.015em; padding-bottom:16px;">Advanced</div>
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <div>
+              <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">ffmpeg path</div>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <input type="text" value="C:\Tools\ffmpeg\bin\ffmpeg.exe" style="flex:1; min-width:0; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:9px 12px; color:var(--text); font-size:12px; font-family:'Cascadia Code', Consolas, monospace; outline:none;" style-focus="border-color:var(--accent);">
+                <div style="display:flex; align-items:center; gap:6px; color:var(--ok); font-size:12.5px; font-weight:550; white-space:nowrap;">
+                  <svg width="13" height="13" viewBox="0 0 12 12" fill="none"><path d="M2 6.2l2.6 2.6L10 3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                  mil gaya
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">Model</div>
+              <select disabled style="width:100%; box-sizing:border-box; background:var(--raised); border:1px solid var(--border); border-radius:9px; padding:9px 12px; color:var(--faint); font-size:12px; font-family:'Cascadia Code', Consolas, monospace; outline:none; cursor:not-allowed;">
+                <option>siglip-base-patch16-224</option>
+              </select>
+            </div>
+            <div>
+              <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">Frames per second (indexing)</div>
+              <input type="number" value="0.5" step="0.1" style="width:110px; box-sizing:border-box; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:9px 12px; color:var(--text); font-size:13px; outline:none;" style-focus="border-color:var(--accent);">
+              <div style="font-size:11.5px; color:var(--warn); padding-top:7px;">isse badlane pe saari libraries dobara banani padengi</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:var(--bad-soft); border:1px solid var(--bad-line); border-radius:14px; padding:22px;">
+          <div style="font-size:15px; font-weight:640; letter-spacing:-0.015em; color:var(--bad);">Danger zone</div>
+          <div style="font-size:12.5px; color:var(--muted); padding-top:4px; padding-bottom:16px;">Ye wapas nahi ho sakta</div>
+          <div style="display:flex; gap:8px;">
+            <div style="background:transparent; border:1px solid var(--bad-line); color:var(--bad); font-size:12.5px; font-weight:550; padding:8px 14px; border-radius:9px; cursor:pointer; transition:background .14s ease;" style-hover="background:var(--bad-soft);">Saare temp files hatao</div>
+            <div style="background:transparent; border:1px solid var(--bad-line); color:var(--bad); font-size:12.5px; font-weight:550; padding:8px 14px; border-radius:9px; cursor:pointer; transition:background .14s ease;" style-hover="background:var(--bad-soft);">Settings reset karo</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ panelOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closePanel }}" style="position:fixed; inset:0; background:rgba(9,13,20,.38); z-index:40; animation:fadein .16s ease;"></div>
+      <div style="position:fixed; top:0; right:0; bottom:0; width:480px; background:var(--surface); border-left:1px solid var(--border); z-index:41; display:flex; flex-direction:column; box-shadow:var(--shadow-lg); animation:slidein .2s cubic-bezier(.22,.61,.36,1);">
+
+        <div style="padding:22px 24px; border-bottom:1px solid var(--border); display:flex; align-items:flex-start; justify-content:space-between;">
+          <div>
+            <div style="font-size:18px; font-weight:700; letter-spacing:-0.03em;">Add title.</div>
+            <div style="font-size:12.5px; color:var(--muted); padding-top:4px;">Index ek baar banta hai</div>
+          </div>
+          <div onClick="{{ closePanel }}" style="color:var(--faint); cursor:pointer; font-size:18px; line-height:1; padding:4px 8px; border-radius:8px; transition:all .12s ease;" style-hover="background:var(--hover); color:var(--text);">×</div>
+        </div>
+
+        <div style="flex:1; overflow-y:auto; padding:22px 24px; display:flex; flex-direction:column; gap:17px;">
+          <sc-if value="{{ addNotIndexing }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; flex-direction:column; gap:17px;">
+          <div>
+            <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">Title</div>
+            <input type="text" placeholder="The Shawshank Redemption" style="width:100%; box-sizing:border-box; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:9px 12px; color:var(--text); font-size:13px; outline:none; transition:border-color .15s ease;" style-focus="border-color:var(--accent);">
+          </div>
+
+          <div>
+            <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">Video folder</div>
+            <div style="display:flex; gap:7px;">
+              <input type="text" placeholder="E:\Media\The Shawshank Redemption" style="flex:1; min-width:0; background:var(--surface); border:1px solid var(--border-strong); border-radius:9px; padding:9px 12px; color:var(--text); font-size:12px; font-family:'Cascadia Code', Consolas, monospace; outline:none; transition:border-color .15s ease;" style-focus="border-color:var(--accent);">
+              <div style="background:var(--surface); border:1px solid var(--border-strong); color:var(--text); font-size:13px; font-weight:550; padding:8px 14px; border-radius:9px; cursor:pointer; white-space:nowrap; transition:background .15s ease;" style-hover="background:var(--hover);">Browse</div>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:12px; font-weight:550; color:var(--muted); padding-bottom:6px;">Library folder</div>
+            <input type="text" value="E:\Libraries\The Shawshank Redemption" disabled style="width:100%; box-sizing:border-box; background:var(--raised); border:1px solid var(--border); border-radius:9px; padding:9px 12px; color:var(--faint); font-size:12px; font-family:'Cascadia Code', Consolas, monospace; outline:none;">
+            <div style="font-size:11.5px; color:var(--faint); padding-top:6px;">apne aap ban jaayega</div>
+          </div>
+
+          <div style="display:flex; gap:8px; padding-top:2px;">
+            <div onClick="{{ runCheck }}" style="background:var(--surface); border:1px solid var(--border-strong); color:var(--text); font-size:13px; font-weight:550; padding:8px 14px; border-radius:9px; cursor:pointer; white-space:nowrap; transition:background .15s ease;" style-hover="background:var(--hover);">Check</div>
+            <sc-if value="{{ addChecked }}" hint-placeholder-val="{{ false }}">
+              <div onClick="{{ startIndex }}" style="background:var(--accent); color:var(--on-accent); font-size:13px; font-weight:600; padding:9px 15px; border-radius:9px; cursor:pointer; white-space:nowrap; box-shadow:var(--shadow-sm); transition:background .15s ease;" style-hover="background:var(--accent-hover);">Build index</div>
+            </sc-if>
+            <sc-if value="{{ addForm }}" hint-placeholder-val="{{ true }}">
+              <div style="background:var(--raised); color:var(--faint); font-size:13px; font-weight:600; padding:9px 15px; border-radius:9px; cursor:not-allowed; white-space:nowrap;">Build index</div>
+            </sc-if>
+          </div>
+          <sc-if value="{{ addForm }}" hint-placeholder-val="{{ true }}">
+            <div style="font-size:11.5px; color:var(--faint); margin-top:-8px;">pehle Check chalao</div>
+          </sc-if>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ addForm }}" hint-placeholder-val="{{ true }}">
+            <div style="border:1px dashed var(--border-strong); border-radius:12px; padding:26px 18px; text-align:center; font-size:12.5px; color:var(--muted); line-height:1.6;">
+              Pehle <span style="color:var(--text); font-weight:550;">Check</span> chalao —<br>folder me kya hai wo yahan dikhega.
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ addChecked }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:16px 17px; animation:fadein .2s ease;">
+              <div style="display:flex; align-items:center; justify-content:space-between; padding-bottom:13px;">
+                <div style="font-size:10px; font-weight:650; letter-spacing:0.1em; color:var(--faint);">CHECK RESULT</div>
+                <div style="font-size:11px; font-weight:650; letter-spacing:0.04em; color:var(--warn); background:var(--warn-soft); border:1px solid var(--warn-line); padding:3px 9px; border-radius:999px;">GAPS</div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:10px; font-size:12.5px; line-height:1.45;">
+                <div style="display:flex; gap:10px;"><div style="color:var(--ok); flex:0 0 12px;">✓</div><div>62 video files mile</div></div>
+                <div style="display:flex; gap:10px;"><div style="color:var(--ok); flex:0 0 12px;">✓</div><div>58 episodes — subtitles theek</div></div>
+                <div style="display:flex; gap:10px;"><div style="color:var(--warn); flex:0 0 12px;">⚠</div><div>2 episodes — subtitle image-based hai <span style="color:var(--muted);">(.srt chahiye)</span><div style="font-family:'Cascadia Code', Consolas, monospace; font-size:11px; color:var(--muted); padding-top:4px;">S03E09, S04E02</div></div></div>
+                <div style="display:flex; gap:10px;"><div style="color:var(--bad); flex:0 0 12px;">✗</div><div>2 episodes — subtitle hai hi nahi<div style="font-family:'Cascadia Code', Consolas, monospace; font-size:11px; color:var(--muted); padding-top:4px;">S02E07, S05E03</div></div></div>
+                <div style="display:flex; gap:10px;"><div style="color:var(--ok); flex:0 0 12px;">✓</div><div>disk pe 340 GB jagah hai</div></div>
+                <div style="display:flex; gap:10px;"><div style="flex:0 0 12px;"></div><div style="color:var(--muted);">picture index banne me lagega <span style="color:var(--text); font-weight:550;">~4 ghante</span></div></div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ addIndexing }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; flex-direction:column; gap:13px; animation:fadein .2s ease;">
+              <div style="display:flex; align-items:baseline; justify-content:space-between;">
+                <div style="font-size:16px; font-weight:640; letter-spacing:-0.02em;">Episode 23 / 62</div>
+                <div style="font-size:12.5px; color:var(--muted);">3h 10m bacha</div>
+              </div>
+              <div style="height:8px; border-radius:999px; background:var(--raised); overflow:hidden;"><div style="width:37%; height:100%; background:var(--accent); border-radius:999px;"></div></div>
+              <div style="font-family:'Cascadia Code', Consolas, monospace; font-size:11px; color:var(--muted);">picture index · S03E10</div>
+              <div style="display:flex; gap:8px; padding-top:4px;">
+                <div style="background:var(--surface); border:1px solid var(--border-strong); color:var(--text); font-size:13px; font-weight:550; padding:8px 16px; border-radius:9px; cursor:pointer; transition:background .15s ease;" style-hover="background:var(--hover);">Pause</div>
+                <div onClick="{{ backToForm }}" style="color:var(--bad); font-size:13px; font-weight:550; padding:9px 14px; border-radius:9px; cursor:pointer; transition:background .14s ease;" style-hover="background:var(--bad-soft);">Cancel</div>
+              </div>
+              <div style="font-size:11.5px; color:var(--faint); line-height:1.55;">band ho jaaye to koi baat nahi — dobara chalane pe yahin se shuru hoga</div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="padding:12px 20px 16px 20px; border-top:1px solid var(--border);">
+          <div style="font-size:10px; font-weight:650; letter-spacing:0.1em; color:var(--faint); padding-bottom:8px;">PANEL STATES</div>
+          <div style="display:flex; padding:3px; background:var(--raised); border-radius:10px; gap:3px;">
+            <div onClick="{{ backToForm }}" style="{{ stageForm }}">Form</div>
+            <div onClick="{{ runCheck }}" style="{{ stageChecked }}">Checked</div>
+            <div onClick="{{ startIndex }}" style="{{ stageIndexing }}">Indexing</div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;}}">
+class Component extends DCLogic {
+  state = { theme: null, nav: 'Library', filter: 'all', panelOpen: false, checked: false, paused: false, hover: 0, cb: true, sw: false,
+    collapsed: false, srcOpen: false, preset: 'auto', quality: '1080', captions: false, advOpen: false,
+    trans: 'auto', filt: 'auto', anim: 'auto', pace: 'normal', checkOpen: false, verdict: 'gaps',
+    editorState: 'ready', selShot: 5, findOpen: false, exportOpen: false, expQuality: '1080', playing: false,
+    addStage: 'form', findSel: 0, findEmpty: false, expStage: 'form', setQuality: '1080', setPace: 'normal', setCaptions: true };
+
+  get theme() { return this.state.theme || this.props.theme || 'light'; }
+
+  nav(name) {
+    const active = this.state.nav === name;
+    const c = this.state.collapsed;
+    return 'display:flex; align-items:center; gap:10px; border-radius:8px; cursor:pointer; user-select:none; font-size:13px; white-space:nowrap; overflow:hidden; transition:background .12s ease, color .12s ease; '
+      + (c ? 'padding:9px 0; justify-content:center; ' : 'padding:7px 10px; ')
+      + (active
+        ? 'background:var(--accent-soft); color:var(--accent); font-weight:600;'
+        : 'color:var(--muted); font-weight:450;');
+  }
+
+  seg2(on) {
+    return 'flex:1; text-align:center; padding:7px 14px; border-radius:8px; font-size:12.5px; cursor:pointer; user-select:none; white-space:nowrap; transition:all .14s ease; '
+      + (on ? 'background:var(--surface); color:var(--text); font-weight:600; box-shadow:var(--shadow-sm);'
+            : 'color:var(--muted); font-weight:500;');
+  }
+
+  radio(on) {
+    return 'display:flex; align-items:center; gap:8px; padding:7px 13px; border-radius:9px; font-size:12.5px; cursor:pointer; user-select:none; transition:all .14s ease; border:1px solid '
+      + (on ? 'var(--accent); background:var(--accent-soft); color:var(--accent); font-weight:600;'
+            : 'var(--border); background:var(--surface); color:var(--muted); font-weight:500;');
+  }
+
+  presetCard(on) {
+    return 'flex:1; padding:14px 15px; border-radius:12px; cursor:pointer; user-select:none; transition:all .15s ease; border:1.5px solid '
+      + (on ? 'var(--accent); background:var(--accent-soft); box-shadow:var(--shadow-sm);'
+            : 'var(--border); background:var(--surface);');
+  }
+
+  shot(i, kind, w, ep, ts) {
+    const map = { anchor: 'ok', verified: 'busy', interpolated: 'warn', filler: 'muted' };
+    const tone = map[kind];
+    const sel = this.state.selShot === i;
+    const border = sel ? '2px solid var(--accent)' : '1px solid var(--border-strong)';
+    return {
+      i, kind, ep, ts,
+      badgeStyle: 'position:absolute; top:5px; left:5px; font-size:9.5px; font-weight:650; letter-spacing:0.02em; padding:2px 6px; border-radius:5px; white-space:nowrap; '
+        + (tone === 'muted'
+          ? 'color:var(--muted); background:var(--raised);'
+          : 'color:var(--' + tone + '); background:var(--' + tone + '-soft); border:1px solid var(--' + tone + '-line);'),
+      style: 'position:relative; flex:0 0 ' + w + 'px; width:' + w + 'px; height:100%; border-radius:9px; overflow:hidden; cursor:pointer; border:' + border
+        + '; background:repeating-linear-gradient(135deg, var(--raised) 0 7px, var(--surface) 7px 14px);'
+        + (sel ? ' box-shadow:0 0 0 3px var(--accent-soft);' : ''),
+      onSelect: () => this.setState({ selShot: i })
+    };
+  }
+
+  chip(name) {
+    const active = this.state.filter === name;
+    return 'display:flex; align-items:center; gap:6px; padding:7px 14px; border-radius:999px; font-size:12.5px; cursor:pointer; user-select:none; transition:all .13s ease; '
+      + (active
+        ? 'background:var(--accent); color:var(--on-accent); font-weight:550;'
+        : 'background:var(--raised); color:var(--muted); font-weight:500;');
+  }
+
+  seg(name) {
+    const active = this.theme === name;
+    return 'flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:6px 0; border-radius:8px; font-size:12px; cursor:pointer; user-select:none; transition:all .15s ease; '
+      + (active
+        ? 'background:var(--surface); color:var(--text); font-weight:600; box-shadow:var(--shadow-sm);'
+        : 'color:var(--muted); font-weight:500;');
+  }
+
+  renderVals() {
+    const s = this.state, f = s.filter;
+    const go = (n) => () => this.setState({ nav: n });
+    return {
+      theme: this.theme,
+      toggleTheme: () => this.setState({ theme: this.theme === 'dark' ? 'light' : 'dark' }),
+      setLight: () => this.setState({ theme: 'light' }),
+      setDark: () => this.setState({ theme: 'dark' }),
+      lightBtn: this.seg('light'), darkBtn: this.seg('dark'),
+      collapsed: s.collapsed,
+      toggleSidebar: () => this.setState({ collapsed: !s.collapsed }),
+      expanded: !s.collapsed,
+      sidebarStyle: 'width:' + (s.collapsed ? 64 : 228) + 'px; flex:0 0 ' + (s.collapsed ? 64 : 228) + 'px; background:var(--sidebar); border-right:1px solid var(--border); display:flex; flex-direction:column; transition:width .18s ease, flex-basis .18s ease; overflow:hidden;',
+      sideGroupStyle: 'padding:' + (s.collapsed ? '6px 10px 0 10px' : '6px 12px 0 12px') + '; display:flex; flex-direction:column; gap:2px;',
+      sideGroup2Style: 'padding:' + (s.collapsed ? '12px 10px 0 10px' : '14px 12px 0 12px') + '; display:flex; flex-direction:column; gap:2px;',
+      groupLabel: 'padding:8px 8px 6px 8px; font-size:10px; font-weight:650; letter-spacing:0.1em; color:var(--faint); white-space:nowrap; ' + (s.collapsed ? 'display:none;' : ''),
+      soonItem: 'display:flex; align-items:center; gap:10px; border-radius:8px; font-size:13px; color:var(--faint); opacity:.6; cursor:not-allowed; white-space:nowrap; overflow:hidden; '
+        + (s.collapsed ? 'padding:9px 0; justify-content:center;' : 'padding:7px 10px;'),
+      labelStyle: s.collapsed ? 'display:none;' : '',
+
+      onLibrary: s.nav === 'Library',
+      onNewVideo: s.nav === 'New Video',
+      onEditor: s.nav === 'Editor',
+      onStub: s.nav === 'Queue' || s.nav === 'Settings',
+      stubTitle: s.nav,
+      navNewVideo: this.nav('New Video'), navQueue: this.nav('Queue'), navEditor: this.nav('Editor'),
+      navLibrary: this.nav('Library'), navSettings: this.nav('Settings'),
+      goNewVideo: go('New Video'), goQueue: go('Queue'), goEditor: go('Editor'),
+      goLibrary: go('Library'), goSettings: go('Settings'),
+      chipAll: this.chip('all'), chipSeries: this.chip('series'), chipMovie: this.chip('movie'), chipIssue: this.chip('issue'),
+      filterAll: () => this.setState({ filter: 'all' }), filterSeries: () => this.setState({ filter: 'series' }),
+      filterMovie: () => this.setState({ filter: 'movie' }), filterIssue: () => this.setState({ filter: 'issue' }),
+      show1: f === 'all' || f === 'series',
+      show2: f === 'all' || f === 'series',
+      show3: f === 'all' || f === 'movie',
+      show4: f === 'all' || f === 'movie' || f === 'issue',
+      openPanel: () => this.setState({ panelOpen: true, addStage: 'form' }),
+      closePanel: () => this.setState({ panelOpen: false, addStage: 'form' }),
+      runCheck: () => this.setState({ addStage: 'checked' }),
+      startIndex: () => this.setState({ addStage: 'indexing' }),
+      backToForm: () => this.setState({ addStage: 'form' }),
+      panelOpen: s.panelOpen,
+      addForm: s.addStage === 'form', addChecked: s.addStage === 'checked', addIndexing: s.addStage === 'indexing',
+      addNotIndexing: s.addStage !== 'indexing',
+      stageForm: this.seg2(s.addStage === 'form'), stageChecked: this.seg2(s.addStage === 'checked'), stageIndexing: this.seg2(s.addStage === 'indexing'),
+      togglePause: () => this.setState({ paused: !s.paused }),
+      pauseLabel: s.paused ? 'Resume' : 'Pause',
+      hover1: () => this.setState({ hover: 1 }), hover2: () => this.setState({ hover: 2 }),
+      hover3: () => this.setState({ hover: 3 }), hover4: () => this.setState({ hover: 4 }),
+      hoverOut: () => this.setState({ hover: 0 }),
+      act1: s.hover === 1 ? 1 : 0, act2: s.hover === 2 ? 1 : 0,
+      act3: s.hover === 3 ? 1 : 0, act4: s.hover === 4 ? 1 : 0,
+      cbOn: s.cb,
+      toggleCheckbox: () => this.setState({ cb: !s.cb }),
+      cbBox: 'width:16px; height:16px; border-radius:5px; display:flex; align-items:center; justify-content:center; transition:all .13s ease; '
+        + (s.cb ? 'background:var(--accent); border:1px solid var(--accent);' : 'background:var(--surface); border:1px solid var(--border-strong);'),
+      toggleSwitch: () => this.setState({ sw: !s.sw }),
+      swTrack: 'width:32px; height:18px; border-radius:999px; padding:2px; display:flex; transition:all .16s ease; '
+        + (s.sw ? 'background:var(--accent); justify-content:flex-end;' : 'background:var(--border-strong); justify-content:flex-start;'),
+      swKnob: 'width:14px; height:14px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.2);',
+
+      srcOpen: s.srcOpen, srcClosed: !s.srcOpen,
+      toggleSrc: () => this.setState({ srcOpen: !s.srcOpen }),
+      presetAuto: this.presetCard(s.preset === 'auto'), presetCine: this.presetCard(s.preset === 'cinematic'),
+      presetTense: this.presetCard(s.preset === 'tense'), presetDoc: this.presetCard(s.preset === 'documentary'),
+      setAuto: () => this.setState({ preset: 'auto' }), setCine: () => this.setState({ preset: 'cinematic' }),
+      setTense: () => this.setState({ preset: 'tense' }), setDoc: () => this.setState({ preset: 'documentary' }),
+      q1080: this.seg2(s.quality === '1080'), q4k: this.seg2(s.quality === '4k'),
+      set1080: () => this.setState({ quality: '1080' }), set4k: () => this.setState({ quality: '4k' }),
+      is4k: s.quality === '4k',
+      capOn: s.captions, toggleCaptions: () => this.setState({ captions: !s.captions }),
+      capTrack: 'width:32px; height:18px; border-radius:999px; padding:2px; display:flex; transition:all .16s ease; '
+        + (s.captions ? 'background:var(--accent); justify-content:flex-end;' : 'background:var(--border-strong); justify-content:flex-start;'),
+      capKnob: 'width:14px; height:14px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.2);',
+      advOpen: s.advOpen, toggleAdv: () => this.setState({ advOpen: !s.advOpen }),
+      advChevron: 'transition:transform .18s ease; transform:rotate(' + (s.advOpen ? 90 : 0) + 'deg); display:flex;',
+      transAuto: this.radio(s.trans === 'auto'), transManual: this.radio(s.trans === 'manual'),
+      setTransAuto: () => this.setState({ trans: 'auto' }), setTransManual: () => this.setState({ trans: 'manual' }),
+      transIsManual: s.trans === 'manual',
+      filtNone: this.radio(s.filt === 'none'), filtAuto: this.radio(s.filt === 'auto'), filtManual: this.radio(s.filt === 'manual'),
+      setFiltNone: () => this.setState({ filt: 'none' }), setFiltAuto: () => this.setState({ filt: 'auto' }), setFiltManual: () => this.setState({ filt: 'manual' }),
+      filtIsManual: s.filt === 'manual',
+      animAuto: this.radio(s.anim === 'auto'), animManual: this.radio(s.anim === 'manual'),
+      setAnimAuto: () => this.setState({ anim: 'auto' }), setAnimManual: () => this.setState({ anim: 'manual' }),
+      animIsManual: s.anim === 'manual',
+      paceCalm: this.seg2(s.pace === 'calm'), paceNormal: this.seg2(s.pace === 'normal'),
+      paceQuick: this.seg2(s.pace === 'quick'), paceRapid: this.seg2(s.pace === 'rapid'),
+      setCalm: () => this.setState({ pace: 'calm' }), setNormal: () => this.setState({ pace: 'normal' }),
+      setQuick: () => this.setState({ pace: 'quick' }), setRapid: () => this.setState({ pace: 'rapid' }),
+      transitions: ['Cut', 'Dissolve', 'Fade to black', 'Fade to white', 'Wipe left', 'Wipe right', 'Slide up', 'Slide down', 'Zoom in', 'Zoom out', 'Whip pan', 'Glitch', 'Film burn', 'Light leak', 'Push left', 'Blur cross', 'Radial blur', 'Flash cut', 'Roll', 'Morph'],
+      filters: ['Contrast+', 'Warm', 'Cool', 'Desaturate', 'Vignette', 'Film grain', 'Letterbox', 'Faded', 'Teal-orange', 'High contrast BW', 'Soft bloom', 'Crushed blacks', 'Sepia', 'Cross process', 'Halation', 'Bleach bypass', 'VHS', 'Night blue', 'Golden hour', 'Muted pastel'],
+      animations: ['Ken Burns in', 'Ken Burns out', 'Pan left', 'Pan right', 'Pan up', 'Pan down', 'Slow push', 'Slow pull', 'Static', 'Handheld drift', 'Tilt up', 'Tilt down', 'Parallax', 'Rotate slight', 'Shake', 'Punch in', 'Slide reveal', 'Breathe', 'Dolly zoom', 'Float'],
+      checkOpen: s.checkOpen, checkClosed: !s.checkOpen,
+      openCheck: () => this.setState({ checkOpen: true }),
+      closeCheck: () => this.setState({ checkOpen: false }),
+      verdictOk: s.verdict === 'ok', verdictGaps: s.verdict === 'gaps', verdictBlocked: s.verdict === 'blocked',
+      setOk: () => this.setState({ verdict: 'ok' }), setGaps: () => this.setState({ verdict: 'gaps' }), setBlocked: () => this.setState({ verdict: 'blocked' }),
+      vOkStyle: this.seg2(s.verdict === 'ok'), vGapsStyle: this.seg2(s.verdict === 'gaps'), vBlockedStyle: this.seg2(s.verdict === 'blocked'),
+
+      edReady: s.editorState === 'ready', edLoading: s.editorState === 'loading', edEmpty: s.editorState === 'empty',
+      edNotEmpty: s.editorState !== 'empty',
+      stReady: this.seg2(s.editorState === 'ready'), stLoading: this.seg2(s.editorState === 'loading'), stEmpty: this.seg2(s.editorState === 'empty'),
+      setReady: () => this.setState({ editorState: 'ready' }), setLoading: () => this.setState({ editorState: 'loading' }), setEmpty: () => this.setState({ editorState: 'empty' }),
+      shots: [
+        this.shot(0, 'anchor', 96, 'S04E01', '02:41'), this.shot(1, 'anchor', 72, 'S04E01', '04:18'),
+        this.shot(2, 'verified', 128, 'S03E13', '11:07'), this.shot(3, 'filler', 60, 'S04E08', '22:50'),
+        this.shot(4, 'verified', 104, 'S04E10', '08:33'), this.shot(5, 'interpolated', 148, 'S04E01', '37:12'),
+        this.shot(6, 'anchor', 84, 'S04E01', '41:02'), this.shot(7, 'filler', 56, 'S03E13', '15:44'),
+        this.shot(8, 'verified', 116, 'S04E08', '30:19'), this.shot(9, 'anchor', 92, 'S04E10', '19:26'),
+        this.shot(10, 'interpolated', 132, 'S04E01', '44:57')
+      ],
+      ruler: ['0:00', '0:30', '1:00', '1:30', '2:00', '2:30', '3:00', '3:30'],
+      togglePlay: () => this.setState({ playing: !s.playing }),
+      playing: s.playing, notPlaying: !s.playing,
+      findOpen: s.findOpen,
+      openFind: () => this.setState({ findOpen: true }), closeFind: () => this.setState({ findOpen: false }),
+      exportOpen: s.exportOpen,
+      openExport: () => this.setState({ exportOpen: true }), closeExport: () => this.setState({ exportOpen: false }),
+      e1080: this.seg2(s.expQuality === '1080'), e4k: this.seg2(s.expQuality === '4k'),
+      setE1080: () => this.setState({ expQuality: '1080' }), setE4k: () => this.setState({ expQuality: '4k' }),
+      candidates: [
+        ['37:12', '0.41', '100%'], ['41:02', '0.38', '92%'], ['22:18', '0.36', '87%'], ['12:04', '0.33', '80%'],
+        ['25:47', '0.31', '75%'], ['08:52', '0.29', '70%'], ['19:33', '0.27', '65%'], ['31:08', '0.24', '58%'],
+        ['44:21', '0.22', '53%'], ['15:40', '0.19', '46%']
+      ].map((c, i) => ({
+        ts: c[0], score: c[1], bar: c[2], cur: i === 0, sel: s.findSel === i,
+        onPick: () => this.setState({ findSel: i }),
+        style: 'border-radius:12px; cursor:pointer; overflow:hidden; background:var(--surface); transition:all .14s ease; border:'
+          + (s.findSel === i ? '2px solid var(--accent); box-shadow:0 0 0 3px var(--accent-soft);' : '1px solid var(--border);')
+      })),
+      findEmpty: s.findEmpty, findHasResults: !s.findEmpty,
+      showResults: () => this.setState({ findEmpty: false }), showNoResults: () => this.setState({ findEmpty: true }),
+      fResStyle: this.seg2(!s.findEmpty), fEmptyStyle: this.seg2(s.findEmpty),
+
+      expForm: s.expStage === 'form', expRunning: s.expStage === 'running',
+      startExport: () => this.setState({ expStage: 'running' }),
+      closeExportAll: () => this.setState({ exportOpen: false, expStage: 'form' }),
+
+      onQueue: s.nav === 'Queue', onSettings: s.nav === 'Settings',
+      sq1080: this.seg2(s.setQuality === '1080'), sq4k: this.seg2(s.setQuality === '4k'),
+      setSq1080: () => this.setState({ setQuality: '1080' }), setSq4k: () => this.setState({ setQuality: '4k' }),
+      spCalm: this.seg2(s.setPace === 'calm'), spNormal: this.seg2(s.setPace === 'normal'),
+      spQuick: this.seg2(s.setPace === 'quick'), spRapid: this.seg2(s.setPace === 'rapid'),
+      setSpCalm: () => this.setState({ setPace: 'calm' }), setSpNormal: () => this.setState({ setPace: 'normal' }),
+      setSpQuick: () => this.setState({ setPace: 'quick' }), setSpRapid: () => this.setState({ setPace: 'rapid' }),
+      setCapOn: s.setCaptions, toggleSetCap: () => this.setState({ setCaptions: !s.setCaptions }),
+      setCapTrack: 'width:32px; height:18px; border-radius:999px; padding:2px; display:flex; transition:all .16s ease; '
+        + (s.setCaptions ? 'background:var(--accent); justify-content:flex-end;' : 'background:var(--border-strong); justify-content:flex-start;')
+    };
+  }
+}
+
+</script>
+</body>
+</html>
