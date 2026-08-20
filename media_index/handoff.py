@@ -66,6 +66,13 @@ def from_timeline(timeline: dict, name: str = "", build_dir: str = "") -> dict:
                 # real focus coordinates.
             })
             idx += 1
+    # The voiceover: ResearchCut imports it onto A1 so the whole project is
+    # self-contained from one handoff file (Codex asked for this top-level field).
+    vo = timeline.get("audio") or ""
+    if vo and build_dir and not os.path.isabs(vo):
+        cand = os.path.join(build_dir, vo)
+        vo = cand if os.path.exists(cand) else vo
+    voiceover = os.path.abspath(vo) if vo and os.path.exists(vo) else vo
     return {
         "schema": SCHEMA,
         "name": name or timeline.get("video") or "media_index project",
@@ -74,6 +81,7 @@ def from_timeline(timeline: dict, name: str = "", build_dir: str = "") -> dict:
             "fps": DEFAULT_FPS,
             "duration": round(float(timeline.get("total_seconds") or 0.0), 3),
         },
+        "voiceoverFile": voiceover,
         "beats": beats,
     }
 
