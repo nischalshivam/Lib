@@ -183,6 +183,23 @@ def cmd_cut(a):
     return 0
 
 
+def cmd_libcheck(a):
+    """Does the library exist for this script? The launcher's pre-build gate."""
+    from . import libcheck                                  # noqa: PLC0415
+    try:
+        res = libcheck.check(a.script, a.movies)
+    except libcheck.ScriptUnreadable as exc:
+        print(f"SCRIPT ERROR — {exc}")
+        return 2
+    print(libcheck.format_report(res))
+    if a.out:
+        with open(a.out, "w", encoding="utf-8") as f:
+            json.dump(res, f, indent=2, default=lambda o: sorted(o)
+                      if isinstance(o, set) else str(o))
+        print(f"\nwrote {a.out}")
+    return 0 if res["ready"] else 1
+
+
 def cmd_sources(a):
     """Which titles does this script need, and are they in the library?"""
     beats = jobs_mod.read_beats(a.script)
@@ -1050,6 +1067,14 @@ def main(argv=None):
     o.add_argument("--fast", action="store_true",
                    help="skip dialogue resolution (titles only, no episodes)")
     o.set_defaults(func=cmd_sources)
+
+    lc = sub.add_parser("libcheck", parents=[common],
+                        help="does the library exist for this script? (reads "
+                             "catalog.json on disk; the launcher's pre-build gate)")
+    lc.add_argument("script", help="JSON visual/clue script")
+    lc.add_argument("movies", help="movies root, e.g. E:\\Movies")
+    lc.add_argument("--out", help="write the JSON report here")
+    lc.set_defaults(func=cmd_libcheck)
 
     u = sub.add_parser("subs", parents=[common],
                        help="attach a downloaded subtitle pack to the videos")
