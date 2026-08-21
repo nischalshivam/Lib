@@ -91,15 +91,15 @@ def preflight(job: Job, log=print) -> bool:
     for label, p in (("clean", job.clean), ("clue", job.clue), ("audio", job.audio)):
         if not p or not os.path.isfile(p):
             job.status, job.message = "error", f"{label} file missing: {p}"
-            log("  ✗ " + job.message)
+            log("  [X] " + job.message)
             return False
 
     movies = job.movies_root or _paths.movies_root()
     if not movies or not os.path.isdir(movies):
         job.status, job.message = "error", (
-            "movies SSD not found — plug it in (found by volume label "
+            "movies SSD not found - plug it in (found by volume label "
             f"'{_paths.MOVIES_LABEL}', so any drive letter is fine)")
-        log("  ✗ " + job.message)
+        log("  [X] " + job.message)
         return False
     job.movies_root = movies
     log(f"  movies library: {movies}")
@@ -109,7 +109,7 @@ def preflight(job: Job, log=print) -> bool:
         res = libcheck.check(job.clue, movies)
     except libcheck.ScriptUnreadable as exc:
         job.status, job.message = "error", f"clue script broken: {exc}"
-        log("  ✗ " + job.message)
+        log("  [X] " + job.message)
         return False
     log("  " + libcheck.format_report(res).replace("\n", "\n  "))
     if not res["ready"]:
@@ -128,7 +128,7 @@ def preflight(job: Job, log=print) -> bool:
                 key = ln.split("=", 1)[1].strip()
     key = key or os.environ.get("GEMINI_API_KEY", "")
     if not key:
-        log("  ! gemini key not found in settings.txt — makevideo will run "
+        log("  [!] gemini key not found in settings.txt - makevideo will run "
             "without identity re-verification (faster, a touch less accurate)")
     else:
         log("  gemini key: present")
@@ -179,7 +179,7 @@ def build(job: Job, log=print) -> Job:
     os.makedirs(job.out, exist_ok=True)
 
     # ---- stage 4: pick the real clips + align to the voiceover -------------- #
-    log("\n  [makevideo] cutting the right clips, aligning to the voiceover…")
+    log("\n  [makevideo] cutting the right clips, aligning to the voiceover...")
     mv = [sys.executable, "-m", "media_index", "makevideo", job.clue,
           job.movies_root, job.audio, "--narration", job.clean, "--out", job.out]
     if _run(mv, log) != 0:
@@ -190,12 +190,12 @@ def build(job: Job, log=print) -> Job:
     if not scenes:
         job.status, job.message = "error", "makevideo produced no scene folders"
         return job
-    log(f"  makevideo done — {len(scenes)} scene folders built")
+    log(f"  makevideo done - {len(scenes)} scene folders built")
 
     # ---- stage 5: pro effects + final render -------------------------------- #
     fmt = _format_for(job)
     final = os.path.join(job.out, "final.mp4")
-    log(f"\n  [prostudio] applying effects (format {fmt}, {job.resolution})…")
+    log(f"\n  [prostudio] applying effects (format {fmt}, {job.resolution})...")
     ps = [sys.executable, PROSTUDIO, "--scenes", job.out, "--audio", job.audio,
           "--script", job.clean, "--out", final, "--format", fmt,
           "--resolution", job.resolution]
@@ -206,8 +206,8 @@ def build(job: Job, log=print) -> Job:
 
     if os.path.isfile(final):
         job.status, job.video, job.message = "done", final, \
-            f"finished in {int(time.time() - t0)}s  ·  format {fmt}"
-        log(f"\n  ✓ VIDEO READY: {final}")
+            f"finished in {int(time.time() - t0)}s  -  format {fmt}"
+        log(f"\n  [OK] VIDEO READY: {final}")
     else:
         job.status, job.message = "error", "prostudio ran but no final.mp4"
     return job
@@ -217,10 +217,10 @@ def run_queue(jobs: list, log=print) -> list:
     """Process videos one at a time (serial — the footage SSD hates parallel)."""
     for i, job in enumerate(jobs):
         job.index = i
-        log(f"\n{'='*66}\n  VIDEO {i+1}/{len(jobs)}  ·  {os.path.basename(job.clean)}\n{'='*66}")
+        log(f"\n{'='*66}\n  VIDEO {i+1}/{len(jobs)}  -  {os.path.basename(job.clean)}\n{'='*66}")
         build(job, log)
-        log(f"  → {job.status.upper()}: {job.message}")
-    log(f"\n{'='*66}\n  QUEUE DONE  ·  " +
+        log(f"  -> {job.status.upper()}: {job.message}")
+    log(f"\n{'='*66}\n  QUEUE DONE  -  " +
         ", ".join(f"{s}={sum(1 for j in jobs if j.status==s)}"
                   for s in ("done", "blocked", "error")) + f"\n{'='*66}")
     return jobs
