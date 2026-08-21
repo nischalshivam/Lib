@@ -420,13 +420,19 @@ def load_library(path: str) -> dict:
             data = json.load(f)
     except (OSError, ValueError):
         return {}
+    from . import paths as _paths                          # noqa: PLC0415
     out = {}
     for row in data.get("shots", []) if isinstance(data, dict) else []:
         try:
-            out[row["id"]] = Shot(**{k: row.get(k) for k in
-                                     Shot.__dataclass_fields__ if k in row})
+            shot = Shot(**{k: row.get(k) for k in
+                           Shot.__dataclass_fields__ if k in row})
         except (KeyError, TypeError):
             continue
+        # Remap the stored path onto whatever letter the SSD is mounted on now,
+        # so a catalogue built on E: keeps working after it becomes F:/G:/...
+        if shot.file:
+            shot.file = _paths.resolve(shot.file)
+        out[row["id"]] = shot
     return out
 
 
