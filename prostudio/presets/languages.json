@@ -1,0 +1,12 @@
+{
+  "en": {"name": "English",  "width_factor": 0.60, "allow_upper": true},
+  "fr": {"name": "French",   "width_factor": 0.62, "allow_upper": true},
+  "de": {"name": "German",   "width_factor": 0.66, "allow_upper": false},
+  "es": {"name": "Spanish",  "width_factor": 0.62, "allow_upper": true},
+  "it": {"name": "Italian",  "width_factor": 0.61, "allow_upper": true},
+  "pt": {"name": "Portuguese","width_factor": 0.62, "allow_upper": true},
+  "pl": {"name": "Polish",   "width_factor": 0.65, "allow_upper": true},
+  "cs": {"name": "Czech",    "width_factor": 0.64, "allow_upper": true},
+  "hu": {"name": "Hungarian","width_factor": 0.66, "allow_upper": true},
+  "nl": {"name": "Dutch",    "width_factor": 0.63, "allow_upper": true}
+}

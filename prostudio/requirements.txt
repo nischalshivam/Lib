@@ -1,0 +1,7 @@
+numpy
+Pillow
+opencv-python-headless
+# precise word-level narration sync (recommended; falls back to silence-sync)
+faster-whisper
+# OPTIONAL text-behind-subject masking (heavy, off by default):
+# rembg
