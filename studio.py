@@ -60,6 +60,7 @@ class Job:
     clue: str                        # clue/visual .json/.jsonl/.txt
     audio: str                       # voiceover .wav/.mp3
     out: str = ""                    # build folder (auto if blank)
+    save_dir: str = ""               # where the FINISHED video is delivered
     movies_root: str = ""            # auto from SSD volume label if blank
     fmt: str = "auto"                # auto = rotate a fresh format per video
     resolution: str = "1080p"        # 1080p | 4K
@@ -250,12 +251,28 @@ def build(job: Job, log=print) -> Job:
         job.status, job.message = "error", "prostudio render failed (see log)"
         return job
 
-    if os.path.isfile(final):
-        job.status, job.video, job.message = "done", final, \
-            f"finished in {int(time.time() - t0)}s  -  format {fmt}"
-        log(f"\n  [OK] VIDEO READY: {final}")
-    else:
+    if not os.path.isfile(final):
         job.status, job.message = "error", "prostudio ran but no final.mp4"
+        return job
+
+    # deliver the finished video to the folder the user chose (a friendly name,
+    # not final.mp4), so a batch lands together where they want it.
+    delivered = final
+    if job.save_dir:
+        try:
+            os.makedirs(job.save_dir, exist_ok=True)
+            name = os.path.splitext(os.path.basename(job.clean))[0] or "video"
+            dest = os.path.join(job.save_dir, name + ".mp4")
+            if os.path.abspath(dest) != os.path.abspath(final):
+                import shutil
+                shutil.copy2(final, dest)
+            delivered = dest
+        except OSError as exc:
+            log(f"  ! could not save to {job.save_dir} ({exc}); kept it at {final}")
+
+    job.status, job.video, job.message = "done", delivered, \
+        f"finished in {int(time.time() - t0)}s  -  format {fmt}"
+    log(f"\n  [OK] VIDEO READY: {delivered}")
     return job
 
 
@@ -279,6 +296,7 @@ def _cli(argv=None):
     p = argparse.ArgumentParser(description="ProStudio Launcher (headless)")
     p.add_argument("--clean"); p.add_argument("--clue"); p.add_argument("--audio")
     p.add_argument("--out", default="")
+    p.add_argument("--save-dir", default="", help="folder to deliver the finished video into")
     p.add_argument("--movies", default="", help="movies root (auto by SSD label if blank)")
     p.add_argument("--format", default="auto")
     p.add_argument("--resolution", default="1080p", choices=["1080p", "4K"])
@@ -289,14 +307,15 @@ def _cli(argv=None):
     if a.queue:
         raw = json.load(open(a.queue, encoding="utf-8"))
         jobs = [Job(clean=j["clean"], clue=j["clue"], audio=j["audio"],
-                    out=j.get("out", ""), movies_root=j.get("movies", a.movies),
+                    out=j.get("out", ""), save_dir=j.get("save_dir", a.save_dir),
+                    movies_root=j.get("movies", a.movies),
                     fmt=j.get("format", a.format),
                     resolution=j.get("resolution", a.resolution),
                     text=j.get("text", a.text)) for j in raw]
     elif a.clean and a.clue and a.audio:
         jobs = [Job(clean=a.clean, clue=a.clue, audio=a.audio, out=a.out,
-                    movies_root=a.movies, fmt=a.format, resolution=a.resolution,
-                    text=a.text)]
+                    save_dir=a.save_dir, movies_root=a.movies, fmt=a.format,
+                    resolution=a.resolution, text=a.text)]
     else:
         p.error("give --clean --clue --audio, or --queue jobs.json")
 

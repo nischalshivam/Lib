@@ -36,7 +36,7 @@ class Card(ttk.Frame):
         self.idx = Card.n
         self._on_remove = on_remove
         self.clean = tk.StringVar(); self.clue = tk.StringVar()
-        self.audio = tk.StringVar(); self.out = tk.StringVar()
+        self.audio = tk.StringVar(); self.save_dir = tk.StringVar()
         self.fmt = tk.StringVar(value="auto")
         self.res = tk.StringVar(value="1080p")
         self.text = tk.BooleanVar(value=False)
@@ -56,6 +56,19 @@ class Card(ttk.Frame):
         if p:
             var.set(p)
 
+    def _dir_row(self, r, label, var):
+        ttk.Label(self, text=label, style="Mut.TLabel").grid(
+            row=r, column=0, sticky="w", pady=3)
+        ttk.Entry(self, textvariable=var, width=52).grid(
+            row=r, column=1, sticky="we", padx=6)
+
+        def pick():
+            d = filedialog.askdirectory(title="Where should the finished video be saved?")
+            if d:
+                var.set(d)
+        ttk.Button(self, text="Choose folder", style="Ghost.TButton",
+                   command=pick).grid(row=r, column=2)
+
     def _build(self):
         self.columnconfigure(1, weight=1)
         hdr = ttk.Label(self, text=f"Video {self.idx}", style="H.TLabel")
@@ -68,7 +81,7 @@ class Card(ttk.Frame):
                   [("Clue", "*.json *.jsonl *.txt"), ("All", "*.*")])
         self._row(3, "Voiceover audio", self.audio,
                   [("Audio", "*.wav *.mp3 *.m4a"), ("All", "*.*")])
-        self._row(4, "Output folder (optional)", self.out, [("All", "*.*")])
+        self._dir_row(4, "Save finished video to", self.save_dir)
 
         opt = ttk.Frame(self, style="Card.TFrame")
         opt.grid(row=5, column=0, columnspan=3, sticky="we", pady=(8, 0))
@@ -83,7 +96,8 @@ class Card(ttk.Frame):
 
     def to_job(self, index) -> studio.Job:
         return studio.Job(clean=self.clean.get().strip(), clue=self.clue.get().strip(),
-                          audio=self.audio.get().strip(), out=self.out.get().strip(),
+                          audio=self.audio.get().strip(),
+                          save_dir=self.save_dir.get().strip(),
                           fmt=self.fmt.get(), resolution=self.res.get(),
                           text=self.text.get(), index=index)
 
