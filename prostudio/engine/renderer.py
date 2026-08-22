@@ -154,7 +154,7 @@ def _render_inset(shot, out, style, niche, W, H, secs, log, inset=0.90,
     fc = (
         f"[0:v]split=2[a][b];"
         f"[a]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
-        f"boxblur=26:1,eq=brightness=-0.15:saturation=1.05,setsar=1{bg_move}[bg];"
+        f"boxblur=26:1,setsar=1{bg_move}[bg];"
         f"[b]scale={fw}:{fh}:force_original_aspect_ratio=decrease:flags=lanczos,"
         f"setsar=1,{grade}{borderf}[fg];"
         f"[bg][fg]overlay=(W-w)/2:(H-h)/2:format=auto{post}[v]"
@@ -504,8 +504,21 @@ def _group_size(W, H):
     return max(6, int(48 * (1920 * 1080) / max(1, W * H)))   # 4K->12, 1080p->48
 
 
+def _neutralize(style):
+    """Strip the look-dulling / darkening effects so every format shows the
+    footage as the source actually looks. Motion (Ken Burns / drift / push /
+    pan), the frame-inset system, transitions and text stay — only the colour
+    grade, vignette, grain, glitch, sepia and spotlight-darkening are removed.
+    Opt back in to the old cinematic treatments per render with PS_GRADE=1."""
+    if os.environ.get("PS_GRADE") == "1":
+        return style
+    style.update(grain=0, vignette=False, glitch=False, sepia=False,
+                 spotlight=False)
+    return style
+
+
 def render_job(job, shots, text_events, log=print, proxy=False, resume=False):
-    style = dict(FORMATS[job.format_key])
+    style = _neutralize(dict(FORMATS[job.format_key]))
     W, H = RESOLUTIONS[job.resolution]
     out_path = job.out_path
     crf, preset = job.crf, job.preset

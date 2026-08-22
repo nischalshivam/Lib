@@ -44,6 +44,11 @@ COLOUR_DISTANCE = 8.0   # ...and it must also agree on colour to be a duplicate
 # this close is conclusive on its own.
 SAME_COLOUR = 2.5
 
+# A candidate below this fraction of the sharpest frame in the same window is
+# treated as motion blur and skipped (see pick()). Relative on purpose so it
+# never rejects a uniformly-soft dark shot. Tune with MEDIA_BLUR_RATIO.
+BLUR_RATIO = float(os.environ.get("MEDIA_BLUR_RATIO", "0.28"))
+
 
 @dataclass
 class Candidate:
@@ -190,8 +195,22 @@ def pick(candidates: list[Candidate], n: int,
     on a twenty-minute timeline reads as the same still recycled, the exact
     thing the image half of this pipeline exists to avoid.
     """
-    ranked = sorted((c for c in candidates if c.usable),
-                    key=lambda c: -c.score)
+    usable = [c for c in candidates if c.usable]
+    # Motion-blur gate (relative, not absolute). A frame smeared by camera or
+    # subject motion has far less high-frequency energy than the sharp frames of
+    # the SAME shot moments away — that is the hand-swiping-a-paper still the
+    # user flagged. We drop any candidate whose sharpness is a small fraction of
+    # the sharpest one available here. It is deliberately relative: a genuinely
+    # soft, low-detail shot (a dark night exterior) has ALL its frames near the
+    # same low sharpness, so the floor sits low and none are wrongly rejected —
+    # only a transient blur amid otherwise-crisp frames is.
+    if usable:
+        best_sharp = max(c.sharpness for c in usable)
+        floor = best_sharp * BLUR_RATIO
+        gated = [c for c in usable if c.sharpness >= floor]
+        if gated:
+            usable = gated
+    ranked = sorted(usable, key=lambda c: -c.score)
     chosen: list[Candidate] = []
     taken = list(exclude or [])
     for c in ranked:

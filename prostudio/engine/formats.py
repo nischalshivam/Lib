@@ -185,6 +185,12 @@ MOOD_TWEAK = {
 
 
 def grade_for(niche: str, mood: str, sepia: bool) -> str:
+    # DEFAULT: no colour grade at all — show the footage exactly as the source
+    # looks. The old contrast/saturation/colourbalance grade (plus sepia) made
+    # already-dark shows (GoT, night scenes) muddy and unwatchable, so it is off
+    # unless a user explicitly opts back in with PS_GRADE=1.
+    if os.environ.get("PS_GRADE") != "1":
+        return "setsar=1"                       # identity — harmless in every chain
     g = NICHE_BASE.get(niche, NICHE_BASE["Movie Essay"]) + MOOD_TWEAK.get(mood, "")
     if sepia:
         g += ",colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131"
