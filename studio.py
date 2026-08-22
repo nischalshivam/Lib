@@ -71,6 +71,45 @@ class Job:
     video: str = ""
 
 
+def _find_cast(show_folder: str) -> str:
+    """A show's `Cast` folder, wherever it sits (some are nested a level deeper,
+    e.g. `The Big Bang Theory\\The Big Bang Theory\\Cast`). The one with the most
+    character subfolders wins."""
+    best, best_n = "", 0
+    for root, dirs, _files in os.walk(show_folder):
+        if os.path.basename(root).lower() == "cast":
+            n = sum(1 for d in dirs if os.path.isdir(os.path.join(root, d)))
+            if n > best_n:
+                best_n, best = n, root
+            dirs[:] = []                       # don't descend into a cast folder
+    return best
+
+
+def _cast_for(movies_root: str, clue: str) -> str:
+    """The cast (reference-photo) folder for the show this script mostly draws
+    from — so makevideo can VERIFY character identity instead of guessing it.
+    Picks the dominant show when a script spans more than one."""
+    import re
+    try:
+        need = libcheck.needed_from_script(clue)      # {show_lower: {eps}}
+    except Exception:
+        return ""
+    if not need:
+        return ""
+    have = [d for d in os.listdir(movies_root)
+            if os.path.isdir(os.path.join(movies_root, d))]
+    norm = lambda s: re.sub(r"[^a-z0-9]+", "", s.lower())
+    for show, _eps in sorted(need.items(), key=lambda kv: -len(kv[1])):
+        w = norm(show)
+        for d in have:
+            dd = norm(d)
+            if dd == w or w in dd or dd in w:
+                cast = _find_cast(os.path.join(movies_root, d))
+                if cast:
+                    return cast
+    return ""
+
+
 def _default_out(job: Job) -> str:
     base = os.path.splitext(os.path.basename(job.clean or job.audio or "video"))[0]
     return os.path.join(os.path.dirname(os.path.abspath(job.audio)),
@@ -182,6 +221,13 @@ def build(job: Job, log=print) -> Job:
     log("\n  [makevideo] cutting the right clips, aligning to the voiceover...")
     mv = [sys.executable, "-m", "media_index", "makevideo", job.clue,
           job.movies_root, job.audio, "--narration", job.clean, "--out", job.out]
+    cast = _cast_for(job.movies_root, job.clue)
+    if cast:
+        mv += ["--cast", cast]
+        log(f"  cast (identity refs): {cast}")
+    else:
+        log("  ! no cast folder found — character identity will be a guess "
+            "(add a Cast\\ folder under the show for verified identity)")
     if _run(mv, log) != 0:
         job.status, job.message = "error", "makevideo failed (see log)"
         return job
