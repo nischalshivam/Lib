@@ -227,6 +227,52 @@ def _escape_inner_quotes(text: str) -> str:
     return re.sub(r'(?<!\\)"', r'\\"', text)
 
 
+def _fix_unescaped_quotes(text: str) -> str:
+    """Escape straight double-quotes that sit INSIDE a JSON string value.
+
+    The commonest way a chat model breaks otherwise-valid JSON: it writes a
+    quoted phrase inside a string without escaping it —
+
+        "narration": "it becomes "I can keep this under control." every time"
+                                  ^^^^^^^^^ these straight quotes end the string
+
+    Here the delimiters are ordinary straight quotes (so `straighten` and
+    `_escape_inner_quotes`, which assume curly delimiters, cannot help). We walk
+    the text tracking whether we are inside a string; a `"` seen inside a string
+    is a real closing delimiter only if the next non-space character is JSON
+    structure (`, : } ]` or end of file) — otherwise it is content and gets
+    escaped. This rescues the file the model actually wrote instead of failing
+    on line 1007. Only ever a repair attempt: used solely if the result parses.
+    """
+    out = []
+    i, n = 0, len(text)
+    in_str = False
+    while i < n:
+        c = text[i]
+        if not in_str:
+            out.append(c)
+            if c == '"':
+                in_str = True
+        else:
+            if c == "\\" and i + 1 < n:            # keep existing escapes intact
+                out.append(text[i:i + 2])
+                i += 2
+                continue
+            if c == '"':
+                j = i + 1
+                while j < n and text[j] in " \t\r\n":
+                    j += 1
+                if j >= n or text[j] in ",:}]":
+                    out.append(c)                  # genuine closing delimiter
+                    in_str = False
+                else:
+                    out.append('\\"')              # a quote inside the text
+            else:
+                out.append(c)
+        i += 1
+    return "".join(out)
+
+
 def _repairs(raw: str):
     """The raw text, then progressively bolder repairs of it.
 
@@ -234,13 +280,27 @@ def _repairs(raw: str):
     parses is the gentlest reading that works. A valid file parses at `raw`
     and no repair is ever applied to it.
     """
+    seen = set()
+
+    def fresh(t):
+        if t and t not in seen:
+            seen.add(t)
+            return True
+        return False
+
+    seen.add(raw)
     yield raw
     straight = straighten(raw)
-    if straight != raw:
+    if fresh(straight):
         yield straight
     escaped = straighten(_escape_inner_quotes(raw))
-    if escaped not in (raw, straight):
+    if fresh(escaped):
         yield escaped
+    # straight delimiters with unescaped inner quotes — the "line 1007" case
+    for base in (raw, straight):
+        fixed = _fix_unescaped_quotes(base)
+        if fresh(fixed):
+            yield fixed
 
 
 def _documents(raw: str) -> tuple:
