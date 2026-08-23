@@ -168,6 +168,41 @@ def fixed_windows(duration: float, win_s: float = TARGET_SHOT_S) -> list:
     return out
 
 
+def _keyframe_cuts(path: str, timeout: int = 600) -> list:
+    """Shot boundaries approximated by the video's KEYFRAME timestamps, read
+    straight from the packet headers — NO decoding at all.
+
+    Full scene detection decodes every frame, which on a long 1080p x265/10-bit
+    file (Game of Thrones) is ~15-20 min PER episode and dominated by decode.
+    Encoders insert a keyframe at hard scene cuts, so keyframe times track the
+    real cuts closely (~90% on our GoT sample) and come out in seconds. The
+    catalogue only needs shots roughly segmented for describing; the PRECISE cut
+    for a delivered clip is re-detected by makevideo on a tiny window later, so
+    final-video accuracy is unchanged. Opt in with MEDIA_CUTS=keyframe.
+    """
+    import subprocess
+    from .probe import ffprobe_bin
+    try:
+        exe = ffprobe_bin()
+    except Exception:
+        return []
+    cmd = [exe, "-v", "error", "-select_streams", "v:0",
+           "-show_entries", "packet=pts_time,flags", "-of", "csv=p=0", path]
+    try:
+        r = subprocess.run(cmd, capture_output=True, timeout=timeout)
+    except (OSError, subprocess.SubprocessError):
+        return []
+    cuts = []
+    for line in (r.stdout or b"").decode("utf-8", "replace").splitlines():
+        parts = line.strip().split(",")
+        if len(parts) >= 2 and "K" in parts[1]:          # keyframe flag
+            try:
+                cuts.append(float(parts[0]))
+            except ValueError:
+                pass
+    return sorted(set(cuts))
+
+
 def detect_cuts(path: str, threshold: float = SCENE_THRESHOLD,
                 timeout: int = 1800) -> list:
     """Cut timestamps from ffmpeg scene detection. [] if ffmpeg cannot run.
@@ -175,9 +210,18 @@ def detect_cuts(path: str, threshold: float = SCENE_THRESHOLD,
     One pass, reading only the scene scores ffmpeg prints — no video is
     decoded to disk. A failure here is never fatal: the caller falls back to
     fixed windows, which still produces a usable catalogue.
+
+    MEDIA_CUTS=keyframe uses the fast, decode-free keyframe approximation
+    (see `_keyframe_cuts`) — for heavy x265 libraries. 'auto' tries keyframes
+    and falls back to scene detection if the file has none.
     """
     import subprocess
     from .probe import ffmpeg_bin
+    mode = os.environ.get("MEDIA_CUTS", "scene").lower()
+    if mode in ("keyframe", "auto"):
+        kc = _keyframe_cuts(path)
+        if kc or mode == "keyframe":
+            return kc
     try:
         exe = ffmpeg_bin()
     except Exception:
