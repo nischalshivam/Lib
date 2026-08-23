@@ -67,8 +67,13 @@ CATALOG_REF_PHOTOS = 1
 # work is almost all network idle — firing several at once is what turns a
 # ~3-hour episode into ~20 minutes. Frame grabbing stays serialised (see
 # build_catalog) so the USB source is never read in parallel; only the model
-# calls overlap. Raise for more speed if the endpoint's rate limit allows.
-CATALOG_WORKERS = 6
+# calls overlap — so raising this is pure speed: it never touches the SSD and
+# never changes what any shot is described with, so accuracy and per-shot cost
+# are identical. Bounded only by the Gemini rate limit. Tune with CATALOG_WORKERS.
+try:
+    CATALOG_WORKERS = max(1, int(os.environ.get("CATALOG_WORKERS", "6")))
+except ValueError:
+    CATALOG_WORKERS = 6
 
 # Save the library every N described shots instead of every single one. The old
 # every-shot save rewrote the whole (growing) JSON to disk each time — hundreds
