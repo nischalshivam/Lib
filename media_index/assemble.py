@@ -167,8 +167,19 @@ def build_manifest(beats: list, library: dict, out_dir: str, scope: str = "",
             chosen = None
             for cand in cands[:MAX_VERIFY_TRIES]:
                 if verify_on:
-                    frames = _try(grab_frames, cand.shot.file,
-                                  cand.shot.start, cand.shot.end) or []
+                    # grab frames directly (NOT via _try): _try turns a function
+                    # that returns an empty list into `True` (its `... or True`),
+                    # and that bool then reached confirm() as `frames`, which
+                    # iterates it -> "'bool' object is not iterable" and the whole
+                    # video failed. A shot whose frames can't be grabbed must be
+                    # an empty LIST, which confirm handles ("no frames to check").
+                    try:
+                        frames = grab_frames(cand.shot.file,
+                                             cand.shot.start, cand.shot.end)
+                    except Exception:
+                        frames = []
+                    if not isinstance(frames, list):
+                        frames = []
                     ok, conf, why = confirm(req.visual, req.characters, frames,
                                             _refs_for(req.characters, refs))
                     if not ok and conf >= REJECT_BELOW:
