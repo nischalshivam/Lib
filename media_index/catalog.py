@@ -52,8 +52,15 @@ MAX_SHOT_S = 8.0
 TARGET_SHOT_S = 5.0
 
 # Frames shown to the model per shot. Enough to see how a shot moves without
-# paying to describe near-identical stills.
-FRAMES_PER_SHOT = 4
+# paying to describe near-identical stills. Extracting each frame from a heavy
+# x265/10-bit source (GoT) costs ~1.7s, done serially, and IS the build's real
+# bottleneck — so this is the biggest speed dial. 2 clean frames still describe a
+# shot well (identity comes from the face in-frame, dialogue from the subtitles,
+# neither of which needs 4). Tune with FRAMES_PER_SHOT.
+try:
+    FRAMES_PER_SHOT = max(1, int(os.environ.get("FRAMES_PER_SHOT", "4")))
+except ValueError:
+    FRAMES_PER_SHOT = 4
 
 # Reference photos per character shown on EVERY shot's labelling call. This is
 # the dominant cost of cataloguing with a large cast: at three photos a 28-
