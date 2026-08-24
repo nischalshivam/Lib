@@ -245,7 +245,7 @@ def build(job: Job, log=print) -> Job:
     log(f"\n  [prostudio] applying effects (format {fmt}, {job.resolution})...")
     ps = [sys.executable, PROSTUDIO, "--scenes", job.out, "--audio", job.audio,
           "--script", job.clean, "--out", final, "--format", fmt,
-          "--resolution", job.resolution]
+          "--resolution", job.resolution, "--resume"]   # reuse already-rendered
     ps += ["--text"] if job.text else ["--no-text"]
     if _run(ps, log) != 0:
         job.status, job.message = "error", "prostudio render failed (see log)"
