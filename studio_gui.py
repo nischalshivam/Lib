@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import queue
+import subprocess
 import threading
 import tkinter as tk
 from tkinter import filedialog, ttk
@@ -115,6 +116,8 @@ class App(tk.Tk):
         self.cards: list[Card] = []
         self.log_q: queue.Queue = queue.Queue()
         self.running = False
+        self.stopping = False
+        self.current_proc = None          # the child (makevideo/prostudio) now running
         self._layout()
         self.add_card()
         self.after(80, self._drain_log)
@@ -143,8 +146,11 @@ class App(tk.Tk):
         st.configure("Go.TButton", background=GO, foreground="#04210f",
                      font=("Segoe UI Semibold", 11), borderwidth=0)
         st.configure("Add.TButton", background=ACCENT, foreground="white", borderwidth=0)
+        st.configure("Stop.TButton", background=BAD, foreground="white",
+                     font=("Segoe UI Semibold", 11), borderwidth=0)
         st.map("Go.TButton", background=[("active", "#16a34a")])
         st.map("Add.TButton", background=[("active", "#3b76e0")])
+        st.map("Stop.TButton", background=[("active", "#c0392b")])
 
     def _layout(self):
         top = ttk.Frame(self); top.pack(fill="x", padx=16, pady=(14, 6))
@@ -170,6 +176,9 @@ class App(tk.Tk):
         self.run_btn = ttk.Button(bar, text="▶  Run", style="Go.TButton",
                                   command=self.run)
         self.run_btn.pack(side="right")
+        self.stop_btn = ttk.Button(bar, text="⏹  Stop", style="Stop.TButton",
+                                   command=self.stop, state="disabled")
+        self.stop_btn.pack(side="right", padx=(0, 8))
 
         # log
         lf = ttk.Frame(self); lf.pack(fill="both", expand=False, padx=16, pady=(0, 12))
@@ -221,22 +230,56 @@ class App(tk.Tk):
             self._log("✗ nothing to run — every video needs Clean + Clue + Audio.")
             return
         self.running = True
+        self.stopping = False
         self.run_btn.configure(text="running…", state="disabled")
+        self.stop_btn.configure(state="normal")
         threading.Thread(target=self._worker, args=(jobs,), daemon=True).start()
+
+    def _set_proc(self, proc):
+        self.current_proc = proc
+
+    def stop(self):
+        """Stop the queue and kill whatever child is running. The half-done
+        video is kept, so the next Run resumes it from where it stopped."""
+        if not self.running:
+            return
+        self.stopping = True
+        self.stop_btn.configure(state="disabled")
+        self._log("\n⏹  STOPPING — finishing the current step's kill, "
+                  "progress is saved. Press Run to resume from here.")
+        proc = self.current_proc
+        if proc is not None:
+            try:
+                subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                               capture_output=True)     # kill the whole tree (ffmpeg too)
+            except Exception:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
 
     def _worker(self, jobs):
         for i, (card, job) in enumerate(jobs):
+            if self.stopping:
+                card.set_status("stopped (re-Run to resume)")
+                continue
             job.index = i
             card.set_status("running…")
             self._log(f"\n{'='*60}\nVIDEO {i+1}/{len(jobs)}: {os.path.basename(job.clean)}\n{'='*60}")
-            studio.build(job, self._log)
+            studio.build(job, self._log, on_proc=self._set_proc,
+                         should_stop=lambda: self.stopping)
             tag = {"done": "✓ done", "blocked": "⚠ library not ready",
-                   "error": "✗ error"}.get(job.status, job.status)
+                   "error": "✗ error", "stopped": "⏸ stopped"}.get(job.status, job.status)
             card.set_status(f"{tag} — {job.message}")
             self._log(f"→ {tag}: {job.message}")
-        self._log("\nALL DONE.")
+            if self.stopping:
+                break
+        self.current_proc = None
+        self._log("\nSTOPPED — press Run to resume." if self.stopping else "\nALL DONE.")
         self.running = False
+        self.stopping = False
         self.run_btn.configure(text="▶  Run", state="normal")
+        self.stop_btn.configure(state="disabled")
 
 
 def main():

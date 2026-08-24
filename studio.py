@@ -196,22 +196,36 @@ def _child_env() -> dict:
     return env
 
 
-def _run(cmd, log) -> int:
+def _run(cmd, log, on_proc=None) -> int:
     log("  $ " + " ".join(('"%s"' % c if " " in c else c) for c in cmd))
+    flags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)   # Windows: killable tree
     proc = subprocess.Popen(cmd, cwd=HERE, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, text=True,
                             encoding="utf-8", errors="replace", bufsize=1,
-                            env=_child_env())
+                            env=_child_env(), creationflags=flags)
+    if on_proc:
+        on_proc(proc)                              # let the GUI hold it, to Stop
     for line in proc.stdout:                       # stream so the GUI stays live
         log("    " + line.rstrip())
     proc.wait()
+    if on_proc:
+        on_proc(None)
     return proc.returncode
 
 
-def build(job: Job, log=print) -> Job:
-    """The whole pipeline for ONE video. Never raises — reports via job.status."""
+def build(job: Job, log=print, on_proc=None, should_stop=None) -> Job:
+    """The whole pipeline for ONE video. Never raises — reports via job.status.
+
+    `on_proc(proc_or_None)` hands the GUI the running child so a Stop button can
+    kill it; `should_stop()` is polled between stages so a stop lands cleanly. A
+    stopped video keeps its half-done build folder, so the next Run resumes it
+    (makevideo reuses cut clips, prostudio reuses rendered shots)."""
+    _stop = should_stop or (lambda: False)
     t0 = time.time()
     job.status = "running"
+    if _stop():
+        job.status, job.message = "stopped", "stopped before it started"
+        return job
     if not preflight(job, log):
         return job
 
@@ -229,7 +243,11 @@ def build(job: Job, log=print) -> Job:
     else:
         log("  ! no cast folder found — character identity will be a guess "
             "(add a Cast\\ folder under the show for verified identity)")
-    if _run(mv, log) != 0:
+    rc = _run(mv, log, on_proc=on_proc)
+    if _stop():
+        job.status, job.message = "stopped", "stopped during clip cutting (re-Run to resume)"
+        return job
+    if rc != 0:
         job.status, job.message = "error", "makevideo failed (see log)"
         return job
     scenes = [d for d in os.listdir(job.out)
@@ -247,7 +265,11 @@ def build(job: Job, log=print) -> Job:
           "--script", job.clean, "--out", final, "--format", fmt,
           "--resolution", job.resolution, "--resume"]   # reuse already-rendered
     ps += ["--text"] if job.text else ["--no-text"]
-    if _run(ps, log) != 0:
+    rc = _run(ps, log, on_proc=on_proc)
+    if _stop():
+        job.status, job.message = "stopped", "stopped during effects render (re-Run to resume)"
+        return job
+    if rc != 0:
         job.status, job.message = "error", "prostudio render failed (see log)"
         return job
 
