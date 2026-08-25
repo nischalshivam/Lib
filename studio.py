@@ -119,8 +119,12 @@ def _default_out(job: Job) -> str:
 
 def _format_for(job: Job) -> str:
     """A concrete format string. 'auto' rotates F1..F10 by queue position so a
-    batch of videos each looks distinct; an explicit F-name is honoured."""
-    if job.fmt and job.fmt.lower() not in ("auto", "auto-rotate", "rotate"):
+    batch of videos each looks distinct; an explicit F-name is honoured.
+    'No Filter' -> the effect-free F11 for long videos."""
+    f = (job.fmt or "").strip().lower()
+    if f in ("no filter", "nofilter", "f11", "no-filter"):
+        return "F11_NoFilter"
+    if f and f not in ("auto", "auto-rotate", "rotate"):
         return job.fmt
     return _FORMATS[job.index % len(_FORMATS)]
 

@@ -24,7 +24,7 @@ LINE, FG, MUT = "#2a3446", "#e7edf6", "#94a3b8"
 ACCENT, GO, WARN, BAD = "#4f8cff", "#22c55e", "#f4b740", "#ef4444"
 
 RES = ["1080p", "4K"]
-FMTS = ["auto"] + studio._FORMATS
+FMTS = ["auto"] + studio._FORMATS + ["No Filter"]   # No Filter = raw clips only (long videos)
 
 
 class Card(ttk.Frame):

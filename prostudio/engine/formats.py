@@ -112,9 +112,21 @@ FORMATS = {
         vignette=True, letterbox=False, glitch=False, sepia=False,
         pushin=True, spotlight=True, pan=None,
         soft=("fadewhite", 0.4), scene=("fadeblack", 0.6)),
+    # For long (1-4 hr) videos: JUST the clips/images, aligned to the audio,
+    # hard cuts, nothing else — no colour, no motion, no frame, no transition,
+    # no text. Fast to render because every effect is off and shots concat
+    # without re-encoding. Never auto-picked; the user selects "No Filter".
+    "F11_NoFilter": dict(
+        desc="No Filter: raw clips only, hard cuts, no effects (for long videos)",
+        font=SANS, size=56, upper=False, spaced=False,
+        anim="fade", border=0, shake=0.0, drift=0.0, grain=0,
+        vignette=False, letterbox=False, glitch=False, sepia=False,
+        pushin=False, spotlight=False, pan=None, bare=True,
+        soft=("fade", 0.0), scene=("fade", 0.0)),
 }
 
-ROTATION = list(FORMATS)
+# Auto-rotation never picks a `bare` format — it is a deliberate choice only.
+ROTATION = [k for k in FORMATS if not FORMATS[k].get("bare")]
 
 
 def resolve_format(choice: str, job_index: int, rng) -> str:

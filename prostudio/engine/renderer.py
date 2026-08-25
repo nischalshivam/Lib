@@ -374,6 +374,26 @@ def _render_filler(out, W, H, secs, log):
           "-preset", "veryfast", out], log, timeout=60)
 
 
+def _render_bare(shot, out, W, H, secs, log, timeout=120):
+    """No-Filter render: the clip/still scaled to fill the frame and NOTHING
+    else — no zoom, grade, grain, frame, vignette or text. It exists for long
+    (1-4 hr) videos where the point is the footage under the narration, not the
+    editing, and where the full effects pass would take many hours."""
+    fit = (f"scale={W}:{H}:force_original_aspect_ratio=increase:flags=bilinear,"
+           f"crop={W}:{H},setsar=1,fps={FPS}")
+    if shot.kind == "image":
+        ins = ["-loop", "1", "-t", f"{secs:.3f}", "-i", shot.path]
+    else:
+        ss = max(0.0, getattr(shot, "src_in", 0.0) or 0.0)
+        ins = (["-ss", f"{ss:.3f}"] if ss > 0 else []) + \
+            ["-t", f"{secs + 0.4:.3f}", "-i", shot.path]
+    cmd = ["ffmpeg", "-nostdin", "-y", "-v", "error", *ins, "-vf", fit,
+           "-t", f"{secs:.3f}", "-an", "-r", str(FPS), "-c:v", "libx264",
+           "-pix_fmt", "yuv420p", "-preset", "veryfast", out]
+    _run(cmd, log, timeout=timeout)
+    _ensure_duration(out, secs, log)
+
+
 def render_shot(shot, out, style, niche, W, H, pad, glow, log, work=None):
     """Render one shot, GUARANTEED to produce a valid segment.
 
@@ -383,6 +403,13 @@ def render_shot(shot, out, style, niche, W, H, pad, glow, log, work=None):
     A single bad/huge/corrupt file can never stall or fail the whole job."""
     secs = shot.secs + pad
     work = work or os.path.dirname(out)
+    if style.get("bare"):                      # No-Filter format: clip only
+        try:
+            _render_bare(shot, out, W, H, secs, log)
+            return "full"
+        except Exception as exc:
+            log(f"  bare shot slow/failed ({exc}); safe mode ...")
+            # fall through to the safe-still tiers below
     # framing: explicit shot.framing wins; otherwise auto (blurfill for non-16:9
     # so nothing is cropped / no black bars, else full-bleed). Spotlight and
     # letterbox formats keep their own compositing path when framing is auto.
@@ -494,6 +521,34 @@ def _compose_chain(clips, nets, joins, out, W, H, crf, preset, work, log,
     return out, comp_total
 
 
+def _concat_copy(segs, out, audio, log):
+    """Join equal-format segments with hard cuts and NO video re-encode (concat
+    demuxer + stream copy), then lay the narration over them. This is what makes
+    the No-Filter format finish a multi-hour video in seconds of muxing instead
+    of hours of compositing. Falls back to a single re-encode only if copy fails
+    (mismatched segment params)."""
+    lst = out + ".concat.txt"
+    with open(lst, "w", encoding="utf-8") as f:
+        for s in segs:
+            f.write("file '%s'\n" % os.path.abspath(s).replace("'", "'\\''"))
+    base = ["ffmpeg", "-nostdin", "-y", "-v", "error", "-f", "concat",
+            "-safe", "0", "-i", lst]
+    amap = (["-i", audio, "-map", "0:v:0", "-map", "1:a:0",
+             "-c:a", "aac", "-b:a", "160k", "-shortest"]
+            if audio and os.path.isfile(audio) else [])
+    try:
+        _run(base + amap + ["-c:v", "copy", "-movflags", "+faststart", out],
+             log, timeout=None)
+        if os.path.isfile(out) and duration(out) > 1.0:
+            return
+    except Exception as exc:
+        log(f"  stream-copy join failed ({exc}); re-encoding once ...")
+    # fallback: one clean re-encode (still a single pass, no effects)
+    _run(base + amap + ["-c:v", "libx264", "-crf", "20", "-preset", "veryfast",
+                        "-pix_fmt", "yuv420p", "-movflags", "+faststart", out],
+         log, timeout=None)
+
+
 def _group_size(W, H):
     """How many clips to cross-fade at once. Bounded so ffmpeg never opens too
     many decoders — scaled down for higher resolutions (4K is memory-heavy)."""
@@ -556,8 +611,12 @@ def render_job(job, shots, text_events, log=print, proxy=False, resume=False):
         n = len(shots)
         vplan = plan_transitions(shots, style,
                                  _random.Random(getattr(job, "seed", 0) or 1234))
+        bare = bool(style.get("bare"))
         joins = []
         for i in range(n - 1):
+            if bare:
+                joins.append((None, 0.0))          # hard cuts, no overlap/pad
+                continue
             ttype, tdur = vplan[i]
             tdur = min(tdur, shots[i].secs * 0.5, shots[i + 1].secs * 0.5)
             joins.append((ttype, max(0.05, tdur)))
@@ -605,7 +664,12 @@ def render_job(job, shots, text_events, log=print, proxy=False, resume=False):
         G = _group_size(W, H)
         kind = "draft proxy" if proxy else "final video"
 
-        if n <= G:
+        if bare:
+            # No-Filter: hard-cut concat with NO video re-encode (stream copy)
+            # + the narration. On a multi-hour video this is seconds, not hours.
+            log(f"[ 88%] joining {len(segs)} clips + audio (No Filter, no re-encode) ...")
+            _concat_copy(segs, out, job.audio, log)
+        elif n <= G:
             # small enough to cross-fade in one memory-safe pass
             log(f"[ 88%] compositing {kind} (~{total:.0f}s at {W}x{H}/{preset}) "
                 "— live progress below ...")
