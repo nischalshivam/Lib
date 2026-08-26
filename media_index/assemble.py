@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from collections import defaultdict
 
 from . import plan as plan_mod
@@ -261,6 +262,39 @@ def _title(beats: list) -> str:
     return "video"
 
 
+def _restrict_to_shows(library: dict, beats: list, log=lambda *a: None) -> dict:
+    """Keep only the shows the SCRIPT names (its shots' `source`).
+
+    The launcher hands makevideo the whole `F:\\Movies` (every show merged), so
+    without this a shot with a blank/no-match `source` — or any shot when verify
+    is off — could be filled from Young Sheldon or GoT in a Breaking Bad video,
+    because the per-shot `scoped()` falls back to the ENTIRE library when its
+    episode has no hit. Restricting up front to the script's own universe (BB +
+    BCS here) makes that fallback land inside the right shows, so a wrong-show
+    clip is impossible even with no Gemini verify. Left untouched if the script
+    names no show at all (a single-episode catalog passed directly)."""
+    def _show_token(s: str) -> str:
+        # the show name, robust to either form the data uses: a clue's
+        # source="Breaking Bad" (show only, episode in a separate field) OR a
+        # catalog's source="Breaking Bad S02E01" (show + episode together).
+        return re.sub(r"\bs\d{1,2}\s*e\d{1,3}\b", "", str(s or ""),
+                      flags=re.I).strip().lower()
+    shows = set()
+    for b in beats:
+        for shot in (b.get("shots") or []):
+            tok = _show_token(shot.get("source"))
+            if tok:
+                shows.add(tok)
+    if not shows:
+        return library
+    out = {k: s for k, s in library.items() if _show_token(s.source) in shows}
+    if out:
+        log(f"  library scoped to this script's shows ({', '.join(sorted(shows))}): "
+            f"{len(out)} of {len(library)} shots — no other show can leak in")
+        return out
+    return library
+
+
 def make_video(script_beats: list, library: dict, audio: str, out_dir: str,
                total_seconds: float = 0.0, scope: str = "", pace: str = "normal",
                clean: str = "", verify: bool = True, cast_dir: str = "",
@@ -294,6 +328,11 @@ def make_video(script_beats: list, library: dict, audio: str, out_dir: str,
     # timeline all share the corrected order.)
     if clean:
         script_beats = narration.order_by_clean(script_beats, clean, log=log)
+
+    # confine the search to the shows THIS script names, so no other show's
+    # footage can ever be pulled in (the real cause of a Breaking Bad video
+    # showing Young Sheldon / GoT clips when verify is off).
+    library = _restrict_to_shows(library, script_beats, log=log)
 
     refs = load_refs(cast_dir)
     if cast_dir and not refs:
