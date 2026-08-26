@@ -41,6 +41,7 @@ class Card(ttk.Frame):
         self.fmt = tk.StringVar(value="auto")
         self.res = tk.StringVar(value="1080p")
         self.text = tk.BooleanVar(value=False)
+        self.verify = tk.BooleanVar(value=False)   # OFF = free (library is accurate)
         self.status = tk.StringVar(value="ready")
         self._build()
 
@@ -93,6 +94,8 @@ class Card(ttk.Frame):
         ttk.Combobox(opt, textvariable=self.res, values=RES, width=7,
                      state="readonly").pack(side="left", padx=(4, 14))
         ttk.Checkbutton(opt, text="On-screen text", variable=self.text).pack(side="left")
+        ttk.Checkbutton(opt, text="Verify clips (Gemini · costs API)",
+                        variable=self.verify).pack(side="left", padx=(14, 0))
         ttk.Label(opt, textvariable=self.status, style="Mut.TLabel").pack(side="right")
 
     def to_job(self, index) -> studio.Job:
@@ -100,7 +103,7 @@ class Card(ttk.Frame):
                           audio=self.audio.get().strip(),
                           save_dir=self.save_dir.get().strip(),
                           fmt=self.fmt.get(), resolution=self.res.get(),
-                          text=self.text.get(), index=index)
+                          text=self.text.get(), verify=self.verify.get(), index=index)
 
     def set_status(self, s):
         self.status.set(s)
