@@ -70,6 +70,8 @@ class Job:
                                      # accurate, so retrieval alone places clips
                                      # for FREE — and it avoids the over-rejection
                                      # that turns good clips into gaps.
+    verify_intro_min: int = 0        # >0: verify ONLY the first N minutes (the
+                                     # intro people actually watch), then free.
     index: int = 0                   # position in the queue (drives format rotation)
     # results
     status: str = "queued"           # queued|blocked|running|done|error
@@ -245,17 +247,21 @@ def build(job: Job, log=print, on_proc=None, should_stop=None) -> Job:
     log("\n  [makevideo] cutting the right clips, aligning to the voiceover...")
     mv = [sys.executable, "-m", "media_index", "makevideo", job.clue,
           job.movies_root, job.audio, "--narration", job.clean, "--out", job.out]
-    if job.verify:
+    if job.verify or job.verify_intro_min > 0:
         cast = _cast_for(job.movies_root, job.clue)
         if cast:
             mv += ["--cast", cast]
-            log(f"  cast (identity refs): {cast}")
+        if job.verify_intro_min > 0 and not job.verify:
+            mv += ["--verify-until", str(job.verify_intro_min * 60)]
+            log(f"  verify ON for the first {job.verify_intro_min} min only "
+                "(the intro), then free — cheap accuracy for a long video")
         else:
-            log("  ! no cast folder found — identity will be a guess")
+            log("  verify ON (Gemini) for every clip"
+                + (f" · cast: {cast}" if cast else ""))
     else:
         mv += ["--no-verify"]
         log("  verify OFF — placing clips straight from the (already-accurate) "
-            "library: no Gemini calls, no API cost, fewer gaps")
+            "library by character match: no Gemini, no API cost, fewer gaps")
     rc = _run(mv, log, on_proc=on_proc)
     if _stop():
         job.status, job.message = "stopped", "stopped during clip cutting (re-Run to resume)"
@@ -337,6 +343,7 @@ def _cli(argv=None):
     p.add_argument("--resolution", default="1080p", choices=["1080p", "4K"])
     p.add_argument("--text", action="store_true")
     p.add_argument("--verify", action="store_true", help="re-check clips with Gemini (costs API; default off)")
+    p.add_argument("--verify-intro-min", type=int, default=0, help="verify only the first N minutes")
     p.add_argument("--queue", help="jobs.json: [{clean,clue,audio,out?}, ...]")
     a = p.parse_args(argv)
 
@@ -347,11 +354,11 @@ def _cli(argv=None):
                     movies_root=j.get("movies", a.movies),
                     fmt=j.get("format", a.format),
                     resolution=j.get("resolution", a.resolution),
-                    text=j.get("text", a.text), verify=j.get("verify", a.verify)) for j in raw]
+                    text=j.get("text", a.text), verify=j.get("verify", a.verify), verify_intro_min=j.get("verify_intro_min", a.verify_intro_min)) for j in raw]
     elif a.clean and a.clue and a.audio:
         jobs = [Job(clean=a.clean, clue=a.clue, audio=a.audio, out=a.out,
                     save_dir=a.save_dir, movies_root=a.movies, fmt=a.format,
-                    resolution=a.resolution, text=a.text, verify=a.verify)]
+                    resolution=a.resolution, text=a.text, verify=a.verify, verify_intro_min=a.verify_intro_min)]
     else:
         p.error("give --clean --clue --audio, or --queue jobs.json")
 

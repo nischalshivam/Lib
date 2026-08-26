@@ -120,7 +120,7 @@ REJECT_BELOW = 0.55
 
 def build_manifest(beats: list, library: dict, out_dir: str, scope: str = "",
                    verify: bool = True, refs: dict | None = None,
-                   cut_clip=None, extract_frame=None,
+                   cut_clip=None, extract_frame=None, verify_until: float = 0.0,
                    grab_frames=None, confirm=None, log=lambda *a: None) -> dict:
     """Cut a verified shot for each request and return the manifest.
 
@@ -148,9 +148,17 @@ def build_manifest(beats: list, library: dict, out_dir: str, scope: str = "",
 
     refs = refs or {}
     verify_on = verify and _verifier_ready(confirm)
-    log(f"  visual verify: {'ON (Gemini)' if verify_on else 'OFF'}"
-        + (f" · {len(refs)} character reference(s)" if refs else
-           " · NO reference photos (identity is a guess — add a cast folder)"))
+    if not verify_on:
+        log("  visual verify: OFF — placing clips straight from the library "
+            "(character-matched, no Gemini, no API cost)")
+    elif verify_until and verify_until > 0:
+        log(f"  visual verify: ON for the first {verify_until/60:.0f} min only "
+            f"(the intro), then straight from the library"
+            + (f" · {len(refs)} reference photo set(s)" if refs else ""))
+    else:
+        log("  visual verify: ON (Gemini)"
+            + (f" · {len(refs)} character reference(s)" if refs else
+               " · no cast reference photos (identity by description only)"))
 
     by_beat = defaultdict(list)
     for req in plan_mod.requests_from_beats(beats):
@@ -158,8 +166,13 @@ def build_manifest(beats: list, library: dict, out_dir: str, scope: str = "",
 
     scenes = []
     cut, gap, rejected = 0, 0, 0
+    _cum = 0.0                                     # narration seconds reached so far
     for beat in beats:
         bn = beat.get("beat") or 0
+        # intro-only verify: check clips with Gemini while we are inside the
+        # first `verify_until` seconds of narration, then stop paying for it.
+        beat_verify = verify_on and (verify_until <= 0 or _cum < verify_until)
+        _cum += float(beat.get("narration_seconds") or 0) or 0.0
         scene_dir = os.path.join(out_dir, f"scene_{bn:03d}")
         os.makedirs(scene_dir, exist_ok=True)
         assets = []
@@ -167,7 +180,7 @@ def build_manifest(beats: list, library: dict, out_dir: str, scope: str = "",
             cands = plan_mod.candidates(req, library, scope=scope)
             chosen = None
             for cand in cands[:MAX_VERIFY_TRIES]:
-                if verify_on:
+                if beat_verify:
                     # grab frames directly (NOT via _try): _try turns a function
                     # that returns an empty list into `True` (its `... or True`),
                     # and that bool then reached confirm() as `frames`, which
@@ -406,7 +419,7 @@ def _fill_shot_characters(beats: list, library: dict, log=lambda *a: None) -> in
 def make_video(script_beats: list, library: dict, audio: str, out_dir: str,
                total_seconds: float = 0.0, scope: str = "", pace: str = "normal",
                clean: str = "", verify: bool = True, cast_dir: str = "",
-               log=lambda *a: None) -> str:
+               verify_until: float = 0.0, log=lambda *a: None) -> str:
     """Whole of Stage 3: cut the shots, time them to the voiceover, render.
 
     Returns the finished mp4 path. Reuses `timeline` (pacing), `narration`
@@ -465,7 +478,7 @@ def make_video(script_beats: list, library: dict, audio: str, out_dir: str,
         log(f"  (cast folder me koi character folder nahi mila: {cast_dir})")
     log("  cutting + verifying matched shots...")
     build_manifest(script_beats, library, out_dir, scope=scope, verify=verify,
-                   refs=refs, log=log)
+                   verify_until=verify_until, refs=refs, log=log)
     manifest = timeline.load_manifest(out_dir)
 
     # Word-sync: place each beat where its line is actually spoken. Graceful —

@@ -692,6 +692,7 @@ def cmd_makevideo(a):
     video = assemble.make_video(beats, library, a.audio, out_dir,
                                 scope=a.scope, pace=a.pace, clean=clean,
                                 verify=not a.no_verify, cast_dir=a.cast,
+                                verify_until=getattr(a,'verify_until',0.0),
                                 log=print)
     if os.path.isfile(video):
         print(f"\n  ✓ video ban gaya:  {video}")
@@ -1243,6 +1244,8 @@ def main(argv=None):
     mv.add_argument("--pace", default="normal", help="normal | fast | cinematic")
     mv.add_argument("--no-verify", action="store_true",
                     help="Gemini se har clip verify mat karo (tez, par kam accurate)")
+    mv.add_argument("--verify-until", type=float, default=0.0,
+                    help="Gemini verify only the first N SECONDS (the intro), then off — cheap accuracy for long videos")
     mv.add_argument("--cast", default="",
                     help="cast folder — har character ka subfolder + reference "
                          "photos (identity reliably verify karne ke liye)")

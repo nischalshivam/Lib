@@ -42,6 +42,7 @@ class Card(ttk.Frame):
         self.res = tk.StringVar(value="1080p")
         self.text = tk.BooleanVar(value=False)
         self.verify = tk.BooleanVar(value=False)   # OFF = free (library is accurate)
+        self.verify_intro = tk.IntVar(value=0)     # >0 = verify only first N min
         self.status = tk.StringVar(value="ready")
         self._build()
 
@@ -96,6 +97,9 @@ class Card(ttk.Frame):
         ttk.Checkbutton(opt, text="On-screen text", variable=self.text).pack(side="left")
         ttk.Checkbutton(opt, text="Verify clips (Gemini · costs API)",
                         variable=self.verify).pack(side="left", padx=(14, 0))
+        ttk.Label(opt, text="or verify first", style="Mut.TLabel").pack(side="left", padx=(14, 2))
+        ttk.Spinbox(opt, from_=0, to=60, width=3, textvariable=self.verify_intro).pack(side="left")
+        ttk.Label(opt, text="min (0=off)", style="Mut.TLabel").pack(side="left", padx=(2, 0))
         ttk.Label(opt, textvariable=self.status, style="Mut.TLabel").pack(side="right")
 
     def to_job(self, index) -> studio.Job:
@@ -103,7 +107,8 @@ class Card(ttk.Frame):
                           audio=self.audio.get().strip(),
                           save_dir=self.save_dir.get().strip(),
                           fmt=self.fmt.get(), resolution=self.res.get(),
-                          text=self.text.get(), verify=self.verify.get(), index=index)
+                          text=self.text.get(), verify=self.verify.get(),
+                          verify_intro_min=int(self.verify_intro.get() or 0), index=index)
 
     def set_status(self, s):
         self.status.set(s)
