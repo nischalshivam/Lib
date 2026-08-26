@@ -193,7 +193,7 @@ def match(request: Request, library: dict, scope: str = "") -> Match:
     pool = (windowed(ep_pool, request.scene_range)
             if request.scene_range else ep_pool)
     hits = catalog.search(pool, f"{request.visual} {request.dialogue}",
-                          character=request.character)
+                          characters=request.characters)
     if hits:
         where = hits[0].source
         return Match(shot=hits[0], method="description",
@@ -228,7 +228,7 @@ def candidates(request: Request, library: dict, scope: str = "",
     pool = (windowed(ep_pool, request.scene_range)
             if request.scene_range else ep_pool)
     for s in catalog.search(pool, f"{request.visual} {request.dialogue}",
-                            character=request.character, limit=limit):
+                            characters=request.characters, limit=limit):
         add(s, "description", f"visual+character match ({request.character})"
             if request.character else "visual match")
     return out

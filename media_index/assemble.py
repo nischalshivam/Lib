@@ -262,37 +262,145 @@ def _title(beats: list) -> str:
     return "video"
 
 
-def _restrict_to_shows(library: dict, beats: list, log=lambda *a: None) -> dict:
-    """Keep only the shows the SCRIPT names (its shots' `source`).
+def _show_token(s: str) -> str:
+    """The show name, robust to 'Breaking Bad' or 'Breaking Bad S02E01'."""
+    return re.sub(r"\bs\d{1,2}\s*e\d{1,3}\b", "", str(s or ""),
+                  flags=re.I).strip().lower()
 
-    The launcher hands makevideo the whole `F:\\Movies` (every show merged), so
-    without this a shot with a blank/no-match `source` — or any shot when verify
-    is off — could be filled from Young Sheldon or GoT in a Breaking Bad video,
-    because the per-shot `scoped()` falls back to the ENTIRE library when its
-    episode has no hit. Restricting up front to the script's own universe (BB +
-    BCS here) makes that fallback land inside the right shows, so a wrong-show
-    clip is impossible even with no Gemini verify. Left untouched if the script
-    names no show at all (a single-episode catalog passed directly)."""
-    def _show_token(s: str) -> str:
-        # the show name, robust to either form the data uses: a clue's
-        # source="Breaking Bad" (show only, episode in a separate field) OR a
-        # catalog's source="Breaking Bad S02E01" (show + episode together).
-        return re.sub(r"\bs\d{1,2}\s*e\d{1,3}\b", "", str(s or ""),
-                      flags=re.I).strip().lower()
+
+# words that look like names but are not — keeps a narration scan from firing on
+# ordinary English. Extended per false positive, never guessed at scale.
+_NAME_STOP = {"the", "and", "then", "when", "who", "she", "her", "him", "his",
+              "they", "them", "that", "this", "with", "from", "into", "back",
+              "over", "under", "years", "later", "before", "after", "still",
+              "here", "there", "what", "some", "more", "most", "even", "just",
+              "like", "such", "only", "also", "does", "done", "made", "make"}
+
+
+def _library_characters(library: dict) -> set:
+    """Every character name the library actually tags (minus 'unknown')."""
+    out = set()
+    for s in library.values():
+        for c in (getattr(s, "characters", None) or []):
+            if isinstance(c, str) and c.strip() and c.strip().lower() != "unknown":
+                out.add(c.strip())
+    return out
+
+
+def _chars_in_text(text: str, names: set, strict: bool = False) -> list:
+    """Which of `names` are named in `text`.
+
+    strict=True  -> only a FULL-name hit ('Tony Soprano'), used to DECIDE which
+                    shows a video spans, where a single token like 'mike' or
+                    'night' must not drag in the wrong franchise.
+    strict=False -> also a distinctive single token (first/last name, >3 letters,
+                    not a common word), used to fill blank shots AFTER the library
+                    is already restricted to the right shows, where 'Mike' can only
+                    mean the one Mike those shows tag."""
+    tl = " " + re.sub(r"[^a-z0-9 ]+", " ", (text or "").lower()) + " "
+    hits = []
+    for n in names:
+        low = n.lower()
+        if re.search(r"\b" + re.escape(low) + r"\b", tl):
+            hits.append(n)
+            continue
+        if strict or " " not in low:              # multi-word name needs its full form
+            continue
+        for tok in low.split():
+            if len(tok) > 3 and tok not in _NAME_STOP \
+                    and re.search(r"\b" + re.escape(tok) + r"\b", tl):
+                hits.append(n)
+                break
+    return hits
+
+
+def _char_to_shows(full_library: dict) -> dict:
+    """{character_lower: {show tokens it is tagged in}} across the WHOLE library
+    — so a narration that names 'Tony Soprano' can pull in The Sopranos even if
+    the clue forgot to tag that source (cross-franchise videos)."""
+    m = defaultdict(set)
+    for s in full_library.values():
+        show = _show_token(getattr(s, "source", ""))
+        for c in (getattr(s, "characters", None) or []):
+            if isinstance(c, str) and c.strip() and c.strip().lower() != "unknown":
+                m[c.strip().lower()].add(show)
+    return m
+
+
+def _shows_for_video(beats: list, full_library: dict, clean: str,
+                     log=lambda *a: None) -> set:
+    """The shows this video draws on: the ones its clue shots NAME, plus any
+    show the narration clearly points to by naming its characters. Cross-
+    franchise safe (Gus + Tony -> Breaking Bad + Better Call Saul + Sopranos)."""
     shows = set()
-    for b in beats:
+    for b in beats:                                    # 1) explicit clue sources
         for shot in (b.get("shots") or []):
             tok = _show_token(shot.get("source"))
             if tok:
                 shows.add(tok)
+    # 2) shows the NARRATION names, via their characters
+    char2shows = _char_to_shows(full_library)
+    text = clean or " ".join(str(b.get("narration") or "") for b in beats)
+    all_names = {c for c in char2shows}
+    # STRICT full-name matching: a bare 'mike'/'night' must not drag in the wrong
+    # franchise; only a full name ('Tony Soprano') decides a show belongs.
+    named = _chars_in_text(text, {n.title() for n in all_names}, strict=True)
+    per_show_hits = defaultdict(set)
+    for n in named:
+        for sh in char2shows.get(n.lower(), ()):
+            per_show_hits[sh].add(n.lower())
+    for sh, hits in per_show_hits.items():
+        if sh in shows:
+            continue
+        if len(hits) >= 2:                             # >=2 of its characters named
+            shows.add(sh)
+            log(f"  narration names {sorted(hits)[:4]} -> also using '{sh}'")
+    return shows
+
+
+def _restrict_to_shows(library: dict, beats: list, clean: str = "",
+                       log=lambda *a: None) -> dict:
+    """Keep only the shows THIS video draws on — from the clue's sources AND the
+    narration's named characters (cross-franchise safe). Everything else is
+    dropped so no other show's footage can leak in, even with Gemini verify off.
+    Left untouched if nothing names a show (a single-episode catalog passed in)."""
+    shows = _shows_for_video(beats, library, clean, log=log)
     if not shows:
         return library
     out = {k: s for k, s in library.items() if _show_token(s.source) in shows}
     if out:
-        log(f"  library scoped to this script's shows ({', '.join(sorted(shows))}): "
+        log(f"  library scoped to this video's shows ({', '.join(sorted(shows))}): "
             f"{len(out)} of {len(library)} shots — no other show can leak in")
         return out
     return library
+
+
+def _fill_shot_characters(beats: list, library: dict, log=lambda *a: None) -> int:
+    """Give every shot that names no character the characters its BEAT's
+    narration is about, so the search can place THAT person's footage instead of
+    a look-alike scene. This is what makes an under-specified clue (most shots
+    blank) still land on the right character without any Gemini call — the
+    library already tags who is in each shot; we just tell it who the line is
+    about. Returns how many shots were filled."""
+    from . import catalog                                       # noqa: PLC0415
+    names = _library_characters(library)
+    if not names:
+        return 0
+    filled = 0
+    for b in beats:
+        beat_chars = _chars_in_text(str(b.get("narration") or ""), names)
+        if not beat_chars:
+            continue
+        for shot in (b.get("shots") or []):
+            have = catalog.list_entries(shot.get("characters")
+                                        or shot.get("people"))
+            if not have:
+                shot["characters"] = beat_chars[:3]
+                filled += 1
+    if filled:
+        log(f"  filled {filled} blank shot(s) with the character(s) their line "
+            "names, so they place that person's footage (not a look-alike)")
+    return filled
 
 
 def make_video(script_beats: list, library: dict, audio: str, out_dir: str,
@@ -329,10 +437,13 @@ def make_video(script_beats: list, library: dict, audio: str, out_dir: str,
     if clean:
         script_beats = narration.order_by_clean(script_beats, clean, log=log)
 
-    # confine the search to the shows THIS script names, so no other show's
-    # footage can ever be pulled in (the real cause of a Breaking Bad video
-    # showing Young Sheldon / GoT clips when verify is off).
-    library = _restrict_to_shows(library, script_beats, log=log)
+    # confine the search to the shows THIS video draws on (clue sources + the
+    # narration's named characters), so no other show's footage can leak in —
+    # the real cause of a Breaking Bad video showing Young Sheldon / GoT clips.
+    library = _restrict_to_shows(library, script_beats, clean=clean, log=log)
+    # then give every blank shot the character its line is about, so retrieval
+    # places that person's footage instead of a random look-alike scene.
+    _fill_shot_characters(script_beats, library, log=log)
 
     # clue-quality warning: a shot with no season_episode can't be pinned to its
     # exact scene — it is matched by look alone, which is where "the narration is

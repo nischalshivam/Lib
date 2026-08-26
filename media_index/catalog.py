@@ -882,19 +882,20 @@ def _terms(text: str) -> set:
 
 
 def search(library: dict, query: str, character: str = "",
-           need_safe: bool = True, limit: int = 8) -> list:
+           need_safe: bool = True, limit: int = 8, characters=None) -> list:
     """Best shots for a narration query, most relevant first.
 
-    A lexical overlap over description + tags + action + dialogue, weighted so
-    a tag hit counts more than a description hit and a named-character hit is
-    decisive. This is the honest v1: it turns the catalogue into something
-    searchable today. A semantic embedding of the descriptions is the next
-    upgrade and slots in behind the same function.
+    A lexical overlap over description + tags + action + dialogue. When the
+    caller names the character(s) the line is about (`characters`, or the single
+    `character`), a shot that actually SHOWS one of them is ranked in a tier ABOVE
+    every shot that does not — so "the line is about Hank" always places a Hank
+    shot, never a look-alike scene that merely shares a keyword. Within a tier,
+    the lexical score orders them.
     """
+    want = [c.strip().lower() for c in (characters or [character]) if c and c.strip()]
     q = _terms(query)
-    if not q:
+    if not q and not want:
         return []
-    want_char = character.strip().lower()
     scored = []
     for shot in library.values():
         if need_safe and not shot.safe:
@@ -906,13 +907,20 @@ def search(library: dict, query: str, character: str = "",
         dlg_t = _terms(shot.dialogue)
         score = (2.0 * len(q & tag_t) + 1.0 * len(q & desc_t)
                  + 1.5 * len(q & dlg_t))
-        if want_char:
+        tier = 0
+        if want:
             chars = " ".join(shot.characters).lower()
-            if want_char in chars:
-                score += 5.0
-            elif shot.characters:                # named someone else, not them
-                score -= 1.0
-        if score > 0:
-            scored.append((score, shot))
-    scored.sort(key=lambda s: (-s[0], s[1].start))
-    return [shot for _s, shot in scored[:limit]]
+            n_match = sum(1 for w in want if w in chars)
+            if n_match:
+                tier = 1                          # shows a wanted character
+                score += 5.0 * n_match            # and more if several match
+            elif shot.characters:
+                score -= 1.0                      # names only OTHER people
+        # a character-anchored request keeps only shots that show the person;
+        # otherwise fall back to lexical hits so a blank shot still gets footage.
+        if tier == 0 and want and score <= 0:
+            continue
+        if tier > 0 or score > 0:
+            scored.append((tier, score, shot))
+    scored.sort(key=lambda s: (-s[0], -s[1], s[2].start))
+    return [shot for _t, _s, shot in scored[:limit]]
