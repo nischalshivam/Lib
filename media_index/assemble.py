@@ -334,6 +334,21 @@ def make_video(script_beats: list, library: dict, audio: str, out_dir: str,
     # showing Young Sheldon / GoT clips when verify is off).
     library = _restrict_to_shows(library, script_beats, log=log)
 
+    # clue-quality warning: a shot with no season_episode can't be pinned to its
+    # exact scene — it is matched by look alone, which is where "the narration is
+    # about Hank but the clip shows someone else" comes from. Tell the user how
+    # much of the script is scene-pinned so a weak clue is visible up front.
+    _shots = [s for b in script_beats for s in (b.get("shots") or [])]
+    _pinned = sum(1 for s in _shots if str(s.get("season_episode") or "").strip())
+    if _shots:
+        pct = round(100 * _pinned / len(_shots))
+        msg = f"  clue precision: {_pinned}/{len(_shots)} shots ({pct}%) name an episode"
+        if pct < 80:
+            msg += (" — the rest match by look only, so some clips may be the "
+                    "right show but the wrong scene. For scene-accurate videos, "
+                    "have GPT put source + season_episode on EVERY shot.")
+        log(msg)
+
     refs = load_refs(cast_dir)
     if cast_dir and not refs:
         log(f"  (cast folder me koi character folder nahi mila: {cast_dir})")
