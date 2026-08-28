@@ -35,10 +35,29 @@ import time
 from dataclasses import dataclass, field
 
 DEFAULT_MODEL = "base.en"
+DEFAULT_LANGUAGE = "en"
 # A beat boundary further than this from the nearest anchor is interpolated
 # across a stretch long enough that the estimate could be wrong by a shot.
 FAR_FROM_ANCHOR_WORDS = 60
-_WORD = re.compile(r"[a-z0-9']+")
+# Unicode-aware: an accented word (ação, préférée, größer) is ONE token, not a
+# run of stripped one-letter fragments — otherwise a Portuguese/French/Spanish/
+# German transcript loses every anchor. English ("don't", "1990s") is unchanged.
+_WORD = re.compile(r"[^\W_]+(?:['’][^\W_]+)?", re.UNICODE)
+
+
+def model_for(language: str = DEFAULT_LANGUAGE) -> tuple:
+    """(whisper model, language) for a script language.
+
+    The library is English, but the *script* can be in any language. base.en is
+    English-only and mis-hears foreign speech, so anything but English uses the
+    multilingual ``base``. ``"auto"`` (or empty) lets whisper detect it.
+    """
+    lang = (language or "").strip().lower()
+    if lang in ("", "en", "eng", "english"):
+        return DEFAULT_MODEL, "en"
+    if lang in ("auto", "detect"):
+        return "base", None
+    return "base", lang
 
 
 class NarrationUnavailable(RuntimeError):
@@ -178,6 +197,7 @@ def available() -> tuple:
 
 
 def heard(audio_path: str, model_name: str = DEFAULT_MODEL,
+          language: str = DEFAULT_LANGUAGE,
           log=lambda *a: None) -> list:
     """Every word of the voiceover, with the second it was said.
 
@@ -211,8 +231,10 @@ def heard(audio_path: str, model_name: str = DEFAULT_MODEL,
             try:
                 model = transcribe._load_model(model_name, device=device,
                                                compute_type=compute)
-                log(f"    listening with {model_name} on {device}…")
-                out = _listen(model, wav)
+                log(f"    listening with {model_name} on {device}"
+                    + (f" ({language})" if language and language != "en" else "")
+                    + "…")
+                out = _listen(model, wav, language=language)
                 if out:
                     return out
                 last = RuntimeError("nothing was heard")
@@ -231,10 +253,13 @@ def heard(audio_path: str, model_name: str = DEFAULT_MODEL,
             pass
 
 
-def _listen(model, wav: str) -> list:
-    """Every word the model heard, with its second."""
+def _listen(model, wav: str, language: str = "en") -> list:
+    """Every word the model heard, with its second.
+
+    ``language=None`` lets whisper auto-detect (used for "auto" scripts).
+    """
     segments, _info = model.transcribe(
-        wav, language="en", word_timestamps=True, beam_size=5,
+        wav, language=language, word_timestamps=True, beam_size=5,
         # No VAD here. It exists to skip silence in a film; on a voiceover it
         # can clip the quiet start of a line, and a word dropped from the
         # transcript is one fewer anchor.
@@ -453,13 +478,22 @@ def read_clean(path: str) -> str:
         return ""
 
 
-def align_audio(beats: list, audio_path: str, model_name: str = DEFAULT_MODEL,
+def align_audio(beats: list, audio_path: str, model_name: str = "",
                 total_seconds: float = 0.0, clean: str = "",
+                language: str = DEFAULT_LANGUAGE,
                 log=lambda *a: None) -> Alignment:
-    """The whole thing: listen, match, report. Never raises."""
+    """The whole thing: listen, match, report. Never raises.
+
+    ``language`` picks the whisper model too: English keeps the fast base.en,
+    any other language uses the multilingual base (see :func:`model_for`). An
+    explicit ``model_name`` overrides that choice.
+    """
     t0 = time.time()
+    resolved_model, whisper_lang = model_for(language)
+    model_name = model_name or resolved_model
     try:
-        spoken = heard(audio_path, model_name=model_name, log=log)
+        spoken = heard(audio_path, model_name=model_name,
+                       language=whisper_lang, log=log)
     except NarrationUnavailable as exc:
         return Alignment(reason=str(exc))
     except Exception as exc:                    # a bad recording is not fatal

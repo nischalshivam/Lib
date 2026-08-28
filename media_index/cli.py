@@ -693,6 +693,7 @@ def cmd_makevideo(a):
                                 scope=a.scope, pace=a.pace, clean=clean,
                                 verify=not a.no_verify, cast_dir=a.cast,
                                 verify_until=getattr(a,'verify_until',0.0),
+                                language=getattr(a,'language','en'),
                                 log=print)
     if os.path.isfile(video):
         print(f"\n  ✓ video ban gaya:  {video}")
@@ -1249,6 +1250,10 @@ def main(argv=None):
     mv.add_argument("--cast", default="",
                     help="cast folder — har character ka subfolder + reference "
                          "photos (identity reliably verify karne ke liye)")
+    mv.add_argument("--language", "--lang", default="en", dest="language",
+                    help="script/voiceover language: en (default), pt, fr, es, "
+                         "de, ... or 'auto'. Library stays English; non-English "
+                         "just switches whisper to the multilingual model.")
     mv.set_defaults(func=cmd_makevideo)
 
     go = sub.add_parser("gold", parents=[common],

@@ -72,6 +72,9 @@ class Job:
                                      # that turns good clips into gaps.
     verify_intro_min: int = 0        # >0: verify ONLY the first N minutes (the
                                      # intro people actually watch), then free.
+    language: str = "en"             # script/voiceover language (en/pt/fr/es/de/
+                                     # auto). Library stays English — this only
+                                     # tells whisper which model to listen with.
     index: int = 0                   # position in the queue (drives format rotation)
     # results
     status: str = "queued"           # queued|blocked|running|done|error
@@ -247,6 +250,10 @@ def build(job: Job, log=print, on_proc=None, should_stop=None) -> Job:
     log("\n  [makevideo] cutting the right clips, aligning to the voiceover...")
     mv = [sys.executable, "-m", "media_index", "makevideo", job.clue,
           job.movies_root, job.audio, "--narration", job.clean, "--out", job.out]
+    if (job.language or "en").lower() not in ("en", "eng", "english"):
+        mv += ["--language", job.language]
+        log(f"  language: {job.language} — English library, {job.language} "
+            "voiceover; whisper listens with the multilingual model")
     if job.verify or job.verify_intro_min > 0:
         cast = _cast_for(job.movies_root, job.clue)
         if cast:
@@ -344,6 +351,8 @@ def _cli(argv=None):
     p.add_argument("--text", action="store_true")
     p.add_argument("--verify", action="store_true", help="re-check clips with Gemini (costs API; default off)")
     p.add_argument("--verify-intro-min", type=int, default=0, help="verify only the first N minutes")
+    p.add_argument("--language", "--lang", default="en", dest="language",
+                   help="script/voiceover language: en (default), pt, fr, es, de, ... or auto")
     p.add_argument("--queue", help="jobs.json: [{clean,clue,audio,out?}, ...]")
     a = p.parse_args(argv)
 
@@ -354,11 +363,13 @@ def _cli(argv=None):
                     movies_root=j.get("movies", a.movies),
                     fmt=j.get("format", a.format),
                     resolution=j.get("resolution", a.resolution),
-                    text=j.get("text", a.text), verify=j.get("verify", a.verify), verify_intro_min=j.get("verify_intro_min", a.verify_intro_min)) for j in raw]
+                    text=j.get("text", a.text), verify=j.get("verify", a.verify), verify_intro_min=j.get("verify_intro_min", a.verify_intro_min),
+                    language=j.get("language", getattr(a, "language", "en"))) for j in raw]
     elif a.clean and a.clue and a.audio:
         jobs = [Job(clean=a.clean, clue=a.clue, audio=a.audio, out=a.out,
                     save_dir=a.save_dir, movies_root=a.movies, fmt=a.format,
-                    resolution=a.resolution, text=a.text, verify=a.verify, verify_intro_min=a.verify_intro_min)]
+                    resolution=a.resolution, text=a.text, verify=a.verify, verify_intro_min=a.verify_intro_min,
+                    language=getattr(a, "language", "en"))]
     else:
         p.error("give --clean --clue --audio, or --queue jobs.json")
 

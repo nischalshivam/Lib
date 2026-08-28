@@ -25,6 +25,7 @@ ACCENT, GO, WARN, BAD = "#4f8cff", "#22c55e", "#f4b740", "#ef4444"
 
 RES = ["1080p", "4K"]
 FMTS = ["auto"] + studio._FORMATS + ["No Filter"]   # No Filter = raw clips only (long videos)
+LANGS = ["en", "pt", "fr", "es", "de", "it", "auto"]   # library stays English; script can be any
 
 
 class Card(ttk.Frame):
@@ -43,6 +44,7 @@ class Card(ttk.Frame):
         self.text = tk.BooleanVar(value=False)
         self.verify = tk.BooleanVar(value=False)   # OFF = free (library is accurate)
         self.verify_intro = tk.IntVar(value=0)     # >0 = verify only first N min
+        self.language = tk.StringVar(value="en")   # script language (library stays English)
         self.status = tk.StringVar(value="ready")
         self._build()
 
@@ -94,6 +96,9 @@ class Card(ttk.Frame):
         ttk.Label(opt, text="Quality", style="Mut.TLabel").pack(side="left")
         ttk.Combobox(opt, textvariable=self.res, values=RES, width=7,
                      state="readonly").pack(side="left", padx=(4, 14))
+        ttk.Label(opt, text="Language", style="Mut.TLabel").pack(side="left")
+        ttk.Combobox(opt, textvariable=self.language, values=LANGS, width=6,
+                     state="readonly").pack(side="left", padx=(4, 14))
         ttk.Checkbutton(opt, text="On-screen text", variable=self.text).pack(side="left")
         ttk.Checkbutton(opt, text="Verify clips (Gemini · costs API)",
                         variable=self.verify).pack(side="left", padx=(14, 0))
@@ -108,7 +113,8 @@ class Card(ttk.Frame):
                           save_dir=self.save_dir.get().strip(),
                           fmt=self.fmt.get(), resolution=self.res.get(),
                           text=self.text.get(), verify=self.verify.get(),
-                          verify_intro_min=int(self.verify_intro.get() or 0), index=index)
+                          verify_intro_min=int(self.verify_intro.get() or 0),
+                          language=self.language.get().strip() or "en", index=index)
 
     def set_status(self, s):
         self.status.set(s)

@@ -419,7 +419,8 @@ def _fill_shot_characters(beats: list, library: dict, log=lambda *a: None) -> in
 def make_video(script_beats: list, library: dict, audio: str, out_dir: str,
                total_seconds: float = 0.0, scope: str = "", pace: str = "normal",
                clean: str = "", verify: bool = True, cast_dir: str = "",
-               verify_until: float = 0.0, log=lambda *a: None) -> str:
+               verify_until: float = 0.0, language: str = "en",
+               log=lambda *a: None) -> str:
     """Whole of Stage 3: cut the shots, time them to the voiceover, render.
 
     Returns the finished mp4 path. Reuses `timeline` (pacing), `narration`
@@ -489,7 +490,7 @@ def make_video(script_beats: list, library: dict, audio: str, out_dir: str,
     try:
         heard = narration.align_audio(script_beats, audio,
                                       total_seconds=total_seconds, clean=clean,
-                                      log=log)
+                                      language=language, log=log)
         log(heard.summary())
         if heard.ok:
             spans = heard.spans
