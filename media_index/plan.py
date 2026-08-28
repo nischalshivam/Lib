@@ -88,7 +88,8 @@ def dialogue_anchor(library: dict, line: str, limit: int = 5) -> list:
     # fragment — "nothing.", "you" — is a substring of almost any longer line,
     # so it matched the wrong moment by coincidence.
     hits = [s for s in library.values()
-            if _norm(s.dialogue) and q in _norm(s.dialogue)]
+            if _norm(s.dialogue) and q in _norm(s.dialogue)
+            and not catalog.is_explicit(s)]      # never anchor onto adult footage
     return sorted(hits, key=lambda s: s.start)[:limit]
 
 

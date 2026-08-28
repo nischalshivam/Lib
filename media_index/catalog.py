@@ -108,6 +108,7 @@ class Shot:
     shot_type: str = ""
     quality: str = ""            # high | mid | low
     safe: bool = True            # False = burned-in text/caption/graphic
+    explicit: bool = False       # True = nudity / sex / graphic — never place it
     dialogue: str = ""
 
     @property
@@ -323,11 +324,16 @@ def tag_messages(frames: list, known_characters: list | None = None,
         '"action": "<what happens, few words>", '
         '"shot_type": "<wide|medium|close-up|extreme close-up|insert|aerial>", '
         '"quality": "<high|mid|low>", '
-        '"safe": <true|false>}\n\n'
+        '"safe": <true|false>, '
+        '"explicit": <true|false>}\n\n'
         "Rules:\n"
         f"{char_rule}\n"
         "- safe=false if the shot has burned-in subtitles, captions, or large "
         "on-screen text/graphics; otherwise true.\n"
+        "- explicit=true ONLY for adult content that a family/monetised YouTube "
+        "video must never show: visible nudity, a sex scene, or graphic sexual "
+        "activity. Ordinary kissing, violence, blood or a shirtless man is NOT "
+        "explicit. When in doubt, false.\n"
         "- quality: low if blurry, dark to the point of unreadable, or a "
         "transition/black frame.\n"
         "- tags: 4-8 concrete keywords (mood, setting, objects, action)."
@@ -452,6 +458,7 @@ def parse_tags(text: str) -> dict:
         "shot_type": str(obj.get("shot_type") or "").strip().lower()[:40],
         "quality": (str(obj.get("quality") or "").strip().lower() or "mid"),
         "safe": bool(obj.get("safe", True)),
+        "explicit": bool(obj.get("explicit", False)),
     }
 
 
@@ -881,8 +888,29 @@ def _terms(text: str) -> set:
     return set(_WORD.findall((text or "").lower()))
 
 
+# Strong adult markers. Deliberately NOT 'intimate' or a bare 'bare' — those fire
+# on "intimate conversation" / "bare hands" and would drop innocent footage.
+_EXPLICIT_RE = re.compile(
+    r"\b(nude|nudity|naked|topless|bottomless|full frontal|breasts?|nipples?|"
+    r"buttocks|genital\w*|sex scene|having sex|sexual intercourse|making love|"
+    r"performs? oral|explicit sexual|graphic sex|orgy|brothel sex)\b", re.I)
+
+
+def is_explicit(shot) -> bool:
+    """Whether a shot is adult (nudity / sex / graphic) and must never be placed
+    in a video. Uses the catalogued `explicit` flag when present (new builds),
+    and falls back to strong keywords in the description/tags for libraries built
+    before the flag existed (e.g. Game of Thrones) — so it protects them too."""
+    if getattr(shot, "explicit", False):
+        return True
+    text = (getattr(shot, "description", "") or "") + " " \
+        + " ".join(getattr(shot, "tags", None) or [])
+    return bool(_EXPLICIT_RE.search(text))
+
+
 def search(library: dict, query: str, character: str = "",
-           need_safe: bool = True, limit: int = 8, characters=None) -> list:
+           need_safe: bool = True, limit: int = 8, characters=None,
+           allow_explicit: bool = False) -> list:
     """Best shots for a narration query, most relevant first.
 
     A lexical overlap over description + tags + action + dialogue. When the
@@ -902,6 +930,8 @@ def search(library: dict, query: str, character: str = "",
             continue
         if shot.quality == "low":
             continue
+        if not allow_explicit and is_explicit(shot):
+            continue                              # never place adult footage
         desc_t = _terms(shot.description) | _terms(shot.action)
         tag_t = _terms(" ".join(shot.tags))
         dlg_t = _terms(shot.dialogue)
