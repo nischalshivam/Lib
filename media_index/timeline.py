@@ -40,10 +40,11 @@ import time
 from dataclasses import dataclass, field
 
 # The ceilings are the brief. A clip past six seconds outstays its welcome;
-# a still can hold far longer because nothing on it is moving.
+# a still holds longer because nothing on it is moving — but a still frozen
+# past ten seconds also reads as "AI ran out of footage", so cap it at ten.
 MAX_CLIP_S = 6.0
 MIN_CLIP_S = 1.8
-MAX_STILL_S = 12.0
+MAX_STILL_S = 10.0
 MIN_STILL_S = 3.0
 # Nothing may flash past faster than this, whatever the arithmetic says. This
 # is the number that stops four visuals being crammed under one short line.

@@ -124,6 +124,14 @@ MAX_VERIFY_TRIES = 4
 # A confident "no" below this is ignored — the model must be fairly sure to
 # reject, so a hesitant verifier never throws away a decent shot.
 REJECT_BELOW = 0.55
+# --- variety controls: stop the same catalogue shot filling a whole video ---
+# Many beats scope to the SAME scene/episode (a 3-beat Krakower hook, an 8-beat
+# finale run), and a stateless picker hands each of them the identical #1 clip —
+# so the viewer sees one frame recur every minute (mass-produced, demonetised).
+# We track what has already been placed and prefer a fresh shot every time.
+DIVERSIFY_POOL = 24        # how many ranked candidates to weigh for variety
+MAX_CLIP_REPEATS = 3       # never show one catalogue shot more than this per video
+MIN_REPEAT_GAP = 8         # ...and never again within this many scenes
 
 
 def build_manifest(beats: list, library: dict, out_dir: str, scope: str = "",
@@ -175,6 +183,9 @@ def build_manifest(beats: list, library: dict, out_dir: str, scope: str = "",
     scenes = []
     cut, gap, rejected = 0, 0, 0
     _cum = 0.0                                     # narration seconds reached so far
+    used_counts = defaultdict(int)                 # shot.id -> times placed so far
+    last_used_scene = {}                           # shot.id -> last scene it appeared in
+    reused = 0                                      # placements that had to repeat a shot
     for beat in beats:
         bn = beat.get("beat") or 0
         # intro-only verify: check clips with Gemini while we are inside the
@@ -184,10 +195,34 @@ def build_manifest(beats: list, library: dict, out_dir: str, scope: str = "",
         scene_dir = os.path.join(out_dir, f"scene_{bn:03d}")
         os.makedirs(scene_dir, exist_ok=True)
         assets = []
+        beat_pool = []                    # every candidate this beat saw (for padding)
+        placed_this_beat = set()          # shot.ids already in this scene (no dupes)
+
+        # Order any candidate list by FRESHNESS, not rank alone: an unused shot
+        # beats a used one, fewer past uses beats more, a shot shown in the last
+        # MIN_REPEAT_GAP scenes is pushed back, relevance rank breaks ties. So
+        # identical requests across beats walk DOWN the list (#1,#2,#3…) instead
+        # of all grabbing #1 — the thing that made one frame recur every minute.
+        def _order_fresh(cands):
+            def _key(rank_cand):
+                rank, c = rank_cand
+                cid = c.shot.id
+                too_recent = (bn - last_used_scene.get(cid, -999)) < MIN_REPEAT_GAP
+                return (used_counts.get(cid, 0), 1 if too_recent else 0, rank)
+            ordered = [c for _, c in sorted(enumerate(cands), key=_key)]
+            fresh = [c for c in ordered
+                     if used_counts.get(c.shot.id, 0) < MAX_CLIP_REPEATS]
+            return fresh or ordered
+
         for idx, req in enumerate(by_beat.get(bn, [])):
-            cands = plan_mod.candidates(req, library, scope=scope)
+            cands = plan_mod.candidates(req, library, scope=scope,
+                                        limit=DIVERSIFY_POOL)
+            beat_pool.extend(cands)
+            ordered = _order_fresh(cands)
+
             chosen = None
-            for cand in cands[:MAX_VERIFY_TRIES]:
+            tries = ordered if not beat_verify else ordered[:MAX_VERIFY_TRIES]
+            for cand in tries:
                 if beat_verify:
                     # grab frames directly (NOT via _try): _try turns a function
                     # that returns an empty list into `True` (its `... or True`),
@@ -212,6 +247,11 @@ def build_manifest(beats: list, library: dict, out_dir: str, scope: str = "",
             if chosen is None:
                 gap += 1
                 continue
+            if used_counts.get(chosen.shot.id, 0) >= 1:
+                reused += 1
+            used_counts[chosen.shot.id] += 1
+            last_used_scene[chosen.shot.id] = bn
+            placed_this_beat.add(chosen.shot.id)
 
             shot = chosen.shot
             if req.kind == "still":
@@ -234,6 +274,43 @@ def build_manifest(beats: list, library: dict, out_dir: str, scope: str = "",
                 "source_start": round(shot.start, 2),
                 "placed_by": chosen.method, "confidence": chosen.why[:60]})
             cut += 1
+
+        # Pad an asset-starved beat with EXTRA distinct footage instead of
+        # letting the timeline stretch a few clips to 10-12s each. A 30s beat
+        # the script gave 3 shots for would otherwise hold each ~10s; here it
+        # gets the cuts its narration deserves, drawn from the same verified
+        # scope (the library has thousands of shots — the old picker just never
+        # reached past the first few). Extra clips are same-scope B-roll, so
+        # they are not re-verified; freshness + the repeat cap still apply.
+        from . import timeline as _tl
+        budget = float(beat.get("narration_seconds") or 0) or \
+            (len((beat.get("narration") or "").split()) / _tl.WORDS_PER_MINUTE * 60.0)
+        desired = _tl.segment_count(budget, available=DIVERSIFY_POOL)
+        pad_i = 0
+        for cand in _order_fresh(beat_pool):
+            if len(assets) >= desired:
+                break
+            sid = cand.shot.id
+            if sid in placed_this_beat or used_counts.get(sid, 0) >= MAX_CLIP_REPEATS:
+                continue
+            shot = cand.shot
+            name = f"pad_{pad_i:02d}.mp4"
+            want = max(MIN_CLIP_S, CLIP_PAD_S + 4.0)
+            if not _grab_clip(cut_clip, shot.file, shot.start, want,
+                              os.path.join(scene_dir, name)):
+                continue
+            if used_counts.get(sid, 0) >= 1:
+                reused += 1
+            used_counts[sid] += 1
+            last_used_scene[sid] = bn
+            placed_this_beat.add(sid)
+            assets.append({
+                "file": name, "kind": "video", "source": shot.source,
+                "source_start": round(shot.start, 2),
+                "placed_by": "variety-fill", "confidence": cand.why[:60]})
+            cut += 1
+            pad_i += 1
+
         scenes.append({"scene": bn, "narration": beat.get("narration", ""),
                        "assets": assets})
         if bn % 5 == 0 or bn == (beats[-1].get("beat") if beats else 0):
@@ -244,7 +321,11 @@ def build_manifest(beats: list, library: dict, out_dir: str, scope: str = "",
     with open(os.path.join(out_dir, "manifest.json"), "w",
               encoding="utf-8") as f:
         json.dump(manifest, f, ensure_ascii=False, indent=1)
+    distinct = len(used_counts)
     log(f"  {cut} shots cut · {rejected} rejected by verify · {gap} left as gaps")
+    log(f"  variety: {distinct} distinct clips across {cut} placements"
+        + (f" · {reused} repeat(s) (capped at {MAX_CLIP_REPEATS}× each, "
+           f"≥{MIN_REPEAT_GAP} scenes apart)" if reused else " · no repeats"))
     return manifest
 
 
