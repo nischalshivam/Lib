@@ -734,7 +734,7 @@ def _is_complete(out_json: str) -> bool:
 
 def run(video_path: str, out_json: str = "", known_characters: list | None = None,
         max_minutes: float = 0.0, cast_dir: str = "",
-        refs: dict | None = None, log=lambda *a: None) -> dict:
+        refs: dict | None = None, ref_names=None, log=lambda *a: None) -> dict:
     """Catalogue one local video end to end. The function the CLI/UI calls.
 
     `max_minutes` caps how far in it goes — set it to 20 for a cheap quality
@@ -764,7 +764,7 @@ def run(video_path: str, out_json: str = "", known_characters: list | None = Non
     # run, so a 62-episode series reads the cast photos a single time).
     if refs is None and cast_dir:
         from . import assemble
-        refs = assemble.load_refs(cast_dir)
+        refs = assemble.load_refs(cast_dir, only=ref_names)
     refs = refs or None
 
     duration = probe(video_path).duration
@@ -843,7 +843,7 @@ def run(video_path: str, out_json: str = "", known_characters: list | None = Non
 
 def run_folder(folder: str, known_characters: list | None = None,
                max_minutes: float = 0.0, cast_dir: str = "",
-               log=lambda *a: None) -> dict:
+               ref_names=None, log=lambda *a: None) -> dict:
     """Catalogue every episode under a folder — a whole series in one go.
 
     Each episode gets its own `<episode>.catalog.json` beside it, so a night
@@ -859,9 +859,10 @@ def run_folder(folder: str, known_characters: list | None = None,
     refs = None
     if cast_dir:
         from . import assemble
-        refs = assemble.load_refs(cast_dir) or None
-        log(f"  reference faces: {len(refs or {})} character(s) loaded — "
-            "poori series me inhi se pehchan hogi")
+        refs = assemble.load_refs(cast_dir, only=ref_names) or None
+        log(f"  reference faces: {len(refs or {})} character(s) loaded"
+            + (f" (season subset of {len(list(ref_names))})" if ref_names else "")
+            + " — inhi se pehchan hogi")
     log(f"  {len(videos)} episode(s) mile — ek-ek karke catalogue honge")
     out = {}
     for i, video in enumerate(videos, 1):

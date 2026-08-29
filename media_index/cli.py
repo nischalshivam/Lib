@@ -550,12 +550,24 @@ def cmd_catalog(a):
         print("  (har character ka subfolder + 5-8 photos: cast\\Victor\\1.jpg)")
         return 1
 
+    # Season-cast subset: only these characters' reference photos are sent on
+    # every shot. On a big-cast show (The Wire = 58) this is the main cost lever.
+    ref_names = None
+    raw_rn = (getattr(a, "ref_names", "") or "").strip()
+    if raw_rn:
+        if os.path.isfile(raw_rn):
+            with open(raw_rn, "r", encoding="utf-8-sig") as f:
+                ref_names = [ln.strip() for ln in f if ln.strip()]
+        else:
+            ref_names = [p.strip() for p in raw_rn.split(";") if p.strip()]
+        print(f"  ref-names: {len(ref_names)} character(s) — sirf inke refs bhejenge (sasta build)")
+
     try:
         if is_folder:
             # A whole series/season: every episode into its own catalog.json.
             counts = catalog.run_folder(a.video, known_characters=people or None,
                                         max_minutes=minutes, cast_dir=cast_dir,
-                                        log=print)
+                                        ref_names=ref_names, log=print)
             done = sum(1 for n in counts.values() if n)
             print(f"\n  {done}/{len(counts)} episode(s) catalogued — "
                   f"{sum(counts.values())} shots total")
@@ -563,7 +575,8 @@ def cmd_catalog(a):
             return 0
         lib = catalog.run(a.video, out_json=a.out or "",
                           known_characters=people or None,
-                          max_minutes=minutes, cast_dir=cast_dir, log=print)
+                          max_minutes=minutes, cast_dir=cast_dir,
+                          ref_names=ref_names, log=print)
     except RuntimeError as exc:
         print(f"  {exc}")
         print("  pehle chalao:  mi gemini   (key + endpoint check)")
@@ -1220,6 +1233,11 @@ def main(argv=None):
                          "reference photos (cast\\Victor\\1.jpg). Isse model "
                          "catalog banate waqt sahi character pehchanta hai — "
                          "library ki foundation isi se bharosemand banti hai.")
+    ct.add_argument("--ref-names", dest="ref_names", default="",
+                    help="sirf in characters ke refs bhejo: file (ek line ek "
+                         "naam) ya 'A; B; C'. Bade cast (The Wire) me season-wise "
+                         "subset se build cost ~⅓ ho jaati hai. cast/characters "
+                         "ke naam se match (case-insensitive).")
     ct.set_defaults(func=cmd_catalog)
 
     pl = sub.add_parser("plan", parents=[common],

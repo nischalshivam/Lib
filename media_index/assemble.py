@@ -56,7 +56,7 @@ def _thumb(data: bytes, px: int = 256) -> bytes:
         return data
 
 
-def load_refs(cast_dir: str, per: int = 4) -> dict:
+def load_refs(cast_dir: str, per: int = 4, only=None) -> dict:
     """{character_name_lower: [photo_bytes, ...]} from a cast folder.
 
     Layout is one subfolder per character — `cast/Victor/1.jpg`,
@@ -64,13 +64,21 @@ def load_refs(cast_dir: str, per: int = 4) -> dict:
     These reference photos are what let the verifier tell one character from
     another instead of guessing. Each is shrunk to a thumbnail once here (see
     `_thumb`) so a big cast does not balloon every model call.
+
+    `only` (a set/iterable of names) restricts loading to those characters — the
+    lever for a big-cast show: The Wire has 58 folders, but a season only needs
+    ~20, so passing that season's names cuts the reference images sent on EVERY
+    shot (and thus the build cost) to a third. Names match case-insensitively.
     """
     refs = {}
     if not cast_dir or not os.path.isdir(cast_dir):
         return refs
+    only_set = {str(n).strip().lower() for n in only} if only else None
     for name in sorted(os.listdir(cast_dir)):
         d = os.path.join(cast_dir, name)
         if not os.path.isdir(d):
+            continue
+        if only_set is not None and name.strip().lower() not in only_set:
             continue
         photos = []
         for f in sorted(os.listdir(d)):
