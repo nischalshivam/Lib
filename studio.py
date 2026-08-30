@@ -81,6 +81,8 @@ class Job:
     cold_open: bool = False          # open the video on the script's first hook
                                      # line in the ORIGINAL voice (5-8s), then
                                      # the narration starts.
+    ken_burns: bool = False          # slow zoom/pan on still frames so they are
+                                     # never frozen (rotates in/out/pan).
     index: int = 0                   # position in the queue (drives format rotation)
     # results
     status: str = "queued"           # queued|blocked|running|done|error
@@ -267,6 +269,9 @@ def build(job: Job, log=print, on_proc=None, should_stop=None) -> Job:
     if job.cold_open:
         mv += ["--cold-open"]
         log("  cold-open ON — video pehli famous line (original awaaz) se khulegi")
+    if job.ken_burns:
+        mv += ["--ken-burns"]
+        log("  Ken Burns ON — har still pe slow zoom/pan motion (static nahi)")
     if job.verify or job.verify_intro_min > 0:
         cast = _cast_for(job.movies_root, job.clue)
         if cast:
@@ -370,6 +375,8 @@ def _cli(argv=None):
                    help="first 3 min: famous lines me original show audio bajao (hook boost)")
     p.add_argument("--cold-open", dest="cold_open", action="store_true",
                    help="video ko pehli famous line (original awaaz, 5-8s) se kholo")
+    p.add_argument("--ken-burns", dest="ken_burns", action="store_true",
+                   help="har still pe slow zoom/pan motion")
     p.add_argument("--queue", help="jobs.json: [{clean,clue,audio,out?}, ...]")
     a = p.parse_args(argv)
 
@@ -383,14 +390,16 @@ def _cli(argv=None):
                     text=j.get("text", a.text), verify=j.get("verify", a.verify), verify_intro_min=j.get("verify_intro_min", a.verify_intro_min),
                     language=j.get("language", getattr(a, "language", "en")),
                     intro_punch=j.get("intro_punch", getattr(a, "intro_punch", False)),
-                    cold_open=j.get("cold_open", getattr(a, "cold_open", False))) for j in raw]
+                    cold_open=j.get("cold_open", getattr(a, "cold_open", False)),
+                    ken_burns=j.get("ken_burns", getattr(a, "ken_burns", False))) for j in raw]
     elif a.clean and a.clue and a.audio:
         jobs = [Job(clean=a.clean, clue=a.clue, audio=a.audio, out=a.out,
                     save_dir=a.save_dir, movies_root=a.movies, fmt=a.format,
                     resolution=a.resolution, text=a.text, verify=a.verify, verify_intro_min=a.verify_intro_min,
                     language=getattr(a, "language", "en"),
                     intro_punch=getattr(a, "intro_punch", False),
-                    cold_open=getattr(a, "cold_open", False))]
+                    cold_open=getattr(a, "cold_open", False),
+                    ken_burns=getattr(a, "ken_burns", False))]
     else:
         p.error("give --clean --clue --audio, or --queue jobs.json")
 

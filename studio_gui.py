@@ -47,6 +47,7 @@ class Card(ttk.Frame):
         self.language = tk.StringVar(value="en")   # script language (library stays English)
         self.intro_punch = tk.BooleanVar(value=False)  # original-audio hook in first 3 min
         self.cold_open = tk.BooleanVar(value=False)    # open on the first hook line
+        self.ken_burns = tk.BooleanVar(value=False)    # slow motion on still frames
         self.status = tk.StringVar(value="ready")
         self._build()
 
@@ -90,6 +91,7 @@ class Card(ttk.Frame):
                   [("Audio", "*.wav *.mp3 *.m4a"), ("All", "*.*")])
         self._dir_row(4, "Save finished video to", self.save_dir)
 
+        # Row 1 of options: the dropdowns.
         opt = ttk.Frame(self, style="Card.TFrame")
         opt.grid(row=5, column=0, columnspan=3, sticky="we", pady=(8, 0))
         ttk.Label(opt, text="Format", style="Mut.TLabel").pack(side="left")
@@ -101,17 +103,25 @@ class Card(ttk.Frame):
         ttk.Label(opt, text="Language", style="Mut.TLabel").pack(side="left")
         ttk.Combobox(opt, textvariable=self.language, values=LANGS, width=6,
                      state="readonly").pack(side="left", padx=(4, 14))
-        ttk.Checkbutton(opt, text="On-screen text", variable=self.text).pack(side="left")
-        ttk.Checkbutton(opt, text="Cold-open (original-audio hook)",
-                        variable=self.cold_open).pack(side="left", padx=(14, 0))
-        ttk.Checkbutton(opt, text="Intro punch-ins",
-                        variable=self.intro_punch).pack(side="left", padx=(10, 0))
-        ttk.Checkbutton(opt, text="Verify clips (Gemini · costs API)",
-                        variable=self.verify).pack(side="left", padx=(14, 0))
-        ttk.Label(opt, text="or verify first", style="Mut.TLabel").pack(side="left", padx=(14, 2))
-        ttk.Spinbox(opt, from_=0, to=60, width=3, textvariable=self.verify_intro).pack(side="left")
-        ttk.Label(opt, text="min (0=off)", style="Mut.TLabel").pack(side="left", padx=(2, 0))
         ttk.Label(opt, textvariable=self.status, style="Mut.TLabel").pack(side="right")
+
+        # Row 2 of options: every toggle, so none get pushed off a narrow window.
+        # All default OFF — a video only gets an effect when its box is ticked.
+        opt2 = ttk.Frame(self, style="Card.TFrame")
+        opt2.grid(row=6, column=0, columnspan=3, sticky="we", pady=(6, 0))
+        ttk.Checkbutton(opt2, text="On-screen text", variable=self.text).pack(side="left")
+        ttk.Checkbutton(opt2, text="Cold-open", variable=self.cold_open).pack(
+            side="left", padx=(14, 0))
+        ttk.Checkbutton(opt2, text="Intro punch-ins",
+                        variable=self.intro_punch).pack(side="left", padx=(10, 0))
+        ttk.Checkbutton(opt2, text="Ken Burns (still motion)",
+                        variable=self.ken_burns).pack(side="left", padx=(10, 0))
+        ttk.Checkbutton(opt2, text="Verify clips (Gemini · costs API)",
+                        variable=self.verify).pack(side="left", padx=(16, 0))
+        ttk.Label(opt2, text="or first", style="Mut.TLabel").pack(side="left", padx=(12, 2))
+        ttk.Spinbox(opt2, from_=0, to=60, width=3,
+                    textvariable=self.verify_intro).pack(side="left")
+        ttk.Label(opt2, text="min", style="Mut.TLabel").pack(side="left", padx=(2, 0))
 
     def to_job(self, index) -> studio.Job:
         return studio.Job(clean=self.clean.get().strip(), clue=self.clue.get().strip(),
@@ -122,7 +132,8 @@ class Card(ttk.Frame):
                           verify_intro_min=int(self.verify_intro.get() or 0),
                           language=self.language.get().strip() or "en",
                           intro_punch=self.intro_punch.get(),
-                          cold_open=self.cold_open.get(), index=index)
+                          cold_open=self.cold_open.get(),
+                          ken_burns=self.ken_burns.get(), index=index)
 
     def set_status(self, s):
         self.status.set(s)

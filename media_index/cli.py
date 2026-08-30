@@ -710,6 +710,7 @@ def cmd_makevideo(a):
                                 intro_punch=getattr(a,'intro_punch',False),
                                 intro_punch_seconds=getattr(a,'intro_punch_seconds',180.0),
                                 cold_open=getattr(a,'cold_open',False),
+                                ken_burns=getattr(a,'ken_burns',False),
                                 log=print)
     if os.path.isfile(video):
         print(f"\n  ✓ video ban gaya:  {video}")
@@ -1286,6 +1287,9 @@ def main(argv=None):
                     help="cold-open hook: video ki shuruaat me hi script ki pehli "
                          "famous line ORIGINAL awaaz ke saath (5-8s, length dialogue "
                          "ke hisaab se), phir narration. Loudness auto-balanced.")
+    mv.add_argument("--ken-burns", dest="ken_burns", action="store_true",
+                    help="har still pe slow zoom/pan motion (default OFF = static "
+                         "stills). Direction/distance har still pe alag.")
     mv.set_defaults(func=cmd_makevideo)
 
     go = sub.add_parser("gold", parents=[common],

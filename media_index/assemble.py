@@ -520,7 +520,8 @@ def make_video(script_beats: list, library: dict, audio: str, out_dir: str,
                clean: str = "", verify: bool = True, cast_dir: str = "",
                verify_until: float = 0.0, language: str = "en",
                intro_punch: bool = False, intro_punch_seconds: float = 180.0,
-               cold_open: bool = False, log=lambda *a: None) -> str:
+               cold_open: bool = False, ken_burns: bool = False,
+               log=lambda *a: None) -> str:
     """Whole of Stage 3: cut the shots, time them to the voiceover, render.
 
     Returns the finished mp4 path. Reuses `timeline` (pacing), `narration`
@@ -602,8 +603,9 @@ def make_video(script_beats: list, library: dict, audio: str, out_dir: str,
     timeline.write(tl, out_dir)
     log(tl.summary())
 
-    log("  rendering final video...")
-    res = render.render_folder(out_dir, audio=audio, log=log)
+    log("  rendering final video..."
+        + (" (Ken Burns motion on stills)" if ken_burns else ""))
+    res = render.render_folder(out_dir, audio=audio, motion=ken_burns, log=log)
     log(render.describe(res))
     video_path = os.path.join(out_dir, "video.mp4")
 
