@@ -31,6 +31,13 @@ MIN_GAP_S = 7.0             # never two punch-ins closer than this
 MIN_LINE_S = 1.0
 MAX_LINE_S = 3.0
 VOICE_GAIN = 1.7            # lift the (often centre-channel) dialogue after downmix
+# cold-open (the 5-8s original-audio moment BEFORE the narration starts)
+COLD_MIN_S = 5.0
+COLD_MAX_S = 8.0
+COLD_LEAD_S = 1.8          # scene context before the line
+COLD_TAIL_S = 0.6          # a breath after it, before the narration begins
+COLD_FADE_S = 0.4
+LOUDNORM = "loudnorm=I=-16:TP=-1.5:LRA=11"   # even loudness so a quiet line still lands
 
 
 def _norm(text: str) -> str:
@@ -72,14 +79,21 @@ def subtitle_span(video: str, exact_dialogue: str) -> tuple:
     return ()
 
 
+def _line_key(video: str, start: float) -> tuple:
+    return (os.path.basename(video), round(start, 1))
+
+
 def find_intro_punches(beats: list, scenes: list, library: dict,
-                       intro_s: float = DEFAULT_INTRO_S,
+                       intro_s: float = DEFAULT_INTRO_S, exclude_lines=None,
                        log=lambda *a: None) -> list:
     """Choose the punch-in moments: hook lines in the first `intro_s` seconds
     that resolve to a real episode + subtitle timing. One per scene, spaced,
-    weighted to the first minute (that is where a hook earns its keep)."""
+    weighted to the first minute (that is where a hook earns its keep).
+    `exclude_lines` (keys from `_line_key`) skips lines already used elsewhere,
+    e.g. the one the cold-open already spent."""
     scene_start = {sc.get("scene"): float(sc.get("start", 0.0)) for sc in scenes}
-    picks, used, used_lines = [], [], set()
+    picks, used = [], []
+    used_lines = set(exclude_lines or ())
     for b in beats:
         bn = b.get("beat")
         t0 = scene_start.get(bn)
@@ -98,7 +112,7 @@ def find_intro_punches(beats: list, scenes: list, library: dict,
             start, end = span
             # never punch the SAME original line twice (two clue shots often
             # quote one subtitle cue) — it would replay the identical audio.
-            line_key = (os.path.basename(vid), round(start, 1))
+            line_key = _line_key(vid, start)
             if line_key in used_lines:
                 continue
             line_len = max(MIN_LINE_S, min(MAX_LINE_S, end - start))
@@ -201,4 +215,96 @@ def apply(video_in: str, picks: list, out: str,
         check=True)
     log(f"  intro punch-ins: {len(seg_files)} original-audio moment(s) spliced "
         "into the first 3 minutes")
+    return out
+
+
+# --------------------------------------------------------------------------- #
+# cold-open: the 5-8s original-audio hook BEFORE the narration begins
+# --------------------------------------------------------------------------- #
+
+def find_cold_open(beats: list, library: dict, log=lambda *a: None) -> dict:
+    """The script's own opening hook: the FIRST shot marked hook:true with an
+    exact_dialogue that resolves to a real episode + subtitle timing. That is
+    the line the writer chose to open on, so it is always on-topic. Returns a
+    spec, or {} if nothing usable — falls back to the earliest exact_dialogue."""
+    def scan(require_hook: bool):
+        for b in beats:
+            for s in (b.get("shots") or []):
+                if require_hook and not s.get("hook"):
+                    continue
+                if not (s.get("exact_dialogue") or "").strip():
+                    continue
+                vid = resolve_video(s.get("source", ""),
+                                    s.get("season_episode", ""), library)
+                if not vid:
+                    continue
+                span = subtitle_span(vid, s["exact_dialogue"])
+                if not span:
+                    continue
+                return {"video": vid, "line_start": round(span[0], 2),
+                        "line_len": round(span[1] - span[0], 2),
+                        "speaker": s.get("speaker", ""),
+                        "dialogue": s["exact_dialogue"]}
+        return {}
+    spec = scan(True) or scan(False)
+    if spec:
+        log(f"  cold-open: {spec['speaker']}: \"{spec['dialogue'][:52]}\" "
+            f"({os.path.basename(spec['video'])})")
+    return spec
+
+
+def _cold_length(line_len: float) -> tuple:
+    """(grab_lead, total) for a cold-open. The WHOLE line always plays — the
+    lead-in flexes so the cut to narration lands after the line, never on top
+    of it. 5s floor, 8s ceiling unless the line itself is longer."""
+    lead, tail = COLD_LEAD_S, COLD_TAIL_S
+    total = lead + line_len + tail
+    if total > COLD_MAX_S:                         # trim the lead, never the line
+        lead = max(0.8, COLD_MAX_S - line_len - tail)
+        total = lead + line_len + tail
+    if total < COLD_MIN_S:                          # too short — show more context
+        lead += (COLD_MIN_S - total)
+        total = COLD_MIN_S
+    return round(lead, 2), round(total, 2)
+
+
+def build_cold_open(spec: dict, out: str, w: int, h: int, fps: int,
+                    run=subprocess.run) -> str:
+    """A natural clip of the scene — real audio, loudness-evened — that ends a
+    breath after the hook line, fading down so the narration can begin."""
+    lead, total = _cold_length(float(spec["line_len"]))
+    grab_start = max(0.0, float(spec["line_start"]) - lead)
+    fo = max(0.0, total - COLD_FADE_S)
+    vf = (f"scale={w}:{h}:force_original_aspect_ratio=decrease,"
+          f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2,setsar=1,"
+          f"fade=t=in:d=0.3,fade=t=out:st={fo}:d={COLD_FADE_S}")
+    af = (f"aformat=channel_layouts=stereo,{LOUDNORM},"
+          f"afade=t=out:st={fo}:d={COLD_FADE_S}")
+    run(["ffmpeg", "-y", "-v", "error", "-ss", f"{grab_start}", "-i",
+         spec["video"], "-t", f"{total}",
+         "-filter_complex", f"[0:v]{vf}[v];[0:a]{af}[a]",
+         "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+         "-r", str(fps), "-c:a", "aac", "-ar", "48000", "-ac", "2", out],
+        check=True)
+    return out
+
+
+def prepend_cold_open(video_in: str, spec: dict, out: str,
+                      run=subprocess.run, log=lambda *a: None) -> str:
+    """Put the cold-open in front of the finished video. Narration is untouched
+    — it simply starts a few seconds later, after the hook has landed."""
+    if not spec:
+        return video_in
+    w, h, fps = _probe(video_in)
+    tmp = tempfile.mkdtemp(prefix="mi_cold_")
+    cold = build_cold_open(spec, os.path.join(tmp, "cold.mp4"), w, h, fps, run=run)
+    # cold-open is already stereo/48k; coerce the base narration audio to match.
+    sfmt = "aformat=sample_rates=48000:channel_layouts=stereo"
+    run(["ffmpeg", "-y", "-v", "error", "-i", cold, "-i", video_in,
+         "-filter_complex",
+         f"[1:a]{sfmt}[a1];[0:v][0:a][1:v][a1]concat=n=2:v=1:a=1[v][a]",
+         "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+         "-c:a", "aac", "-ar", "48000", "-ac", "2", "-movflags", "+faststart",
+         out], check=True)
+    log("  cold-open: original-audio hook placed before the narration")
     return out

@@ -520,7 +520,7 @@ def make_video(script_beats: list, library: dict, audio: str, out_dir: str,
                clean: str = "", verify: bool = True, cast_dir: str = "",
                verify_until: float = 0.0, language: str = "en",
                intro_punch: bool = False, intro_punch_seconds: float = 180.0,
-               log=lambda *a: None) -> str:
+               cold_open: bool = False, log=lambda *a: None) -> str:
     """Whole of Stage 3: cut the shots, time them to the voiceover, render.
 
     Returns the finished mp4 path. Reuses `timeline` (pacing), `narration`
@@ -607,24 +607,36 @@ def make_video(script_beats: list, library: dict, audio: str, out_dir: str,
     log(render.describe(res))
     video_path = os.path.join(out_dir, "video.mp4")
 
-    # Intro diegetic punch-ins: in the first few minutes, swap the narration
-    # for the character's REAL voice on the strongest lines — the hook the user
-    # asked for. Best-effort: a failure here never loses the rendered video.
-    if intro_punch and os.path.isfile(video_path):
+    # Intro hooks: a cold-open (original-audio line before the narration) and/or
+    # diegetic punch-ins (the real voice on strong lines in the first minutes).
+    # Best-effort: a failure here never loses the rendered video.
+    if (intro_punch or cold_open) and os.path.isfile(video_path):
         try:
             from . import punchins
-            scenes = tl_scenes(out_dir)
-            picks = punchins.find_intro_punches(
-                script_beats, scenes, library,
-                intro_s=intro_punch_seconds, log=log)
-            if picks:
-                punched = os.path.join(out_dir, "video_punch.mp4")
-                punchins.apply(video_path, picks, punched, log=log)
-                os.replace(punched, video_path)
-            else:
-                log("  intro punch-ins: no hook line with exact_dialogue "
-                    "resolved in the intro — nothing to splice")
+            cold_spec = (punchins.find_cold_open(script_beats, library, log=log)
+                         if cold_open else {})
+            exclude = ({punchins._line_key(cold_spec["video"],
+                                           cold_spec["line_start"])}
+                       if cold_spec else set())
+            if intro_punch:
+                picks = punchins.find_intro_punches(
+                    script_beats, tl_scenes(out_dir), library,
+                    intro_s=intro_punch_seconds, exclude_lines=exclude, log=log)
+                if picks:
+                    punched = os.path.join(out_dir, "video_punch.mp4")
+                    punchins.apply(video_path, picks, punched, log=log)
+                    os.replace(punched, video_path)
+                else:
+                    log("  intro punch-ins: no hook line with exact_dialogue "
+                        "resolved in the intro — nothing to splice")
+            if cold_spec:
+                colded = os.path.join(out_dir, "video_cold.mp4")
+                punchins.prepend_cold_open(video_path, cold_spec, colded, log=log)
+                os.replace(colded, video_path)
+            elif cold_open:
+                log("  cold-open: no opening hook line with exact_dialogue "
+                    "resolved — skipped")
         except Exception as exc:
-            log(f"  intro punch-ins skip ({type(exc).__name__}: {exc}) — "
+            log(f"  intro effects skip ({type(exc).__name__}: {exc}) — "
                 "rendered video kept as-is")
     return video_path

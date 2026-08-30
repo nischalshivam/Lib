@@ -709,6 +709,7 @@ def cmd_makevideo(a):
                                 language=getattr(a,'language','en'),
                                 intro_punch=getattr(a,'intro_punch',False),
                                 intro_punch_seconds=getattr(a,'intro_punch_seconds',180.0),
+                                cold_open=getattr(a,'cold_open',False),
                                 log=print)
     if os.path.isfile(video):
         print(f"\n  ✓ video ban gaya:  {video}")
@@ -1281,6 +1282,10 @@ def main(argv=None):
     mv.add_argument("--intro-punch-seconds", dest="intro_punch_seconds",
                     type=float, default=180.0,
                     help="kitne shuruaati seconds me punch-ins dhoondhe (default 180)")
+    mv.add_argument("--cold-open", dest="cold_open", action="store_true",
+                    help="cold-open hook: video ki shuruaat me hi script ki pehli "
+                         "famous line ORIGINAL awaaz ke saath (5-8s, length dialogue "
+                         "ke hisaab se), phir narration. Loudness auto-balanced.")
     mv.set_defaults(func=cmd_makevideo)
 
     go = sub.add_parser("gold", parents=[common],

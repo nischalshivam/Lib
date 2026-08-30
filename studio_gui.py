@@ -46,6 +46,7 @@ class Card(ttk.Frame):
         self.verify_intro = tk.IntVar(value=0)     # >0 = verify only first N min
         self.language = tk.StringVar(value="en")   # script language (library stays English)
         self.intro_punch = tk.BooleanVar(value=False)  # original-audio hook in first 3 min
+        self.cold_open = tk.BooleanVar(value=False)    # open on the first hook line
         self.status = tk.StringVar(value="ready")
         self._build()
 
@@ -101,8 +102,10 @@ class Card(ttk.Frame):
         ttk.Combobox(opt, textvariable=self.language, values=LANGS, width=6,
                      state="readonly").pack(side="left", padx=(4, 14))
         ttk.Checkbutton(opt, text="On-screen text", variable=self.text).pack(side="left")
-        ttk.Checkbutton(opt, text="Intro punch-ins (original audio hook)",
-                        variable=self.intro_punch).pack(side="left", padx=(14, 0))
+        ttk.Checkbutton(opt, text="Cold-open (original-audio hook)",
+                        variable=self.cold_open).pack(side="left", padx=(14, 0))
+        ttk.Checkbutton(opt, text="Intro punch-ins",
+                        variable=self.intro_punch).pack(side="left", padx=(10, 0))
         ttk.Checkbutton(opt, text="Verify clips (Gemini · costs API)",
                         variable=self.verify).pack(side="left", padx=(14, 0))
         ttk.Label(opt, text="or verify first", style="Mut.TLabel").pack(side="left", padx=(14, 2))
@@ -118,7 +121,8 @@ class Card(ttk.Frame):
                           text=self.text.get(), verify=self.verify.get(),
                           verify_intro_min=int(self.verify_intro.get() or 0),
                           language=self.language.get().strip() or "en",
-                          intro_punch=self.intro_punch.get(), index=index)
+                          intro_punch=self.intro_punch.get(),
+                          cold_open=self.cold_open.get(), index=index)
 
     def set_status(self, s):
         self.status.set(s)
