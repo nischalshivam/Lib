@@ -75,6 +75,9 @@ class Job:
     language: str = "en"             # script/voiceover language (en/pt/fr/es/de/
                                      # auto). Library stays English — this only
                                      # tells whisper which model to listen with.
+    intro_punch: bool = False        # first 3 min: on famous lines, narration
+                                     # ducks and the ORIGINAL show voice plays
+                                     # (with a breath each side), then resumes.
     index: int = 0                   # position in the queue (drives format rotation)
     # results
     status: str = "queued"           # queued|blocked|running|done|error
@@ -254,6 +257,10 @@ def build(job: Job, log=print, on_proc=None, should_stop=None) -> Job:
         mv += ["--language", job.language]
         log(f"  language: {job.language} — English library, {job.language} "
             "voiceover; whisper listens with the multilingual model")
+    if job.intro_punch:
+        mv += ["--intro-punch-ins"]
+        log("  intro punch-ins ON — first 3 min ke famous dialogues pe original "
+            "awaaz bajegi (hook boost)")
     if job.verify or job.verify_intro_min > 0:
         cast = _cast_for(job.movies_root, job.clue)
         if cast:
@@ -353,6 +360,8 @@ def _cli(argv=None):
     p.add_argument("--verify-intro-min", type=int, default=0, help="verify only the first N minutes")
     p.add_argument("--language", "--lang", default="en", dest="language",
                    help="script/voiceover language: en (default), pt, fr, es, de, ... or auto")
+    p.add_argument("--intro-punch-ins", dest="intro_punch", action="store_true",
+                   help="first 3 min: famous lines me original show audio bajao (hook boost)")
     p.add_argument("--queue", help="jobs.json: [{clean,clue,audio,out?}, ...]")
     a = p.parse_args(argv)
 
@@ -364,12 +373,14 @@ def _cli(argv=None):
                     fmt=j.get("format", a.format),
                     resolution=j.get("resolution", a.resolution),
                     text=j.get("text", a.text), verify=j.get("verify", a.verify), verify_intro_min=j.get("verify_intro_min", a.verify_intro_min),
-                    language=j.get("language", getattr(a, "language", "en"))) for j in raw]
+                    language=j.get("language", getattr(a, "language", "en")),
+                    intro_punch=j.get("intro_punch", getattr(a, "intro_punch", False))) for j in raw]
     elif a.clean and a.clue and a.audio:
         jobs = [Job(clean=a.clean, clue=a.clue, audio=a.audio, out=a.out,
                     save_dir=a.save_dir, movies_root=a.movies, fmt=a.format,
                     resolution=a.resolution, text=a.text, verify=a.verify, verify_intro_min=a.verify_intro_min,
-                    language=getattr(a, "language", "en"))]
+                    language=getattr(a, "language", "en"),
+                    intro_punch=getattr(a, "intro_punch", False))]
     else:
         p.error("give --clean --clue --audio, or --queue jobs.json")
 

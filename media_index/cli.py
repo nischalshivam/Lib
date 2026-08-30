@@ -707,6 +707,8 @@ def cmd_makevideo(a):
                                 verify=not a.no_verify, cast_dir=a.cast,
                                 verify_until=getattr(a,'verify_until',0.0),
                                 language=getattr(a,'language','en'),
+                                intro_punch=getattr(a,'intro_punch',False),
+                                intro_punch_seconds=getattr(a,'intro_punch_seconds',180.0),
                                 log=print)
     if os.path.isfile(video):
         print(f"\n  ✓ video ban gaya:  {video}")
@@ -1272,6 +1274,13 @@ def main(argv=None):
                     help="script/voiceover language: en (default), pt, fr, es, "
                          "de, ... or 'auto'. Library stays English; non-English "
                          "just switches whisper to the multilingual model.")
+    mv.add_argument("--intro-punch-ins", dest="intro_punch", action="store_true",
+                    help="intro hook: pehle 3 min me famous dialogues pe narration "
+                         "ruk ke ORIGINAL show ki awaaz bajti hai (halka pause "
+                         "dono taraf), phir narration resume. Engagement 10x.")
+    mv.add_argument("--intro-punch-seconds", dest="intro_punch_seconds",
+                    type=float, default=180.0,
+                    help="kitne shuruaati seconds me punch-ins dhoondhe (default 180)")
     mv.set_defaults(func=cmd_makevideo)
 
     go = sub.add_parser("gold", parents=[common],
