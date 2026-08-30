@@ -99,9 +99,15 @@ def find_intro_punches(beats: list, scenes: list, library: dict,
         t0 = scene_start.get(bn)
         if t0 is None or t0 > intro_s:
             continue
-        for s in (b.get("shots") or []):
-            if not s.get("hook") or not (s.get("exact_dialogue") or "").strip():
-                continue
+        # A shot qualifies on its exact_dialogue + a speaker (a real line someone
+        # says on screen). hook:true is preferred but NOT required — most clue
+        # scripts never set the hook flag, and requiring it left the intro with
+        # zero punch-ins. Take the first qualifying line per scene.
+        cand_shots = [s for s in (b.get("shots") or [])
+                      if (s.get("exact_dialogue") or "").strip()
+                      and (s.get("speaker") or "").strip()]
+        cand_shots.sort(key=lambda s: (0 if s.get("hook") else 1))
+        for s in cand_shots:
             vid = resolve_video(s.get("source", ""), s.get("season_episode", ""),
                                 library)
             if not vid:
@@ -188,55 +194,90 @@ def build_segment(video: str, line_start: float, line_len: float, out: str,
     return out
 
 
+def _keyframe_at_or_after(video: str, t: float) -> float:
+    """First video keyframe time >= t — a clean point to stream-copy from."""
+    out = subprocess.run(
+        ["ffprobe", "-v", "error", "-select_streams", "v:0", "-skip_frame",
+         "nokey", "-show_entries", "frame=pts_time", "-read_intervals",
+         f"{max(0.0, t):.2f}%+30", "-of", "csv=p=0", video],
+        capture_output=True, text=True).stdout
+    for line in out.splitlines():
+        try:
+            v = float(line.strip().strip(","))
+        except ValueError:
+            continue
+        if v >= t:
+            return v
+    return t
+
+
 def apply(video_in: str, picks: list, out: str,
           run=subprocess.run, log=lambda *a: None) -> str:
-    """Splice the punch segments into the finished video at their times. The
-    base video is cut at each insert point and the segments concatenated
-    between the pieces, so narration pauses for the line and resumes after it.
+    """Splice the punch segments into the finished video at their times, so the
+    narration pauses for each line and resumes after it. Only the HEAD (up to a
+    keyframe just past the last punch) is re-encoded; the rest of the film is
+    stream-COPIED, so a 24-min video splices in a minute or two, not twenty.
     Returns `video_in` unchanged when there is nothing to insert."""
     picks = [p for p in picks if p.get("insert_at") is not None]
     if not picks:
         return video_in
+    picks = sorted(picks, key=lambda p: p["insert_at"])
     w, h, fps = _probe(video_in)
+    ar, ac = _probe_audio(video_in)
     tmp = tempfile.mkdtemp(prefix="mi_punch_")
+    split = _keyframe_at_or_after(video_in, picks[-1]["insert_at"] + 2.0)
+
     seg_files = []
-    for i, p in enumerate(sorted(picks, key=lambda p: p["insert_at"])):
+    for i, p in enumerate(picks):
         seg = os.path.join(tmp, f"punch_{i:02d}.mp4")
         build_segment(p["video"], p["line_start"], p["line_len"], seg,
                       w, h, fps, run=run)
         seg_files.append((p["insert_at"], seg))
 
+    # HEAD = base[0:split] with the punches spliced in, re-encoded to MATCH the
+    # base so it can be stream-joined to the copied tail. The base slice is
+    # normalised (fps + 48k stereo) then split for the trims (a filter output is
+    # single-use). This also fixes prostudio finals whose audio is short/mono.
     inputs = ["-i", video_in]
     for _, s in seg_files:
         inputs += ["-i", s]
-    # Normalise the base video to the punch segments' fps + 48k stereo, then
-    # split it into the pieces we trim — a prostudio final.mp4 can be CFR video
-    # with a shorter, mono, 24 kHz audio track, which otherwise makes concat
-    # truncate the whole file. (A filter output is single-use, hence split.)
     sfmt = "aformat=sample_rates=48000:channel_layouts=stereo"
     nseg = len(seg_files)
-    nbase = nseg + 1
-    vlab = "".join(f"[nv{i}]" for i in range(nbase))
-    alab = "".join(f"[na{i}]" for i in range(nbase))
-    fc = [f"[0:v]fps={fps},format=yuv420p,setpts=PTS-STARTPTS,split={nbase}{vlab}",
-          f"[0:a]{sfmt},asetpts=PTS-STARTPTS,asplit={nbase}{alab}"]
+    vlab = "".join(f"[nv{i}]" for i in range(nseg + 1))
+    alab = "".join(f"[na{i}]" for i in range(nseg + 1))
+    fc = [f"[0:v]trim=0:{split},fps={fps},format=yuv420p,setpts=PTS-STARTPTS,"
+          f"split={nseg + 1}{vlab}",
+          f"[0:a]atrim=0:{split},{sfmt},asetpts=PTS-STARTPTS,"
+          f"asplit={nseg + 1}{alab}"]
     order, prev = [], 0.0
     for i, (t, _s) in enumerate(seg_files):
         fc.append(f"[nv{i}]trim={prev}:{t},setpts=PTS-STARTPTS[bv{i}]")
         fc.append(f"[na{i}]atrim={prev}:{t},asetpts=PTS-STARTPTS[ba{i}]")
         order += [f"[bv{i}]", f"[ba{i}]", f"[{i + 1}:v]", f"[{i + 1}:a]"]
         prev = t
-    fc.append(f"[nv{nseg}]trim={prev},setpts=PTS-STARTPTS[bvL]")
-    fc.append(f"[na{nseg}]atrim={prev},asetpts=PTS-STARTPTS[baL]")
+    fc.append(f"[nv{nseg}]trim={prev}:{split},setpts=PTS-STARTPTS[bvL]")
+    fc.append(f"[na{nseg}]atrim={prev}:{split},asetpts=PTS-STARTPTS[baL]")
     order += ["[bvL]", "[baL]"]
     n = nseg * 2 + 1
     fc.append("".join(order) + f"concat=n={n}:v=1:a=1[v][a]")
+    head = os.path.join(tmp, "head.mp4")
     run(["ffmpeg", "-y", "-v", "error"] + inputs +
         ["-filter_complex", ";".join(fc), "-map", "[v]", "-map", "[a]",
-         "-c:v", "libx264", "-pix_fmt", "yuv420p",
+         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-profile:v", "high",
          "-preset", "veryfast", "-crf", "20", "-threads", "0", "-c:a", "aac",
-         "-ar", "48000", "-ac", "2", "-movflags", "+faststart", out],
-        check=True)
+         "-ar", str(ar), "-ac", str(ac), head], check=True)
+
+    # TAIL = base[split:end], stream-copied (split is a keyframe, so it is exact).
+    tail = os.path.join(tmp, "tail.mp4")
+    run(["ffmpeg", "-y", "-v", "error", "-ss", f"{split}", "-i", video_in,
+         "-c", "copy", tail], check=True)
+
+    listf = os.path.join(tmp, "list.txt")
+    with open(listf, "w", encoding="utf-8") as f:
+        for p in (head, tail):
+            f.write(f"file '{os.path.abspath(p)}'\n")
+    run(["ffmpeg", "-y", "-v", "error", "-f", "concat", "-safe", "0",
+         "-i", listf, "-c", "copy", "-movflags", "+faststart", out], check=True)
     log(f"  intro punch-ins: {len(seg_files)} original-audio moment(s) spliced "
         "into the first 3 minutes")
     return out
