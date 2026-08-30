@@ -321,7 +321,10 @@ def build(job: Job, log=print, on_proc=None, should_stop=None) -> Job:
     # ---- stage 4: pick the real clips + align to the voiceover -------------- #
     log("\n  [makevideo] cutting the right clips, aligning to the voiceover...")
     mv = [sys.executable, "-m", "media_index", "makevideo", job.clue,
-          job.movies_root, job.audio, "--narration", job.clean, "--out", job.out]
+          job.movies_root, job.audio, "--narration", job.clean, "--out", job.out,
+          # prostudio renders the final from the scene folders below, so don't
+          # waste ~10 min rendering makevideo's own video.mp4 (it's discarded).
+          "--no-final-render"]
     if (job.language or "en").lower() not in ("en", "eng", "english"):
         mv += ["--language", job.language]
         log(f"  language: {job.language} — English library, {job.language} "

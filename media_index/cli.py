@@ -711,6 +711,7 @@ def cmd_makevideo(a):
                                 intro_punch_seconds=getattr(a,'intro_punch_seconds',180.0),
                                 cold_open=getattr(a,'cold_open',False),
                                 ken_burns=getattr(a,'ken_burns',False),
+                                render_video=not getattr(a,'no_final_render',False),
                                 log=print)
     if os.path.isfile(video):
         print(f"\n  ✓ video ban gaya:  {video}")
@@ -1290,6 +1291,10 @@ def main(argv=None):
     mv.add_argument("--ken-burns", dest="ken_burns", action="store_true",
                     help="har still pe slow zoom/pan motion (default OFF = static "
                          "stills). Direction/distance har still pe alag.")
+    mv.add_argument("--no-final-render", dest="no_final_render",
+                    action="store_true",
+                    help="video.mp4 mat banao — sirf scene folders + timeline.json "
+                         "(jab prostudio aage final render karega; ~10 min bachao)")
     mv.set_defaults(func=cmd_makevideo)
 
     go = sub.add_parser("gold", parents=[common],

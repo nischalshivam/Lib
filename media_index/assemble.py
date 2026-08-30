@@ -521,7 +521,7 @@ def make_video(script_beats: list, library: dict, audio: str, out_dir: str,
                verify_until: float = 0.0, language: str = "en",
                intro_punch: bool = False, intro_punch_seconds: float = 180.0,
                cold_open: bool = False, ken_burns: bool = False,
-               log=lambda *a: None) -> str:
+               render_video: bool = True, log=lambda *a: None) -> str:
     """Whole of Stage 3: cut the shots, time them to the voiceover, render.
 
     Returns the finished mp4 path. Reuses `timeline` (pacing), `narration`
@@ -602,6 +602,15 @@ def make_video(script_beats: list, library: dict, audio: str, out_dir: str,
                        audio=audio, pace=pace, spans=spans)
     timeline.write(tl, out_dir)
     log(tl.summary())
+
+    # The launcher path (prostudio) re-renders the final video from the scene
+    # folders and ignores this video.mp4 — so rendering it here is ~10 wasted
+    # minutes per video. `render_video=False` stops after the scene folders +
+    # timeline.json (both of which prostudio and the intro-hooks stage DO use).
+    if not render_video:
+        log("  skipping makevideo's own render — prostudio will render the "
+            "final video from the scene folders (saves ~10 min)")
+        return os.path.join(out_dir, "timeline.json")
 
     log("  rendering final video..."
         + (" (Ken Burns motion on stills)" if ken_burns else ""))
