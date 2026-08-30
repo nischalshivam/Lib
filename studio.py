@@ -35,6 +35,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -235,6 +236,69 @@ def _run(cmd, log, on_proc=None) -> int:
     return proc.returncode
 
 
+def _mini_library(beats: list, movies_root: str) -> dict:
+    """Just the catalogues for the episodes this clue references — enough for a
+    punch-in/cold-open to resolve its source clip, without loading a whole show."""
+    import glob
+    from media_index import catalog
+    eps = set()
+    for b in beats:
+        for s in (b.get("shots") or []):
+            se = str(s.get("season_episode") or "").upper().replace(" ", "")
+            if se:
+                eps.add(se)
+
+    def epof(path):
+        m = re.search(r"s(\d{1,2})\s*e(\d{1,2})", os.path.basename(path), re.I)
+        return f"S{int(m.group(1)):02d}E{int(m.group(2)):02d}" if m else ""
+
+    lib = {}
+    for c in glob.glob(os.path.join(movies_root, "**", "*.catalog.json"),
+                       recursive=True):
+        if epof(c) in eps:
+            lib.update(catalog.load_library(c))
+    return lib
+
+
+def _apply_intro_hooks(job: Job, final: str, log) -> None:
+    """Put the cold-open and/or intro punch-ins onto the delivered final.mp4."""
+    import json
+    from media_index import jobs as mi_jobs, punchins
+    beats = mi_jobs.read_beats(job.clue)
+    library = _mini_library(beats, job.movies_root)
+    if not library:
+        log("  intro hooks: koi referenced-episode catalog nahi mila — skip")
+        return
+    scenes = []
+    tlp = os.path.join(job.out, "timeline.json")
+    if os.path.isfile(tlp):
+        try:
+            scenes = (json.load(open(tlp, encoding="utf-8")) or {}).get("scenes", [])
+        except (OSError, ValueError):
+            scenes = []
+    tmp = final + ".hook.mp4"
+    cold_spec = (punchins.find_cold_open(beats, library, log=log)
+                 if job.cold_open else {})
+    exclude = ({punchins._line_key(cold_spec["video"], cold_spec["line_start"])}
+               if cold_spec else set())
+    # punch-ins first (spliced within the intro), then the cold-open in front.
+    if job.intro_punch and scenes:
+        picks = punchins.find_intro_punches(beats, scenes, library,
+                                            exclude_lines=exclude, log=log)
+        if picks:
+            punchins.apply(final, picks, tmp, log=log)
+            os.replace(tmp, final)
+        else:
+            log("  intro punch-ins: intro me koi resolvable hook line nahi — skip")
+    elif job.intro_punch:
+        log("  intro punch-ins: timeline scenes nahi mile — skip")
+    if cold_spec:
+        punchins.prepend_cold_open(final, cold_spec, tmp, log=log)
+        os.replace(tmp, final)
+    elif job.cold_open:
+        log("  cold-open: koi opening hook line resolve nahi hui — skip")
+
+
 def build(job: Job, log=print, on_proc=None, should_stop=None) -> Job:
     """The whole pipeline for ONE video. Never raises — reports via job.status.
 
@@ -262,13 +326,16 @@ def build(job: Job, log=print, on_proc=None, should_stop=None) -> Job:
         mv += ["--language", job.language]
         log(f"  language: {job.language} — English library, {job.language} "
             "voiceover; whisper listens with the multilingual model")
+    # Cold-open / intro punch-ins are NOT passed to makevideo: prostudio
+    # re-renders from the scene folders, so anything makevideo splices into its
+    # own video.mp4 is discarded. They are applied AFTER prostudio, on final.mp4
+    # (see the intro-hooks stage below). Only log the intent here.
     if job.intro_punch:
-        mv += ["--intro-punch-ins"]
         log("  intro punch-ins ON — first 3 min ke famous dialogues pe original "
-            "awaaz bajegi (hook boost)")
+            "awaaz (final video pe lagenge, prostudio ke baad)")
     if job.cold_open:
-        mv += ["--cold-open"]
-        log("  cold-open ON — video pehli famous line (original awaaz) se khulegi")
+        log("  cold-open ON — video pehli famous line se khulegi (final pe, "
+            "prostudio ke baad)")
     if job.ken_burns:
         mv += ["--ken-burns"]
         log("  Ken Burns ON — har still pe slow zoom/pan motion (static nahi)")
@@ -320,6 +387,16 @@ def build(job: Job, log=print, on_proc=None, should_stop=None) -> Job:
     if not os.path.isfile(final):
         job.status, job.message = "error", "prostudio ran but no final.mp4"
         return job
+
+    # ---- stage 6: intro hooks on the FINAL video ---------------------------- #
+    # prostudio just rebuilt final.mp4 from the scene folders, so the cold-open /
+    # punch-ins makevideo put on video.mp4 are gone. Apply them HERE, on the file
+    # the user actually receives. Best-effort: a failure keeps final.mp4 as-is.
+    if job.cold_open or job.intro_punch:
+        try:
+            _apply_intro_hooks(job, final, log)
+        except Exception as exc:
+            log(f"  intro hooks skip ({type(exc).__name__}: {exc}) — final kept as-is")
 
     # deliver the finished video to the folder the user chose (a friendly name,
     # not final.mp4), so a batch lands together where they want it.

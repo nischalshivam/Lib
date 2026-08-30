@@ -151,6 +151,21 @@ def _probe(video: str) -> tuple:
     return int(w or 1280), int(h or 720), max(1, fps)
 
 
+def _probe_audio(video: str) -> tuple:
+    """(sample_rate, channels) of the base audio — the cold-open is encoded to
+    match it so the two can be concatenated with a stream copy (no re-encode of
+    the whole video)."""
+    out = subprocess.run(
+        ["ffprobe", "-v", "error", "-select_streams", "a:0",
+         "-show_entries", "stream=sample_rate,channels",
+         "-of", "csv=p=0", video], capture_output=True, text=True).stdout.strip()
+    parts = (out.split(",") + ["48000", "2"])[:2]
+    try:
+        return int(parts[0] or 48000), int(parts[1] or 2)
+    except ValueError:
+        return 48000, 2
+
+
 def build_segment(video: str, line_start: float, line_len: float, out: str,
                   w: int, h: int, fps: int, pad: float = PAD_S,
                   run=subprocess.run) -> str:
@@ -194,23 +209,32 @@ def apply(video_in: str, picks: list, out: str,
     inputs = ["-i", video_in]
     for _, s in seg_files:
         inputs += ["-i", s]
-    # coerce the base audio to the same stereo/48k as the punch segments, or
-    # concat refuses to join a mono narration track to a stereo line.
+    # Normalise the base video to the punch segments' fps + 48k stereo, then
+    # split it into the pieces we trim — a prostudio final.mp4 can be CFR video
+    # with a shorter, mono, 24 kHz audio track, which otherwise makes concat
+    # truncate the whole file. (A filter output is single-use, hence split.)
     sfmt = "aformat=sample_rates=48000:channel_layouts=stereo"
-    fc, order, prev = [], [], 0.0
+    nseg = len(seg_files)
+    nbase = nseg + 1
+    vlab = "".join(f"[nv{i}]" for i in range(nbase))
+    alab = "".join(f"[na{i}]" for i in range(nbase))
+    fc = [f"[0:v]fps={fps},format=yuv420p,setpts=PTS-STARTPTS,split={nbase}{vlab}",
+          f"[0:a]{sfmt},asetpts=PTS-STARTPTS,asplit={nbase}{alab}"]
+    order, prev = [], 0.0
     for i, (t, _s) in enumerate(seg_files):
-        fc.append(f"[0:v]trim={prev}:{t},setpts=PTS-STARTPTS[bv{i}]")
-        fc.append(f"[0:a]atrim={prev}:{t},asetpts=PTS-STARTPTS,{sfmt}[ba{i}]")
+        fc.append(f"[nv{i}]trim={prev}:{t},setpts=PTS-STARTPTS[bv{i}]")
+        fc.append(f"[na{i}]atrim={prev}:{t},asetpts=PTS-STARTPTS[ba{i}]")
         order += [f"[bv{i}]", f"[ba{i}]", f"[{i + 1}:v]", f"[{i + 1}:a]"]
         prev = t
-    fc.append(f"[0:v]trim={prev},setpts=PTS-STARTPTS[bvL]")
-    fc.append(f"[0:a]atrim={prev},asetpts=PTS-STARTPTS,{sfmt}[baL]")
+    fc.append(f"[nv{nseg}]trim={prev},setpts=PTS-STARTPTS[bvL]")
+    fc.append(f"[na{nseg}]atrim={prev},asetpts=PTS-STARTPTS[baL]")
     order += ["[bvL]", "[baL]"]
-    n = len(seg_files) * 2 + 1
+    n = nseg * 2 + 1
     fc.append("".join(order) + f"concat=n={n}:v=1:a=1[v][a]")
     run(["ffmpeg", "-y", "-v", "error"] + inputs +
         ["-filter_complex", ";".join(fc), "-map", "[v]", "-map", "[a]",
-         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac",
+         "-c:v", "libx264", "-pix_fmt", "yuv420p",
+         "-preset", "veryfast", "-crf", "20", "-threads", "0", "-c:a", "aac",
          "-ar", "48000", "-ac", "2", "-movflags", "+faststart", out],
         check=True)
     log(f"  intro punch-ins: {len(seg_files)} original-audio moment(s) spliced "
@@ -269,42 +293,50 @@ def _cold_length(line_len: float) -> tuple:
 
 
 def build_cold_open(spec: dict, out: str, w: int, h: int, fps: int,
-                    run=subprocess.run) -> str:
+                    ar: int = 48000, ac: int = 2, run=subprocess.run) -> str:
     """A natural clip of the scene — real audio, loudness-evened — that ends a
-    breath after the hook line, fading down so the narration can begin."""
+    breath after the hook line, fading down so the narration can begin. Encoded
+    to match the base video (w/h/fps + audio ar/ac) so the two can be joined
+    with a stream copy instead of re-encoding the whole film."""
     lead, total = _cold_length(float(spec["line_len"]))
     grab_start = max(0.0, float(spec["line_start"]) - lead)
     fo = max(0.0, total - COLD_FADE_S)
+    ch = "stereo" if ac == 2 else "mono"
     vf = (f"scale={w}:{h}:force_original_aspect_ratio=decrease,"
           f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2,setsar=1,"
           f"fade=t=in:d=0.3,fade=t=out:st={fo}:d={COLD_FADE_S}")
-    af = (f"aformat=channel_layouts=stereo,{LOUDNORM},"
+    af = (f"aformat=channel_layouts={ch},{LOUDNORM},"
           f"afade=t=out:st={fo}:d={COLD_FADE_S}")
     run(["ffmpeg", "-y", "-v", "error", "-ss", f"{grab_start}", "-i",
          spec["video"], "-t", f"{total}",
          "-filter_complex", f"[0:v]{vf}[v];[0:a]{af}[a]",
          "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-pix_fmt", "yuv420p",
-         "-r", str(fps), "-c:a", "aac", "-ar", "48000", "-ac", "2", out],
-        check=True)
+         "-profile:v", "high", "-r", str(fps),
+         "-c:a", "aac", "-ar", str(ar), "-ac", str(ac), out], check=True)
     return out
 
 
 def prepend_cold_open(video_in: str, spec: dict, out: str,
                       run=subprocess.run, log=lambda *a: None) -> str:
     """Put the cold-open in front of the finished video. Narration is untouched
-    — it simply starts a few seconds later, after the hook has landed."""
+    — it just starts a few seconds later, after the hook has landed.
+
+    Fast path: only the ~6s cold-open is encoded (to match the base's format);
+    the film itself is stream-COPIED via the concat demuxer, so a 24-minute
+    video is joined in seconds instead of re-encoded for 20 minutes."""
     if not spec:
         return video_in
     w, h, fps = _probe(video_in)
+    ar, ac = _probe_audio(video_in)
     tmp = tempfile.mkdtemp(prefix="mi_cold_")
-    cold = build_cold_open(spec, os.path.join(tmp, "cold.mp4"), w, h, fps, run=run)
-    # cold-open is already stereo/48k; coerce the base narration audio to match.
-    sfmt = "aformat=sample_rates=48000:channel_layouts=stereo"
-    run(["ffmpeg", "-y", "-v", "error", "-i", cold, "-i", video_in,
-         "-filter_complex",
-         f"[1:a]{sfmt}[a1];[0:v][0:a][1:v][a1]concat=n=2:v=1:a=1[v][a]",
-         "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-pix_fmt", "yuv420p",
-         "-c:a", "aac", "-ar", "48000", "-ac", "2", "-movflags", "+faststart",
-         out], check=True)
+    cold = build_cold_open(spec, os.path.join(tmp, "cold.mp4"), w, h, fps,
+                           ar=ar, ac=ac, run=run)
+    listf = os.path.join(tmp, "list.txt")
+    with open(listf, "w", encoding="utf-8") as f:
+        for p in (cold, video_in):
+            safe = os.path.abspath(p).replace("'", "'\\''")
+            f.write(f"file '{safe}'\n")
+    run(["ffmpeg", "-y", "-v", "error", "-f", "concat", "-safe", "0",
+         "-i", listf, "-c", "copy", "-movflags", "+faststart", out], check=True)
     log("  cold-open: original-audio hook placed before the narration")
     return out
