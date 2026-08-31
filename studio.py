@@ -48,6 +48,7 @@ from media_index import libcheck                      # noqa: E402
 from media_index import paths as _paths               # noqa: E402
 
 PROSTUDIO = os.path.join(HERE, "prostudio", "prostudio.py")
+VTEXT = os.path.join(HERE, "vtext_tool", "vtext.py")   # kinetic-text finisher
 # Ten formats rotate so a batch of videos never looks the same (variety.py).
 _FORMATS = ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10"]
 
@@ -88,6 +89,10 @@ class Job:
                                      # card on a textured background (one per video
                                      # from bg_folder). All effects work inside it.
     bg_folder: str = ""              # folder of background images (auto if blank)
+    kinetic_text: bool = False       # competitor-style on-screen text (VText),
+                                     # audio-synced, at important moments only.
+    text_file: str = ""              # hand-made VText instruction file; blank +
+                                     # kinetic_text on = auto-generate from script.
     index: int = 0                   # position in the queue (drives format rotation)
     # results
     status: str = "queued"           # queued|blocked|running|done|error
@@ -319,6 +324,40 @@ def _apply_intro_hooks(job: Job, final: str, log) -> None:
         log("  cold-open: koi opening hook line resolve nahi hui — skip")
 
 
+def _apply_kinetic_text(job: Job, final: str, log) -> None:
+    """Add VText kinetic text to `final`. Manual instruction file if provided,
+    else auto-generated from the clean narration + clue."""
+    inst = (job.text_file or "").strip()
+    if inst and os.path.isfile(inst):
+        log(f"  kinetic text: using your instruction file ({os.path.basename(inst)})")
+    else:
+        from media_index import autotext, jobs as mi_jobs
+        clean = ""
+        try:
+            with open(job.clean, encoding="utf-8-sig") as f:
+                clean = f.read()
+        except OSError:
+            pass
+        beats = []
+        try:
+            beats = mi_jobs.read_beats(job.clue)
+        except Exception:
+            pass
+        inst = os.path.join(job.out, "auto_text.txt")
+        if not autotext.generate(clean, beats, inst, log=log):
+            log("  kinetic text: narration se koi text moment nahi nikla — skip")
+            return
+    out = os.path.join(job.out, "final_texted.mp4")
+    rc = subprocess.run([sys.executable, VTEXT, "--video", final, "--script",
+                         job.clean, "--instructions", inst, "--out", out],
+                        cwd=os.path.dirname(VTEXT)).returncode
+    if rc == 0 and os.path.isfile(out):
+        os.replace(out, final)
+        log("  kinetic text: on-screen text composited")
+    else:
+        log(f"  kinetic text: vtext returncode {rc} — final kept as-is")
+
+
 def build(job: Job, log=print, on_proc=None, should_stop=None) -> Job:
     """The whole pipeline for ONE video. Never raises — reports via job.status.
 
@@ -441,6 +480,16 @@ def build(job: Job, log=print, on_proc=None, should_stop=None) -> Job:
         except Exception as exc:
             log(f"  intro hooks skip ({type(exc).__name__}: {exc}) — final kept as-is")
 
+    # ---- stage 7: kinetic on-screen text (VText) — the LAST layer ------------ #
+    # Competitor-style text at important moments, audio-synced. Uses the user's
+    # hand-made instruction file when given (best punch), else auto-generates one
+    # from the narration. Runs last so text sits over the finished composition.
+    if job.kinetic_text:
+        try:
+            _apply_kinetic_text(job, final, log)
+        except Exception as exc:
+            log(f"  kinetic text skip ({type(exc).__name__}: {exc}) — final kept as-is")
+
     # deliver the finished video to the folder the user chose (a friendly name,
     # not final.mp4), so a batch lands together where they want it.
     delivered = final
@@ -502,6 +551,10 @@ def _cli(argv=None):
                         "background me daalo (bg auto Desktop\\ProStudio\\backgrounds se)")
     p.add_argument("--bg-folder", dest="bg_folder", default="",
                    help="background images folder (blank = Desktop\\ProStudio\\backgrounds)")
+    p.add_argument("--kinetic-text", dest="kinetic_text", action="store_true",
+                   help="competitor-style on-screen text (VText), audio-synced")
+    p.add_argument("--text-file", dest="text_file", default="",
+                   help="hand-made VText instruction file; blank = auto-generate from script")
     p.add_argument("--queue", help="jobs.json: [{clean,clue,audio,out?}, ...]")
     a = p.parse_args(argv)
 
@@ -518,7 +571,9 @@ def _cli(argv=None):
                     cold_open=j.get("cold_open", getattr(a, "cold_open", False)),
                     ken_burns=j.get("ken_burns", getattr(a, "ken_burns", False)),
                     frame=j.get("frame", getattr(a, "frame", False)),
-                    bg_folder=j.get("bg_folder", getattr(a, "bg_folder", ""))) for j in raw]
+                    bg_folder=j.get("bg_folder", getattr(a, "bg_folder", "")),
+                    kinetic_text=j.get("kinetic_text", getattr(a, "kinetic_text", False)),
+                    text_file=j.get("text_file", getattr(a, "text_file", ""))) for j in raw]
     elif a.clean and a.clue and a.audio:
         jobs = [Job(clean=a.clean, clue=a.clue, audio=a.audio, out=a.out,
                     save_dir=a.save_dir, movies_root=a.movies, fmt=a.format,
@@ -528,7 +583,9 @@ def _cli(argv=None):
                     cold_open=getattr(a, "cold_open", False),
                     ken_burns=getattr(a, "ken_burns", False),
                     frame=getattr(a, "frame", False),
-                    bg_folder=getattr(a, "bg_folder", ""))]
+                    bg_folder=getattr(a, "bg_folder", ""),
+                    kinetic_text=getattr(a, "kinetic_text", False),
+                    text_file=getattr(a, "text_file", ""))]
     else:
         p.error("give --clean --clue --audio, or --queue jobs.json")
 

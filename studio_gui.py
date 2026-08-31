@@ -49,6 +49,8 @@ class Card(ttk.Frame):
         self.cold_open = tk.BooleanVar(value=False)    # open on the first hook line
         self.ken_burns = tk.BooleanVar(value=False)    # slow motion on still frames
         self.frame = tk.BooleanVar(value=False)        # premium card + textured bg
+        self.kinetic_text = tk.BooleanVar(value=False) # VText on-screen text
+        self.text_file = tk.StringVar()                # optional instruction file
         self.status = tk.StringVar(value="ready")
         self._build()
 
@@ -90,11 +92,13 @@ class Card(ttk.Frame):
                   [("Clue", "*.json *.jsonl *.txt"), ("All", "*.*")])
         self._row(3, "Voiceover audio", self.audio,
                   [("Audio", "*.wav *.mp3 *.m4a"), ("All", "*.*")])
-        self._dir_row(4, "Save finished video to", self.save_dir)
+        self._row(4, "Kinetic-text file (optional)", self.text_file,
+                  [("Text instructions", "*.txt"), ("All", "*.*")])
+        self._dir_row(5, "Save finished video to", self.save_dir)
 
         # Row 1 of options: the dropdowns.
         opt = ttk.Frame(self, style="Card.TFrame")
-        opt.grid(row=5, column=0, columnspan=3, sticky="we", pady=(8, 0))
+        opt.grid(row=6, column=0, columnspan=3, sticky="we", pady=(8, 0))
         ttk.Label(opt, text="Format", style="Mut.TLabel").pack(side="left")
         ttk.Combobox(opt, textvariable=self.fmt, values=FMTS, width=14,
                      state="readonly").pack(side="left", padx=(4, 14))
@@ -109,7 +113,7 @@ class Card(ttk.Frame):
         # Row 2 of options: every toggle, so none get pushed off a narrow window.
         # All default OFF — a video only gets an effect when its box is ticked.
         opt2 = ttk.Frame(self, style="Card.TFrame")
-        opt2.grid(row=6, column=0, columnspan=3, sticky="we", pady=(6, 0))
+        opt2.grid(row=7, column=0, columnspan=3, sticky="we", pady=(6, 0))
         ttk.Checkbutton(opt2, text="On-screen text", variable=self.text).pack(side="left")
         ttk.Checkbutton(opt2, text="Cold-open", variable=self.cold_open).pack(
             side="left", padx=(14, 0))
@@ -119,6 +123,8 @@ class Card(ttk.Frame):
                         variable=self.ken_burns).pack(side="left", padx=(10, 0))
         ttk.Checkbutton(opt2, text="Premium frame",
                         variable=self.frame).pack(side="left", padx=(10, 0))
+        ttk.Checkbutton(opt2, text="Kinetic text",
+                        variable=self.kinetic_text).pack(side="left", padx=(10, 0))
         ttk.Checkbutton(opt2, text="Verify clips (Gemini · costs API)",
                         variable=self.verify).pack(side="left", padx=(16, 0))
         ttk.Label(opt2, text="or first", style="Mut.TLabel").pack(side="left", padx=(12, 2))
@@ -137,7 +143,9 @@ class Card(ttk.Frame):
                           intro_punch=self.intro_punch.get(),
                           cold_open=self.cold_open.get(),
                           ken_burns=self.ken_burns.get(),
-                          frame=self.frame.get(), index=index)
+                          frame=self.frame.get(),
+                          kinetic_text=self.kinetic_text.get(),
+                          text_file=self.text_file.get().strip(), index=index)
 
     def set_status(self, s):
         self.status.set(s)

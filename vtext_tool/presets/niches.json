@@ -1,0 +1,50 @@
+{
+  "MOVIE_ESSAY": {
+    "pack": "bold_geometric",
+    "base": [255, 255, 255], "accent": [255, 214, 10], "dim": [158, 158, 158],
+    "energy": 2.5, "caps": "title",
+    "families": ["word_build", "scale_pop", "fade_rise", "mask_reveal", "static_hold"]
+  },
+  "CARTOON_ESSAY": {
+    "pack": "playful_premium",
+    "base": [255, 255, 255], "accent": [255, 214, 10], "dim": [190, 190, 190],
+    "energy": 3.5, "caps": "title",
+    "families": ["scale_pop", "word_build", "slide_in", "mask_reveal", "fade_rise"]
+  },
+  "CLASSIC_MOVIE": {
+    "pack": "classic_cinema",
+    "base": [245, 235, 220], "accent": [201, 162, 39], "dim": [170, 160, 145],
+    "energy": 1.5, "caps": "title",
+    "families": ["fade_rise", "static_hold", "mask_reveal"]
+  },
+  "SITCOM_ESSAY": {
+    "pack": "bold_geometric",
+    "base": [255, 255, 255], "accent": [79, 195, 247], "dim": [170, 170, 170],
+    "energy": 3.0, "caps": "title",
+    "families": ["scale_pop", "slide_in", "word_build", "fade_rise"]
+  },
+  "DARK_PSYCHOLOGY": {
+    "pack": "modern_clean",
+    "base": [242, 242, 242], "accent": [224, 83, 61], "dim": [140, 140, 140],
+    "energy": 2.0, "caps": "title",
+    "families": ["fade_rise", "word_build", "static_hold", "mask_reveal"]
+  },
+  "HISTORY_DOC": {
+    "pack": "classic_cinema",
+    "base": [245, 240, 228], "accent": [201, 162, 39], "dim": [175, 168, 152],
+    "energy": 2.0, "caps": "title",
+    "families": ["fade_rise", "mask_reveal", "static_hold"]
+  },
+  "TRUE_CRIME": {
+    "pack": "modern_clean",
+    "base": [240, 240, 240], "accent": [214, 69, 65], "dim": [150, 150, 150],
+    "energy": 2.0, "caps": "title",
+    "families": ["fade_rise", "static_hold", "word_build", "mask_reveal"]
+  },
+  "SPORTS": {
+    "pack": "condensed_impact",
+    "base": [255, 255, 255], "accent": [255, 196, 0], "dim": [180, 180, 180],
+    "energy": 4.0, "caps": "upper",
+    "families": ["slide_in", "scale_pop", "word_build", "mask_reveal"]
+  }
+}

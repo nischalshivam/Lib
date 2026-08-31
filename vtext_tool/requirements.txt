@@ -1,0 +1,9 @@
+pillow>=10.0
+numpy>=1.24
+imageio-ffmpeg>=0.4.9
+faster-whisper>=1.0
+opencv-python-headless>=4.8
+# Offline fallback engine (optional; needs a C compiler on very new Python
+# versions where no prebuilt wheel exists):
+
+# pocketsphinx>=5.0
