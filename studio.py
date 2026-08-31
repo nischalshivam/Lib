@@ -438,6 +438,18 @@ def build(job: Job, log=print, on_proc=None, should_stop=None) -> Job:
           "--script", job.clean, "--out", final, "--format", fmt,
           "--resolution", job.resolution, "--resume"]   # reuse already-rendered
     ps += ["--text"] if job.text else ["--no-text"]
+    # Premium frame is applied INSIDE prostudio's single final encode (not a
+    # separate ~20-min re-encode pass), so all effects stay inside the card.
+    if job.frame:
+        from media_index import framing as _fr
+        bgdir = job.bg_folder or _default_bg_folder()
+        bg = _fr.pick_background(bgdir, os.path.basename(job.clean or job.clue))
+        if bg:
+            ps += ["--frame-bg", bg]
+            log(f"  premium frame ON — background: {os.path.basename(bg)} "
+                "(baked into the final render, one encode)")
+        else:
+            log(f"  frame: {bgdir} me koi background image nahi — skip")
     rc = _run(ps, log, on_proc=on_proc)
     if _stop():
         job.status, job.message = "stopped", "stopped during effects render (re-Run to resume)"
@@ -450,25 +462,8 @@ def build(job: Job, log=print, on_proc=None, should_stop=None) -> Job:
         job.status, job.message = "error", "prostudio ran but no final.mp4"
         return job
 
-    # ---- stage 5b: premium frame on the FINAL video ------------------------- #
-    # Applied on the fully-rendered video, so every grade/zoom/transition is
-    # already baked into the footage and keeps working INSIDE the card. One
-    # background per video from the folder. Runs BEFORE the intro hooks so the
-    # cold-open / punch-in moments stay full-screen (a deliberate contrast).
-    if job.frame:
-        try:
-            from media_index import framing
-            bgdir = job.bg_folder or _default_bg_folder()
-            bg = framing.pick_background(bgdir, os.path.basename(job.clean or job.clue))
-            if bg:
-                framed = os.path.join(job.out, "final_framed.mp4")
-                framing.apply_frame(final, bg, framed, log=log)
-                os.replace(framed, final)
-            else:
-                log(f"  frame: {bgdir} me koi background image nahi — skip "
-                    "(us folder me .png/.jpg/.avif daalो)")
-        except Exception as exc:
-            log(f"  frame skip ({type(exc).__name__}: {exc}) — final kept as-is")
+    # (premium frame is now baked into prostudio's final encode above — no
+    #  separate re-encode pass)
 
     # ---- stage 6: intro hooks on the FINAL video ---------------------------- #
     # prostudio just rebuilt final.mp4 from the scene folders, so the cold-open /

@@ -45,6 +45,8 @@ class Job:
     resolution: str = "4K"
     whisper_model: str = "base"
     seed: int = 0
+    frame_bg: str = ""          # premium frame background image (blank = off);
+                                #   applied in the single final encode
     # derived
     format_key: str = ""
     crf: int = 19
@@ -272,6 +274,9 @@ def main(argv=None):
     p.add_argument("--resume", action="store_true",
                    help="skip finished videos and continue partly-rendered "
                         "ones from where they stopped")
+    p.add_argument("--frame-bg", dest="frame_bg", default="",
+                   help="premium frame background image — footage placed in a "
+                        "rounded card on it, applied in the single final encode")
     a = p.parse_args(argv)
 
     jobs = []
@@ -289,7 +294,7 @@ def main(argv=None):
                 text=j.get("text", False),
                 resolution=j.get("resolution", data.get("resolution", "4K")),
                 whisper_model=j.get("whisper_model", "base"),
-                seed=j.get("seed", 0)))
+                seed=j.get("seed", 0), frame_bg=j.get("frame_bg", "")))
     else:
         if not (a.scenes and a.audio):
             p.error("--scenes and --audio required (or --queue)")
@@ -300,7 +305,8 @@ def main(argv=None):
                         keyword_colors=not a.no_keyword_colors,
                         text=a.text and not a.no_text,
                         resolution=a.resolution,
-                        whisper_model=a.whisper_model, seed=a.seed))
+                        whisper_model=a.whisper_model, seed=a.seed,
+                        frame_bg=a.frame_bg))
 
     ok = fail = skip = 0
     for i, job in enumerate(jobs):

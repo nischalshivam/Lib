@@ -453,9 +453,26 @@ def render_shot(shot, out, style, niche, W, H, pad, glow, log, work=None):
     return "filler"
 
 
+def _frame_assets(work, W, H, cw, ch, rad=40):
+    """Rounded-card alpha mask + soft drop shadow (PIL), cached in `work`."""
+    from PIL import Image, ImageDraw, ImageFilter
+    x0, y0 = (W - cw) // 2, (H - ch) // 2
+    m = os.path.join(work, "frame_mask.png")
+    s = os.path.join(work, "frame_shadow.png")
+    mask = Image.new("L", (cw, ch), 0)
+    ImageDraw.Draw(mask).rounded_rectangle([0, 0, cw - 1, ch - 1], radius=rad,
+                                           fill=255)
+    mask.save(m)
+    sh = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    ImageDraw.Draw(sh).rounded_rectangle([x0, y0 + 14, x0 + cw, y0 + ch + 14],
+                                         radius=rad, fill=(0, 0, 0, 140))
+    sh.filter(ImageFilter.GaussianBlur(34)).save(s)
+    return m, s
+
+
 def _compose_chain(clips, nets, joins, out, W, H, crf, preset, work, log,
                    job=None, text_events=None, audio=None, total=None,
-                   tag="c", progress=False):
+                   tag="c", progress=False, frame_bg=None):
     """Cross-fade a list of clips into one, with optional text + audio.
 
     Kept SMALL on purpose: it is called on a bounded number of inputs at a
@@ -501,12 +518,41 @@ def _compose_chain(clips, nets, joins, out, W, H, crf, preset, work, log,
         inputs += ["-i", audio]
         maps += ["-map", "[a]"]
         acodec = ["-c:a", "aac", "-b:a", "160k"]
+
+    # Premium frame — done HERE, in the single final encode (no separate ~20-min
+    # re-encode pass). The composed footage (with every grade/zoom/transition/
+    # text already baked in) is placed in a rounded card on the background, so
+    # the frame is a constant container and everything keeps working inside it.
+    loop_inputs = []
+    if frame_bg and os.path.isfile(frame_bg):
+        cw, ch = int(W * 0.844), int(H * 0.844)
+        mask, shadow = _frame_assets(work, W, H, cw, ch)
+        # normalise the bg to PNG first — AVIF/WEBP can't be fed to -loop, and
+        # this bakes the scale/crop once
+        bg_png = os.path.join(work, "frame_bg.png")
+        _run(["ffmpeg", "-nostdin", "-y", "-v", "error", "-i", frame_bg,
+              "-frames:v", "1", "-vf",
+              f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H}",
+              bg_png], log)
+        base = vmap if vmap.startswith("[") else f"[{vmap}]"
+        nin = len(inputs) // 2
+        bgi, mi, si = nin, nin + 1, nin + 2
+        loop_inputs = ["-loop", "1", "-i", bg_png,
+                       "-loop", "1", "-i", mask, "-loop", "1", "-i", shadow]
+        filt.append(
+            f"[{bgi}:v]scale={W}:{H}:force_original_aspect_ratio=increase,"
+            f"crop={W}:{H},vignette=a=PI/5[fbg];"
+            f"{base}scale={cw}:{ch},setsar=1[fcl];[fcl][{mi}:v]alphamerge[fcard];"
+            f"[fbg][{si}:v]overlay=0:0[fbgs];"
+            f"[fbgs][fcard]overlay=(W-w)/2:(H-h)/2:format=auto[vframed]")
+        maps[maps.index(vmap)] = "[vframed]"
+
     os.makedirs(os.path.dirname(os.path.abspath(out)) or ".", exist_ok=True)
     if filt:
         graph_file = os.path.join(work, f"graph_{tag}.txt")
         with open(graph_file, "w", encoding="utf-8") as f:
             f.write(";\n".join(filt))
-        cmd = ["ffmpeg", "-nostdin", "-y", "-v", "error", *inputs,
+        cmd = ["ffmpeg", "-nostdin", "-y", "-v", "error", *inputs, *loop_inputs,
                "-filter_complex_script", graph_file, *maps,
                "-c:v", "libx264", "-crf", str(crf), "-preset", preset,
                "-pix_fmt", "yuv420p", "-r", str(FPS), *acodec,
@@ -675,7 +721,8 @@ def render_job(job, shots, text_events, log=print, proxy=False, resume=False):
                 "— live progress below ...")
             _compose_chain(segs, nets, joins, out, W, H, crf, preset, work, log,
                            job=job, text_events=text_events, audio=job.audio,
-                           total=total, tag="final", progress=True)
+                           total=total, tag="final", progress=True,
+                           frame_bg=getattr(job, "frame_bg", None))
         else:
             # MANY shots: cross-fade in bounded groups first (so ffmpeg never
             # opens ~150 decoders at once -> no 'Cannot allocate memory'), then
@@ -701,7 +748,7 @@ def render_job(job, shots, text_events, log=print, proxy=False, resume=False):
             _compose_chain(gclips, gnets, gjoins, out, W, H, crf, preset, work,
                            log, job=job, text_events=text_events,
                            audio=job.audio, total=total, tag="final",
-                           progress=True)
+                           progress=True, frame_bg=getattr(job, "frame_bg", None))
         log(f"[100%] done: {out} ({total:.1f}s, {os.path.getsize(out)/1e6:.1f} MB)")
         # success -> the checkpoint is no longer needed
         shutil.rmtree(work, ignore_errors=True)
