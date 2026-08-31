@@ -242,18 +242,25 @@ def apply(video_in: str, picks: list, out: str,
     for _, s in seg_files:
         inputs += ["-i", s]
     sfmt = "aformat=sample_rates=48000:channel_layouts=stereo"
+    # setsar=1 on EVERY video stream: a Sopranos 5.1 source can carry a
+    # non-square SAR (e.g. 31975:31968) that the base (1:1) doesn't, and concat
+    # rejects mismatched SAR ("parameters do not match"). Force all to square.
     nseg = len(seg_files)
     vlab = "".join(f"[nv{i}]" for i in range(nseg + 1))
     alab = "".join(f"[na{i}]" for i in range(nseg + 1))
-    fc = [f"[0:v]trim=0:{split},fps={fps},format=yuv420p,setpts=PTS-STARTPTS,"
-          f"split={nseg + 1}{vlab}",
+    fc = [f"[0:v]trim=0:{split},fps={fps},format=yuv420p,setsar=1,"
+          f"setpts=PTS-STARTPTS,split={nseg + 1}{vlab}",
           f"[0:a]atrim=0:{split},{sfmt},asetpts=PTS-STARTPTS,"
           f"asplit={nseg + 1}{alab}"]
     order, prev = [], 0.0
     for i, (t, _s) in enumerate(seg_files):
         fc.append(f"[nv{i}]trim={prev}:{t},setpts=PTS-STARTPTS[bv{i}]")
         fc.append(f"[na{i}]atrim={prev}:{t},asetpts=PTS-STARTPTS[ba{i}]")
-        order += [f"[bv{i}]", f"[ba{i}]", f"[{i + 1}:v]", f"[{i + 1}:a]"]
+        # normalise each punch segment too (fps + square SAR + format)
+        fc.append(f"[{i + 1}:v]fps={fps},format=yuv420p,setsar=1,"
+                  f"setpts=PTS-STARTPTS[pv{i}]")
+        fc.append(f"[{i + 1}:a]{sfmt},asetpts=PTS-STARTPTS[pa{i}]")
+        order += [f"[bv{i}]", f"[ba{i}]", f"[pv{i}]", f"[pa{i}]"]
         prev = t
     fc.append(f"[nv{nseg}]trim={prev}:{split},setpts=PTS-STARTPTS[bvL]")
     fc.append(f"[na{nseg}]atrim={prev}:{split},asetpts=PTS-STARTPTS[baL]")
