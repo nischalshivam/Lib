@@ -84,6 +84,10 @@ class Job:
                                      # the narration starts.
     ken_burns: bool = False          # slow zoom/pan on still frames so they are
                                      # never frozen (rotates in/out/pan).
+    frame: bool = False              # premium 'framed' look: footage in a rounded
+                                     # card on a textured background (one per video
+                                     # from bg_folder). All effects work inside it.
+    bg_folder: str = ""              # folder of background images (auto if blank)
     index: int = 0                   # position in the queue (drives format rotation)
     # results
     status: str = "queued"           # queued|blocked|running|done|error
@@ -234,6 +238,22 @@ def _run(cmd, log, on_proc=None) -> int:
     if on_proc:
         on_proc(None)
     return proc.returncode
+
+
+def _default_bg_folder() -> str:
+    """Where the user drops background textures. Desktop\\ProStudio\\backgrounds
+    by default (works on OneDrive-redirected desktops too); created on demand."""
+    for base in (os.path.join(os.path.expanduser("~"), "Desktop", "ProStudio"),
+                 os.path.join(os.path.expanduser("~"), "OneDrive", "Desktop",
+                              "ProStudio")):
+        if os.path.isdir(base):
+            bg = os.path.join(base, "backgrounds")
+            os.makedirs(bg, exist_ok=True)
+            return bg
+    bg = os.path.join(os.path.expanduser("~"), "Desktop", "ProStudio",
+                      "backgrounds")
+    os.makedirs(bg, exist_ok=True)
+    return bg
 
 
 def _mini_library(beats: list, movies_root: str) -> dict:
@@ -391,6 +411,26 @@ def build(job: Job, log=print, on_proc=None, should_stop=None) -> Job:
         job.status, job.message = "error", "prostudio ran but no final.mp4"
         return job
 
+    # ---- stage 5b: premium frame on the FINAL video ------------------------- #
+    # Applied on the fully-rendered video, so every grade/zoom/transition is
+    # already baked into the footage and keeps working INSIDE the card. One
+    # background per video from the folder. Runs BEFORE the intro hooks so the
+    # cold-open / punch-in moments stay full-screen (a deliberate contrast).
+    if job.frame:
+        try:
+            from media_index import framing
+            bgdir = job.bg_folder or _default_bg_folder()
+            bg = framing.pick_background(bgdir, os.path.basename(job.clean or job.clue))
+            if bg:
+                framed = os.path.join(job.out, "final_framed.mp4")
+                framing.apply_frame(final, bg, framed, log=log)
+                os.replace(framed, final)
+            else:
+                log(f"  frame: {bgdir} me koi background image nahi — skip "
+                    "(us folder me .png/.jpg/.avif daalो)")
+        except Exception as exc:
+            log(f"  frame skip ({type(exc).__name__}: {exc}) — final kept as-is")
+
     # ---- stage 6: intro hooks on the FINAL video ---------------------------- #
     # prostudio just rebuilt final.mp4 from the scene folders, so the cold-open /
     # punch-ins makevideo put on video.mp4 are gone. Apply them HERE, on the file
@@ -457,6 +497,11 @@ def _cli(argv=None):
                    help="video ko pehli famous line (original awaaz, 5-8s) se kholo")
     p.add_argument("--ken-burns", dest="ken_burns", action="store_true",
                    help="har still pe slow zoom/pan motion")
+    p.add_argument("--frame", dest="frame", action="store_true",
+                   help="premium framed look: footage ko rounded card + textured "
+                        "background me daalo (bg auto Desktop\\ProStudio\\backgrounds se)")
+    p.add_argument("--bg-folder", dest="bg_folder", default="",
+                   help="background images folder (blank = Desktop\\ProStudio\\backgrounds)")
     p.add_argument("--queue", help="jobs.json: [{clean,clue,audio,out?}, ...]")
     a = p.parse_args(argv)
 
@@ -471,7 +516,9 @@ def _cli(argv=None):
                     language=j.get("language", getattr(a, "language", "en")),
                     intro_punch=j.get("intro_punch", getattr(a, "intro_punch", False)),
                     cold_open=j.get("cold_open", getattr(a, "cold_open", False)),
-                    ken_burns=j.get("ken_burns", getattr(a, "ken_burns", False))) for j in raw]
+                    ken_burns=j.get("ken_burns", getattr(a, "ken_burns", False)),
+                    frame=j.get("frame", getattr(a, "frame", False)),
+                    bg_folder=j.get("bg_folder", getattr(a, "bg_folder", ""))) for j in raw]
     elif a.clean and a.clue and a.audio:
         jobs = [Job(clean=a.clean, clue=a.clue, audio=a.audio, out=a.out,
                     save_dir=a.save_dir, movies_root=a.movies, fmt=a.format,
@@ -479,7 +526,9 @@ def _cli(argv=None):
                     language=getattr(a, "language", "en"),
                     intro_punch=getattr(a, "intro_punch", False),
                     cold_open=getattr(a, "cold_open", False),
-                    ken_burns=getattr(a, "ken_burns", False))]
+                    ken_burns=getattr(a, "ken_burns", False),
+                    frame=getattr(a, "frame", False),
+                    bg_folder=getattr(a, "bg_folder", ""))]
     else:
         p.error("give --clean --clue --audio, or --queue jobs.json")
 

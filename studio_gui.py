@@ -48,6 +48,7 @@ class Card(ttk.Frame):
         self.intro_punch = tk.BooleanVar(value=False)  # original-audio hook in first 3 min
         self.cold_open = tk.BooleanVar(value=False)    # open on the first hook line
         self.ken_burns = tk.BooleanVar(value=False)    # slow motion on still frames
+        self.frame = tk.BooleanVar(value=False)        # premium card + textured bg
         self.status = tk.StringVar(value="ready")
         self._build()
 
@@ -116,6 +117,8 @@ class Card(ttk.Frame):
                         variable=self.intro_punch).pack(side="left", padx=(10, 0))
         ttk.Checkbutton(opt2, text="Ken Burns (still motion)",
                         variable=self.ken_burns).pack(side="left", padx=(10, 0))
+        ttk.Checkbutton(opt2, text="Premium frame",
+                        variable=self.frame).pack(side="left", padx=(10, 0))
         ttk.Checkbutton(opt2, text="Verify clips (Gemini · costs API)",
                         variable=self.verify).pack(side="left", padx=(16, 0))
         ttk.Label(opt2, text="or first", style="Mut.TLabel").pack(side="left", padx=(12, 2))
@@ -133,7 +136,8 @@ class Card(ttk.Frame):
                           language=self.language.get().strip() or "en",
                           intro_punch=self.intro_punch.get(),
                           cold_open=self.cold_open.get(),
-                          ken_burns=self.ken_burns.get(), index=index)
+                          ken_burns=self.ken_burns.get(),
+                          frame=self.frame.get(), index=index)
 
     def set_status(self, s):
         self.status.set(s)
