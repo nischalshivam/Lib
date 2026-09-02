@@ -41,6 +41,9 @@ button:active{transform:scale(.98);}
 .row .val{font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .row .val.empty{color:var(--dim);}
 .mid{flex:1;min-width:0;}
+.fbtn{height:30px;padding:0 12px;font-size:12px;}
+.clr{width:28px;height:28px;padding:0;display:flex;align-items:center;justify-content:center;background:transparent;border:.5px solid var(--line2);border-radius:8px;color:var(--muted);font-size:15px;}
+.clr:hover{background:var(--danger-bg);border-color:var(--danger);color:var(--danger);}
 select{background:var(--panel2);color:var(--text);border:.5px solid var(--line2);border-radius:9px;height:34px;padding:0 8px;font-size:13px;font-family:inherit;}
 .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:8px;}
 .tg{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:10px;border:.5px solid var(--line);background:transparent;transition:background .18s,border-color .18s;}
@@ -128,18 +131,27 @@ function addVideo(){
   head.appendChild(rm); card.appendChild(head);
 
   FILES.forEach(function(f){
-    var isDir=f[2]==="save_dir", opt=f[2]==="text_file";
+    var isDir=f[2]==="save_dir";
     var row=el("div","row");
-    row.innerHTML='<i class="ti '+f[0]+' ic"></i><div class="mid"><div class="lab">'+f[1]+'</div><div class="val empty">'+(isDir?"choose a folder":"drag a file here")+'</div></div>';
-    var browse=el("button","ghost",isDir?"Choose":"Browse");
-    browse.style.height="30px";browse.style.padding="0 12px";browse.style.fontSize="12px";
-    browse.onclick=function(){pick(f[2],isDir,row,data);};
-    row.appendChild(browse);
-    row.addEventListener("dragover",function(e){e.preventDefault();row.classList.add("dragover");});
-    row.addEventListener("dragleave",function(){row.classList.remove("dragover");});
-    row.addEventListener("drop",function(e){e.preventDefault();row.classList.remove("dragover");
-      var p="";if(e.dataTransfer.files&&e.dataTransfer.files.length){p=e.dataTransfer.files[0].path||e.dataTransfer.files[0].name;}
-      if(p)setVal(f[2],p,row,data);});
+    var empty=isDir?"choose a folder":"drag a file here, or browse";
+    row.innerHTML='<i class="ti '+f[0]+' ic"></i>'+
+      '<div class="mid"><div class="lab">'+f[1]+'</div><div class="val empty">'+empty+'</div></div>'+
+      '<button class="ghost fbtn">'+(isDir?"Choose":"Browse")+'</button>'+
+      '<button class="clr" title="Clear" style="display:none"><i class="ti ti-x"></i></button>'+
+      '<i class="ti ti-circle-check ok" style="display:none;font-size:18px;color:var(--ok)"></i>';
+    row.dataset.empty=empty;
+    row.querySelector(".fbtn").onclick=function(){pick(f[2],isDir,row,data);};
+    row.querySelector(".clr").onclick=function(){clearVal(f[2],row,data);};
+    if(!isDir){
+      row.addEventListener("dragover",function(e){e.preventDefault();row.classList.add("dragover");});
+      row.addEventListener("dragleave",function(){row.classList.remove("dragover");});
+      row.addEventListener("drop",function(e){e.preventDefault();row.classList.remove("dragover");
+        var fs=e.dataTransfer.files; if(!fs||!fs.length)return;
+        var p=fs[0].pywebviewFullPath||fs[0].path||"";
+        if(p){setVal(f[2],p,row,data);}
+        else{setVal(f[2],fs[0].name,row,data,true);}
+      });
+    }
     card.appendChild(row);
   });
 
@@ -178,11 +190,25 @@ function sel(label,items,cb){
   var s=el("select");items.forEach(function(i){var o=el("option");o.textContent=i;o.value=i;s.appendChild(o);});
   s.onchange=function(){cb(s.value);};box.appendChild(s);return box;
 }
-function setVal(key,path,row,data){data[key]=path;var v=row.querySelector(".val");v.textContent=path.split(/[\\/]/).pop();v.classList.remove("empty");
-  var b=row.querySelector("button");b.outerHTML='<i class="ti ti-circle-check" style="font-size:18px;color:var(--ok)"></i>';}
+function setVal(key,path,row,data,warn){
+  data[key]=path;
+  var v=row.querySelector(".val");
+  v.textContent=(warn?"⚠ ":"")+path.split(/[\\/]/).pop()+(warn?"  — use Browse (drag didn't give a full path)":"");
+  v.classList.remove("empty");
+  v.style.color=warn?"var(--danger)":"var(--text)";
+  row.querySelector(".clr").style.display="";
+  row.querySelector(".ok").style.display=warn?"none":"";
+}
+function clearVal(key,row,data){
+  data[key]="";
+  var v=row.querySelector(".val");
+  v.textContent=row.dataset.empty;v.classList.add("empty");v.style.color="";
+  row.querySelector(".clr").style.display="none";
+  row.querySelector(".ok").style.display="none";
+}
 function pick(key,isDir,row,data){
-  if(!window.pywebview){alert("File dialog needs the app (pywebview).");return;}
-  (isDir?window.pywebview.api.pick_folder():window.pywebview.api.pick_file(key)).then(function(p){if(p)setVal(key,p,row,data);});
+  if(!window.pywebview){alert("File dialog needs the app (run Movie Editor).");return;}
+  (isDir?window.pywebview.api.pick_folder():window.pywebview.api.pick_file(key)).then(function(p){if(p)setVal(key,p,row,data,false);});
 }
 
 var logEl=document.getElementById("log");
