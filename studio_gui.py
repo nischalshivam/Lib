@@ -114,7 +114,6 @@ class Card(ttk.Frame):
         # All default OFF — a video only gets an effect when its box is ticked.
         opt2 = ttk.Frame(self, style="Card.TFrame")
         opt2.grid(row=7, column=0, columnspan=3, sticky="we", pady=(6, 0))
-        ttk.Checkbutton(opt2, text="On-screen text", variable=self.text).pack(side="left")
         ttk.Checkbutton(opt2, text="Cold-open", variable=self.cold_open).pack(
             side="left", padx=(14, 0))
         ttk.Checkbutton(opt2, text="Intro punch-ins",

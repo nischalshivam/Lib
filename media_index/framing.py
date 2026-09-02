@@ -28,17 +28,34 @@ def list_backgrounds(folder: str) -> list:
                   if f.lower().endswith(BG_EXT))
 
 
-def pick_background(folder: str, key: str) -> str:
-    """One background per video, chosen deterministically from the folder so the
-    same video always gets the same image and different videos rotate through
-    them. Drop new images in the folder any time — they join the rotation."""
+def pick_background(folder: str, key: str = "") -> str:
+    """The NEXT background in a rotation, so a batch of videos never all share
+    one image — each call advances a counter persisted in the folder. When the
+    list is exhausted it reshuffles and cycles again, so it keeps varying over
+    time. Drop new images in the folder any time; they join the next cycle."""
+    import random
     bgs = list_backgrounds(folder)
     if not bgs:
         return ""
-    h = 0
-    for ch in (key or "x"):
-        h = (h * 131 + ord(ch)) & 0xFFFFFFFF     # tiny stable string hash
-    return bgs[h % len(bgs)]
+    if len(bgs) == 1:
+        return bgs[0]
+    cf = os.path.join(folder, ".rotation")
+    try:
+        with open(cf, encoding="utf-8") as f:
+            n = int((f.read() or "0").strip())
+    except (OSError, ValueError):
+        n = 0
+    # a fresh shuffle each full cycle, so order isn't always alphabetical and
+    # consecutive cycles differ — but no repeat WITHIN a cycle.
+    order = list(bgs)
+    random.Random(n // len(bgs)).shuffle(order)
+    pick = order[n % len(order)]
+    try:
+        with open(cf, "w", encoding="utf-8") as f:
+            f.write(str((n + 1) % (len(bgs) * 10000)))
+    except OSError:
+        pass
+    return pick
 
 
 def _assets(tmp: str, run) -> tuple:
