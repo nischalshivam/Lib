@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<style>
+:root{
+  --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --line:#2a2f3a; --line2:#39404e;
+  --text:#e7eaf0; --muted:#9aa3b2; --dim:#6b7280;
+  --accent:#6c8cff; --accent-bg:rgba(108,140,255,.14); --accent-line:rgba(108,140,255,.5);
+  --ok:#3ecf8e; --danger:#f25555; --danger-bg:rgba(242,85,85,.12);
+  --radius:11px;
+}
+[data-theme="light"]{
+  --bg:#f3f4f7; --panel:#ffffff; --panel2:#f7f8fa; --line:#e4e7ec; --line2:#d3d8e0;
+  --text:#1b1f27; --muted:#5c6472; --dim:#9099a6;
+  --accent:#3d63ff; --accent-bg:rgba(61,99,255,.10); --accent-line:rgba(61,99,255,.45);
+  --ok:#12a06a; --danger:#d64545; --danger-bg:rgba(214,69,69,.10);
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;-webkit-user-select:none;user-select:none;}
+button{font-family:inherit;cursor:pointer;transition:background .16s,border-color .16s,transform .08s;}
+button:active{transform:scale(.98);}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--panel);border-bottom:.5px solid var(--line);position:sticky;top:0;z-index:5;}
+.brand{display:flex;align-items:center;gap:11px;}
+.logo{width:30px;height:30px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;}
+.title{font-size:15px;font-weight:600;}
+.sub{font-size:12px;color:var(--dim);}
+.iconbtn{width:34px;height:34px;padding:0;display:flex;align-items:center;justify-content:center;background:transparent;border:.5px solid var(--line2);border-radius:9px;color:var(--muted);font-size:16px;}
+.iconbtn:hover{background:var(--panel2);color:var(--text);}
+.ghost{background:transparent;border:.5px solid var(--line2);border-radius:9px;color:var(--text);padding:8px 13px;font-size:13px;}
+.ghost:hover{background:var(--panel2);}
+.wrap{padding:16px;max-width:960px;margin:0 auto;}
+.card{background:var(--panel);border:.5px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;}
+.card-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.card-t{font-size:14px;font-weight:600;}
+.row{display:flex;align-items:center;gap:11px;border:1px dashed var(--line2);border-radius:10px;padding:9px 11px;margin-bottom:8px;transition:border-color .18s,background .18s;}
+.row.dragover{border-color:var(--accent-line);background:var(--accent-bg);}
+.row .ic{font-size:18px;color:var(--muted);}
+.row .lab{font-size:12px;color:var(--muted);}
+.row .val{font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.row .val.empty{color:var(--dim);}
+.mid{flex:1;min-width:0;}
+select{background:var(--panel2);color:var(--text);border:.5px solid var(--line2);border-radius:9px;height:34px;padding:0 8px;font-size:13px;font-family:inherit;}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:8px;}
+.tg{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:10px;border:.5px solid var(--line);background:transparent;transition:background .18s,border-color .18s;}
+.tg .ic{font-size:16px;color:var(--dim);}
+.tg .nm{flex:1;text-align:left;font-size:13px;color:var(--muted);}
+.tg.on{background:var(--accent-bg);border-color:var(--accent-line);}
+.tg.on .ic,.tg.on .nm{color:var(--accent);}
+.sw{width:34px;height:19px;border-radius:20px;background:var(--line2);position:relative;flex:none;transition:background .2s;}
+.tg.on .sw{background:var(--accent);}
+.knob{position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:#fff;transition:left .2s;}
+.tg.on .knob{left:17px;}
+.vfy{display:flex;align-items:center;gap:8px;margin-top:8px;padding:9px 11px;border-radius:10px;background:var(--panel2);border:.5px solid var(--line);}
+.vfy input{width:52px;height:30px;background:var(--panel);color:var(--text);border:.5px solid var(--line2);border-radius:8px;text-align:center;font-size:13px;font-family:inherit;}
+.vfy .lab{font-size:12px;color:var(--muted);}
+.hidden{display:none;}
+.footer{display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding-top:14px;border-top:.5px solid var(--line);}
+.run{background:var(--accent);border:none;border-radius:9px;color:#fff;padding:9px 18px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:7px;}
+.run:hover{filter:brightness(1.08);}
+.stop{background:transparent;border:.5px solid var(--danger);color:var(--danger);border-radius:9px;padding:9px 15px;font-size:13px;display:flex;align-items:center;gap:6px;}
+.stop:hover{background:var(--danger-bg);}
+.logwrap{margin-top:2px;}
+.logbar{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;background:var(--panel);border:.5px solid var(--line);border-bottom:none;border-radius:12px 12px 0 0;}
+.logbar .t{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:7px;}
+.copy{background:transparent;border:.5px solid var(--line2);border-radius:8px;color:var(--muted);font-size:12px;padding:5px 11px;display:flex;align-items:center;gap:6px;}
+.copy:hover{background:var(--panel2);color:var(--text);}
+#log{background:#0b0d11;color:#c9d1de;border:.5px solid var(--line);border-radius:0 0 12px 12px;padding:12px 14px;font-family:"Cascadia Code",Consolas,monospace;font-size:12px;line-height:1.6;height:230px;overflow:auto;white-space:pre-wrap;user-select:text;}
+[data-theme="light"] #log{background:#12151b;color:#d7dde8;}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="brand">
+    <button class="iconbtn" id="copyTop" title="Copy the whole process log"><i class="ti ti-copy"></i></button>
+    <div class="logo"><i class="ti ti-movie"></i></div>
+    <div><div class="title">Movie Editor</div><div class="sub">clean + clue + audio &rarr; finished video</div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <span class="dot" id="statusDot" style="background:var(--ok)"></span>
+    <span class="sub" id="statusText">ready</span>
+    <button class="iconbtn" id="themeBtn" title="Light / dark"><i class="ti ti-moon"></i></button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div id="videos"></div>
+  <button class="ghost" id="addBtn"><i class="ti ti-plus" style="vertical-align:-2px;margin-right:5px"></i>Add video</button>
+
+  <div class="footer">
+    <div class="sub" id="hint">drop files on a row, or browse</div>
+    <div style="display:flex;gap:9px;">
+      <button class="stop" id="stopBtn"><i class="ti ti-player-stop"></i>Stop</button>
+      <button class="run" id="runBtn"><i class="ti ti-player-play"></i>Run</button>
+    </div>
+  </div>
+
+  <div class="logwrap">
+    <div class="logbar">
+      <div class="t"><i class="ti ti-terminal-2"></i>Process</div>
+      <button class="copy" id="copyLog"><i class="ti ti-copy"></i>Copy all</button>
+    </div>
+    <div id="log">Ready. Add a video (clean + clue + audio) and press Run.</div>
+  </div>
+</div>
+
+<script>
+var FILES=[["ti-file-text","Clean script (.txt)","clean"],["ti-code","Clue script (.json)","clue"],["ti-microphone","Voiceover audio","audio"],["ti-typography","Kinetic-text file (optional)","text_file"],["ti-folder","Save finished video to","save_dir"]];
+var TOGGLES=[["ti-bolt","Cold-open","cold_open",true],["ti-volume","Intro punch-ins","intro_punch",true],["ti-frame","Premium frame","frame",true],["ti-typography","Kinetic text","kinetic_text",true],["ti-zoom-in","Ken Burns","ken_burns",false],["ti-sparkles","On-screen text","text",false]];
+var FORMATS=["auto","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","No Filter"];
+var LANGS=["en","pt","fr","es","de","it","auto"];
+var videos=[], vid=0;
+
+function el(tag,cls,html){var e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;}
+
+function addVideo(){
+  var id=++vid;
+  var data={clean:"",clue:"",audio:"",text_file:"",save_dir:"",fmt:"auto",res:"1080p",lang:"en",
+            cold_open:true,intro_punch:true,frame:true,kinetic_text:true,ken_burns:false,text:false,
+            verify:false,verify_min:0};
+  var card=el("div","card");
+  var head=el("div","card-h");
+  head.appendChild(el("div","card-t","Video "+id));
+  var rm=el("button","ghost",'<i class="ti ti-x" style="vertical-align:-2px;margin-right:4px"></i>Remove');
+  rm.onclick=function(){card.remove();videos=videos.filter(function(v){return v.card!==card;});};
+  head.appendChild(rm); card.appendChild(head);
+
+  FILES.forEach(function(f){
+    var isDir=f[2]==="save_dir", opt=f[2]==="text_file";
+    var row=el("div","row");
+    row.innerHTML='<i class="ti '+f[0]+' ic"></i><div class="mid"><div class="lab">'+f[1]+'</div><div class="val empty">'+(isDir?"choose a folder":"drag a file here")+'</div></div>';
+    var browse=el("button","ghost",isDir?"Choose":"Browse");
+    browse.style.height="30px";browse.style.padding="0 12px";browse.style.fontSize="12px";
+    browse.onclick=function(){pick(f[2],isDir,row,data);};
+    row.appendChild(browse);
+    row.addEventListener("dragover",function(e){e.preventDefault();row.classList.add("dragover");});
+    row.addEventListener("dragleave",function(){row.classList.remove("dragover");});
+    row.addEventListener("drop",function(e){e.preventDefault();row.classList.remove("dragover");
+      var p="";if(e.dataTransfer.files&&e.dataTransfer.files.length){p=e.dataTransfer.files[0].path||e.dataTransfer.files[0].name;}
+      if(p)setVal(f[2],p,row,data);});
+    card.appendChild(row);
+  });
+
+  var drops=el("div");drops.style.cssText="display:flex;gap:10px;margin:12px 0 4px;flex-wrap:wrap;";
+  drops.appendChild(sel("Format",FORMATS,function(v){data.fmt=v;}));
+  drops.appendChild(sel("Quality",["1080p","4K"],function(v){data.res=v;}));
+  drops.appendChild(sel("Language",LANGS,function(v){data.lang=v;}));
+  card.appendChild(drops);
+
+  var lbl=el("div","sub","effects — tap to toggle");lbl.style.margin="14px 0 8px";card.appendChild(lbl);
+  var opts=el("div","opts");
+  TOGGLES.forEach(function(t){
+    var b=el("button","tg"+(t[3]?" on":""));
+    b.innerHTML='<i class="ti '+t[0]+' ic"></i><span class="nm">'+t[1]+'</span><span class="sw"><span class="knob"></span></span>';
+    b.onclick=function(){data[t[2]]=!data[t[2]];b.classList.toggle("on",data[t[2]]);};
+    opts.appendChild(b);
+  });
+  card.appendChild(opts);
+
+  var vrow=el("div");vrow.style.cssText="display:flex;gap:8px;margin-top:8px;align-items:stretch;flex-wrap:wrap;";
+  var vb=el("button","tg");vb.style.flex="1";vb.style.minWidth="200px";
+  vb.innerHTML='<i class="ti ti-shield-check ic"></i><span class="nm">Verify clips (Gemini · costs API)</span><span class="sw"><span class="knob"></span></span>';
+  var vtime=el("div","vfy hidden");
+  vtime.innerHTML='<span class="lab">verify first</span><input type="number" min="0" max="60" value="0"><span class="lab">min (0 = all)</span>';
+  vb.onclick=function(){data.verify=!data.verify;vb.classList.toggle("on",data.verify);vtime.classList.toggle("hidden",!data.verify);};
+  vtime.querySelector("input").oninput=function(e){data.verify_min=parseInt(e.target.value||"0",10);};
+  vrow.appendChild(vb);card.appendChild(vrow);card.appendChild(vtime);
+
+  document.getElementById("videos").appendChild(card);
+  videos.push({card:card,data:data});
+}
+
+function sel(label,items,cb){
+  var box=el("div");box.style.cssText="flex:1;min-width:120px;";
+  box.appendChild(el("div","sub",label));box.lastChild.style.marginBottom="5px";
+  var s=el("select");items.forEach(function(i){var o=el("option");o.textContent=i;o.value=i;s.appendChild(o);});
+  s.onchange=function(){cb(s.value);};box.appendChild(s);return box;
+}
+function setVal(key,path,row,data){data[key]=path;var v=row.querySelector(".val");v.textContent=path.split(/[\\/]/).pop();v.classList.remove("empty");
+  var b=row.querySelector("button");b.outerHTML='<i class="ti ti-circle-check" style="font-size:18px;color:var(--ok)"></i>';}
+function pick(key,isDir,row,data){
+  if(!window.pywebview){alert("File dialog needs the app (pywebview).");return;}
+  (isDir?window.pywebview.api.pick_folder():window.pywebview.api.pick_file(key)).then(function(p){if(p)setVal(key,p,row,data);});
+}
+
+var logEl=document.getElementById("log");
+function appendLog(line){logEl.textContent+= "\n"+line;logEl.scrollTop=logEl.scrollHeight;}
+function setStatus(t,color){document.getElementById("statusText").textContent=t;document.getElementById("statusDot").style.background=color;}
+window.appendLog=appendLog;window.setStatus=setStatus;
+
+function copyLog(){var txt=logEl.textContent;
+  if(navigator.clipboard){navigator.clipboard.writeText(txt);}
+  else if(window.pywebview){window.pywebview.api.copy(txt);}
+  var b=document.getElementById("copyLog");b.innerHTML='<i class="ti ti-check"></i>Copied';setTimeout(function(){b.innerHTML='<i class="ti ti-copy"></i>Copy all';},1400);}
+document.getElementById("copyLog").onclick=copyLog;
+document.getElementById("copyTop").onclick=copyLog;
+
+document.getElementById("addBtn").onclick=addVideo;
+document.getElementById("themeBtn").onclick=function(){
+  var d=document.documentElement.getAttribute("data-theme")==="dark";
+  document.documentElement.setAttribute("data-theme",d?"light":"dark");
+  this.innerHTML='<i class="ti '+(d?"ti-sun":"ti-moon")+'"></i>';};
+
+document.getElementById("runBtn").onclick=function(){
+  var jobs=videos.map(function(v){return v.data;});
+  if(!jobs.length){appendLog("Add a video first.");return;}
+  logEl.textContent="Starting…";setStatus("running","var(--accent)");
+  if(window.pywebview)window.pywebview.api.run(JSON.stringify(jobs));
+};
+document.getElementById("stopBtn").onclick=function(){if(window.pywebview)window.pywebview.api.stop();setStatus("stopping","var(--danger)");};
+
+addVideo();
+</script>
+</body>
+</html>
