@@ -114,9 +114,22 @@ var FILES=[["ti-file-text","Clean script (.txt)","clean"],["ti-code","Clue scrip
 var TOGGLES=[["ti-bolt","Cold-open","cold_open",true],["ti-volume","Intro punch-ins","intro_punch",true],["ti-frame","Frames","frame",true],["ti-typography","Text","kinetic_text",true],["ti-zoom-in","Ken Burns","ken_burns",false]];
 var FORMATS=["auto","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","No Filter"];
 var LANGS=["en","pt","fr","es","de","it","auto"];
-var videos=[], vid=0;
+var videos=[], vid=0, ROWS={};
 
 function el(tag,cls,html){var e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;}
+
+// pywebview 6: the dropped file's real path only reaches a PYTHON drop handler,
+// so we register each row's drop with the backend and it calls applyDrop back.
+function bindDrop(rowId){
+  function go(){ if(window.pywebview&&window.pywebview.api&&window.pywebview.api.bind_drop) window.pywebview.api.bind_drop(rowId); }
+  if(window.pywebview&&window.pywebview.api&&window.pywebview.api.bind_drop) go();
+  else window.addEventListener("pywebviewready",go,{once:true});
+}
+window.applyDrop=function(rowId,path,name){
+  var r=ROWS[rowId]; if(!r)return;
+  if(path) setVal(r.key,path,r.row,r.data,false);
+  else setVal(r.key,name||"",r.row,r.data,true);
+};
 
 function addVideo(){
   var id=++vid;
@@ -130,6 +143,7 @@ function addVideo(){
   rm.onclick=function(){card.remove();videos=videos.filter(function(v){return v.card!==card;});};
   head.appendChild(rm); card.appendChild(head);
 
+  var dropIds=[];
   FILES.forEach(function(f){
     var isDir=f[2]==="save_dir";
     var row=el("div","row");
@@ -143,14 +157,14 @@ function addVideo(){
     row.querySelector(".fbtn").onclick=function(){pick(f[2],isDir,row,data);};
     row.querySelector(".clr").onclick=function(){clearVal(f[2],row,data);};
     if(!isDir){
+      row.id="drop-"+id+"-"+f[2];
+      ROWS[row.id]={key:f[2],row:row,data:data};
       row.addEventListener("dragover",function(e){e.preventDefault();row.classList.add("dragover");});
       row.addEventListener("dragleave",function(){row.classList.remove("dragover");});
-      row.addEventListener("drop",function(e){e.preventDefault();row.classList.remove("dragover");
-        var fs=e.dataTransfer.files; if(!fs||!fs.length)return;
-        var p=fs[0].pywebviewFullPath||fs[0].path||"";
-        if(p){setVal(f[2],p,row,data);}
-        else{setVal(f[2],fs[0].name,row,data,true);}
-      });
+      // preventDefault so the webview doesn't navigate to the file; the actual
+      // path is delivered to applyDrop() by the Python drop handler.
+      row.addEventListener("drop",function(e){e.preventDefault();row.classList.remove("dragover");});
+      dropIds.push(row.id);
     }
     card.appendChild(row);
   });
@@ -182,6 +196,7 @@ function addVideo(){
 
   document.getElementById("videos").appendChild(card);
   videos.push({card:card,data:data});
+  dropIds.forEach(bindDrop);   // now that the rows are in the document
 }
 
 function sel(label,items,cb){

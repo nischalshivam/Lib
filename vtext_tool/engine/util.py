@@ -27,9 +27,13 @@ def run_ffmpeg(args: list, **kw) -> subprocess.CompletedProcess:
 
 def probe(video: str) -> dict:
     """Parse duration / resolution / fps / has_audio from ffmpeg -i output."""
+    # ffmpeg echoes the (UTF-8) filename in its banner; on Windows text=True
+    # would decode as cp1252 and a non-ASCII path char (e.g. a curly quote)
+    # crashes the reader thread, leaving stderr=None. Force UTF-8 + replace.
     p = subprocess.run([ffmpeg_exe(), "-hide_banner", "-i", video],
-                       capture_output=True, text=True)
-    err = p.stderr
+                       capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
+    err = p.stderr or ""
     info = {"duration": 0.0, "width": 0, "height": 0, "fps": 30.0,
             "has_audio": False}
     m = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.?\d*)", err)

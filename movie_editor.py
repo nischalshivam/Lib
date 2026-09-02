@@ -44,6 +44,35 @@ class Api:
         res = self.window.create_file_dialog(webview.FOLDER_DIALOG)
         return res[0] if res else ""
 
+    # ---- native file drag-and-drop ------------------------------------- #
+    # pywebview 6 only puts the dropped file's real path on the event that
+    # reaches a Python-side DOM 'drop' handler (as file['pywebviewFullPath']);
+    # a plain JS drop listener never sees it. So the UI asks us to bind each
+    # droppable row here, and we push the resolved path back into the page.
+    def bind_drop(self, row_id):
+        try:
+            el = self.window.dom.get_element("#" + row_id)
+            if el is None:
+                return False
+            el.on("drop", lambda e, rid=row_id: self._on_drop(e, rid))
+            return True
+        except Exception as exc:                                # noqa: BLE001
+            self._log(f"[drop-bind err] {row_id}: {type(exc).__name__}: {exc}")
+            return False
+
+    def _on_drop(self, event, row_id):
+        try:
+            files = ((event or {}).get("dataTransfer", {}) or {}).get("files", []) or []
+            if not files:
+                return
+            f0 = files[0]
+            path = f0.get("pywebviewFullPath") or ""
+            name = f0.get("name") or ""
+            self.window.evaluate_js(
+                f"applyDrop({json.dumps(row_id)},{json.dumps(path)},{json.dumps(name)})")
+        except Exception as exc:                                # noqa: BLE001
+            self._log(f"[drop err] {type(exc).__name__}: {exc}")
+
     def copy(self, text):
         try:
             import tkinter as tk

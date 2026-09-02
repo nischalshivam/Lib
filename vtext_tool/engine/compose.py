@@ -20,8 +20,11 @@ def compose(video: str, playlist: str, out: str, has_audio: bool,
         args += ["-map", "0:a", "-c:a", "copy"]
     args += ["-c:v", "libx264", "-preset", preset, "-crf", str(crf),
              "-pix_fmt", "yuv420p", "-movflags", "+faststart", out]
+    # utf-8/replace: ffmpeg echoes the (UTF-8) paths; the default cp1252 decode
+    # on Windows crashes on a non-ASCII path char (e.g. a curly quote).
     p = subprocess.Popen(args, cwd=os.path.dirname(playlist),
-                         stderr=subprocess.PIPE, text=True)
+                         stderr=subprocess.PIPE, text=True,
+                         encoding="utf-8", errors="replace")
     tail = []
     for line in p.stderr:
         tail.append(line)
