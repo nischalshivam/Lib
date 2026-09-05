@@ -298,6 +298,13 @@ def requests_from_beats(beats: list) -> list:
             # or a bare episode marker).
             show = str(shot.get("source") or "").strip()
             ep = str(shot.get("season_episode") or "").strip()
+            # A movie's shots carry season_episode:"unknown" (no episode exists).
+            # Appending that gave "The Lord of the Rings: ... Ring unknown", which
+            # matched no film's title, so the shot fell back to the WHOLE library
+            # and pulled B-roll from the wrong film. A real episode marker always
+            # has a digit; a word-only value is a placeholder, so drop it.
+            if ep and not any(c.isdigit() for c in ep):
+                ep = ""
             src = f"{show} {ep}".strip() if show and ep else (ep or show)
             rng = str(shot.get("scene_range") or "").strip()
             if src != cur_source:             # new episode: forget the window

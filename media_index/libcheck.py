@@ -83,6 +83,49 @@ def _catalogued(movies_root: str) -> dict:
     return found
 
 
+_YEAR_RE = re.compile(r"\b(?:19|20)\d{2}\b")
+
+
+def _title_tokens(s: str) -> list:
+    """A movie title as comparable words: lowercase, year removed. Mirrors
+    plan._title_tokens so the gate agrees with what selection will actually
+    find."""
+    s = _YEAR_RE.sub(" ", (s or "").lower())
+    return re.sub(r"[^a-z0-9]+", " ", s).split()
+
+
+def _tokens_contain(haystack: list, needle: list) -> bool:
+    n = len(needle)
+    if not n or n > len(haystack):
+        return False
+    return any(haystack[i:i + n] == needle for i in range(len(haystack) - n + 1))
+
+
+def _movie_catalogs(movies_root: str) -> list:
+    """[(title_tokens, complete_bool)] for every catalogue that is NOT an
+    episode — i.e. a film. A movie library is invisible to the episode gate
+    (no SxxExx in its name), so without this a script that draws on a film
+    passes the check even when that film was never catalogued."""
+    out = []
+    for f in glob.glob(os.path.join(movies_root, "**", "*.catalog.json"),
+                       recursive=True):
+        if _epkeys(os.path.basename(f)):
+            continue                        # an episode catalogue, handled above
+        try:
+            data = json.load(open(f, encoding="utf-8"))
+            shots = data.get("shots") or []
+            ok = bool(data.get("complete")) or (
+                shots and sum(1 for s in shots if s.get("description"))
+                >= 0.9 * len(shots))
+            title = str((shots[0].get("source") if shots else "") or "")
+        except Exception:
+            ok, title = False, ""
+        if not title:
+            title = os.path.basename(f)[:-len(".catalog.json")]
+        out.append((_title_tokens(title), ok))
+    return out
+
+
 def _match_show(want: str, have_shows: set) -> str:
     """Loose-match a script's show name to a movies folder name."""
     w = re.sub(r"[^a-z0-9]+", "", want.lower())
@@ -101,10 +144,36 @@ def check(script_path: str, movies_root: str) -> dict:
     need = needed_from_script(script_path)
     have = _catalogued(movies_root)
     have_shows = {sh for sh, _ep in have.keys()}
+    have_movies = _movie_catalogs(movies_root)
     report = []
     all_ready = True
     for show, eps in sorted(need.items()):
         folder = _match_show(show, have_shows)
+
+        # A movie (or any title with no episode pins) that is NOT a known TV
+        # folder: it can only be satisfied by a film catalogue. Verify one
+        # exists and is complete, matching titles on ordered word tokens exactly
+        # as plan.scoped does — so a green gate means selection will really find
+        # the footage, not fall back to an empty/foreign library.
+        if not eps and not folder:
+            want = _title_tokens(show)
+            cats = [ok for toks, ok in have_movies
+                    if want and _tokens_contain(toks, want)]
+            if not cats:
+                state = "missing"
+            elif any(cats):
+                state = "present"
+            else:
+                state = "incomplete"
+            if state != "present":
+                all_ready = False
+            report.append({
+                "show": show, "matched_folder": None, "needed": [show],
+                "present": [show] if state == "present" else [],
+                "missing": [show] if state == "missing" else [],
+                "incomplete": [show] if state == "incomplete" else []})
+            continue
+
         present, missing, incomplete = [], [], []
         for ep in sorted(eps):
             ok = have.get((folder, ep)) if folder else None
