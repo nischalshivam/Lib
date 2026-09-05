@@ -46,6 +46,12 @@ _EP_RANGE = [
     # S01E01-E07 / S01E01-07 / S01.E01-E10
     re.compile(r"(?i)\bs(?P<season>\d{1,2})\s*[\._\- ]?\s*e(?P<ep_from>\d{1,3})"
                r"\s*[-–~]\s*e?(?P<ep_to>\d{1,3})\b"),
+    # S03E23E24 — a two-parter joined with NO separator at all. Without this the
+    # single-episode pattern below cannot match either (it needs a word boundary
+    # after the number, and "E23E24" has none), so the file fell through to
+    # "movie" and its episodes disappeared from the index entirely.
+    re.compile(r"(?i)\bs(?P<season>\d{1,2})\s*[\._\- ]?\s*e(?P<ep_from>\d{1,3})"
+               r"\s*e(?P<ep_to>\d{1,3})\b"),
     # E01-E13 with the season elsewhere
     re.compile(r"(?i)\be(?P<ep_from>\d{1,3})\s*[-–~]\s*e(?P<ep_to>\d{1,3})\b"),
 ]

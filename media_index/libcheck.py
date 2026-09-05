@@ -28,6 +28,12 @@ def _epkey(name: str):
     return f"S{k[0]:02d}E{k[1]:02d}" if k else None
 
 
+def _epkeys(name: str) -> list:
+    """Every episode a file covers — a two-part finale shipped as one
+    "S03E23E24" file has both of its episodes catalogued, so both are present."""
+    return [f"S{s:02d}E{e:02d}" for s, e in subtitles.episode_keys(name or "")]
+
+
 def needed_from_script(script_path: str) -> dict:
     """{show_lower: set(of 'S04E13')} the script's shots reference.
 
@@ -58,8 +64,8 @@ def _catalogued(movies_root: str) -> dict:
     found: dict = {}
     for f in glob.glob(os.path.join(movies_root, "**", "*.catalog.json"),
                        recursive=True):
-        ep = _epkey(os.path.basename(f))
-        if not ep:
+        eps = _epkeys(os.path.basename(f))
+        if not eps:
             continue
         # the show is the top-level folder under movies_root
         rel = os.path.relpath(f, movies_root)
@@ -72,7 +78,8 @@ def _catalogued(movies_root: str) -> dict:
                 >= 0.9 * len(shots))
         except Exception:
             ok = False
-        found[(show, ep)] = ok
+        for ep in eps:                  # a combined file satisfies each of them
+            found[(show, ep)] = ok
     return found
 
 

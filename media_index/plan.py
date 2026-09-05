@@ -109,6 +109,14 @@ def _show_ep(s: str) -> tuple:
     return subtitles.show_prefix(s or ""), _norm_ep(s)
 
 
+def _norm_eps(s: str) -> set:
+    """EVERY comparable episode key a source covers. One file can hold a
+    two-part finale ('S03E23E24'), and a shot in it belongs to both episodes —
+    asking for either one has to find it."""
+    from . import subtitles
+    return {f"s{a}e{b}" for a, b in subtitles.episode_keys(s or "")}
+
+
 def scoped(library: dict, source: str) -> dict:
     """Only the shots from the named episode/title. A single-scene essay must
     draw from ONE episode, and searching the whole series scatters its shots.
@@ -123,17 +131,51 @@ def scoped(library: dict, source: str) -> dict:
         return library
     want_show, want_ep = _show_ep(source)
     if want_ep:                               # an episode marker: match by it
+        from . import subtitles
         out = {}
         for k, s in library.items():
-            sh, ep = _show_ep(s.source)
-            if ep != want_ep:
+            if want_ep not in _norm_eps(s.source):
                 continue
+            sh = subtitles.show_prefix(s.source)
             if want_show and sh and sh != want_show:
                 continue                      # same number, different show
             out[k] = s
         return out
-    low = source.lower()                      # a title/name: substring match
-    return {k: s for k, s in library.items() if low in s.source.lower()} or library
+    # A movie title. The clue script and the catalogue rarely spell it byte for
+    # byte the same — the script writes "The Lord of the Rings: The Fellowship
+    # of the Ring" and the file is "The Lord of the Rings The Fellowship of the
+    # Ring (2001)". A raw substring test fails on the colon and the year, then
+    # falls back to the WHOLE library, so a Fellowship shot could be filled from
+    # Two Towers. Compare on a normalised key (no punctuation, no year) instead,
+    # which still tells the three films apart by their unique subtitles.
+    # The requested title's WORDS must appear, in order, inside the catalogue's
+    # (longer, year-tagged) title. Word tokens, not a raw substring: matching on
+    # characters let "...part ii" fall inside "...part iii", pulling a wrong
+    # sequel's shots. One direction only — the reverse would let "The Godfather"
+    # swallow "The Godfather Part II".
+    want = _title_tokens(source)
+    out = {k: s for k, s in library.items()
+           if want and _tokens_contain(_title_tokens(s.source), want)}
+    return out or library
+
+
+_YEAR_RE = re.compile(r"\b(?:19|20)\d{2}\b")
+
+
+def _title_tokens(s: str) -> list:
+    """A movie title as comparable words: lowercase, year removed, split on any
+    run of non-alphanumerics. 'The Lord of the Rings: The Fellowship of the Ring'
+    and '...The Fellowship of the Ring (2001)' reduce to the same word list."""
+    s = _YEAR_RE.sub(" ", (s or "").lower())
+    return re.sub(r"[^a-z0-9]+", " ", s).split()
+
+
+def _tokens_contain(haystack: list, needle: list) -> bool:
+    """Is `needle` a contiguous run of words inside `haystack`?"""
+    n = len(needle)
+    if not n or n > len(haystack):
+        return False
+    return any(haystack[i:i + n] == needle for i in range(len(haystack) - n + 1))
 
 
 def _range_seconds(text: str) -> tuple:

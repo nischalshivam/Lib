@@ -145,19 +145,65 @@ _EP_PATTERNS = [
 ]
 
 
+# One file holding two (or more) consecutive episodes: a two-part finale is
+# routinely shipped as "S03E23E24". These are tried BEFORE the single-episode
+# patterns, and they matter more than they look: the plain pattern above needs a
+# word boundary after the episode number, which "S03E23E24" does not have, so
+# such a file used to parse as NO episode at all. Its catalogue was then
+# invisible both to the pre-build library gate (which reported the episode
+# missing even though it was built) and to `plan.scoped`, which silently
+# dropped every shot in it.
+# S03E23E24 / S03E23-E24 / S01E01E02E03 — the season, the first episode, then
+# a run of one or more further e-numbers.
+_EP_RUN = re.compile(
+    r"(?i)\bs(\d{1,2})\s*[\._\- ]?\s*e(\d{1,3})((?:\s*[-–~]?\s*e\d{1,3})+)")
+# S03E23-24 — the second episode written without its own 'e'.
+_EP_DASH = re.compile(
+    r"(?i)\bs(\d{1,2})\s*[\._\- ]?\s*e(\d{1,3})\s*[-–~]\s*(\d{1,3})\b")
+_EP_RANGE_PATTERNS = [_EP_RUN, _EP_DASH]     # for show_prefix's title strip
+MAX_EPISODE_RUN = 20          # beyond this it is a stray number, not a run
+
+
+def episode_keys(name: str) -> list:
+    """Every (season, episode) this name covers, in order.
+
+    Usually one. A combined file ("S03E23E24") covers the whole run, and every
+    one of those episodes has to count as present — otherwise a script that
+    asks for the second half of a two-parter is told to build a file that is
+    already there.
+    """
+    stem = re.sub(r"[._]", " ", os.path.splitext(os.path.basename(name))[0])
+    m = _EP_RUN.search(stem)
+    if m:
+        season = int(m.group(1))
+        eps = [int(m.group(2))] + [int(x) for x in
+                                   re.findall(r"\d{1,3}", m.group(3))]
+        first, last = min(eps), max(eps)
+        if first < last <= first + MAX_EPISODE_RUN:
+            return [(season, e) for e in range(first, last + 1)]
+    m = _EP_DASH.search(stem)
+    if m:
+        season, first, last = (int(m.group(1)), int(m.group(2)),
+                               int(m.group(3)))
+        if first < last <= first + MAX_EPISODE_RUN:
+            return [(season, e) for e in range(first, last + 1)]
+    for pat in _EP_PATTERNS:
+        m = pat.search(stem)
+        if m:
+            return [(int(m.group(1)), int(m.group(2)))]
+    return []
+
+
 def episode_key(name: str) -> tuple | None:
     """(season, episode) from any spelling either side of the tool uses.
 
     Subtitle packs write 1x01 or S01E01; video files very often write
     "Season 1 Episode 1". Both have to be understood, because matching them
-    to each other is the entire job.
+    to each other is the entire job. For a combined file this is the FIRST
+    episode it holds; `episode_keys` gives the whole run.
     """
-    stem = re.sub(r"[._]", " ", os.path.splitext(os.path.basename(name))[0])
-    for pat in _EP_PATTERNS:
-        m = pat.search(stem)
-        if m:
-            return int(m.group(1)), int(m.group(2))
-    return None
+    keys = episode_keys(name)
+    return keys[0] if keys else None
 
 
 _ep_key = episode_key          # name kept for existing callers
@@ -173,7 +219,7 @@ def show_prefix(name: str) -> str:
     collide into one pool.
     """
     stem = re.sub(r"[._]", " ", name or "")
-    for pat in _EP_PATTERNS:
+    for pat in _EP_RANGE_PATTERNS + _EP_PATTERNS:   # a combined file has a title too
         m = pat.search(stem)
         if m:
             return re.sub(r"\s+", " ", stem[:m.start()]).strip().lower()
