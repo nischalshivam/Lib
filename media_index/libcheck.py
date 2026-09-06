@@ -46,11 +46,16 @@ def needed_from_script(script_path: str) -> dict:
         raise ScriptUnreadable(
             f"script JSON could not be read (fix the file, then re-check): {exc}"
         ) from exc
+    # Shot types that are generic B-roll / press imagery, NOT a title in our
+    # library: a script routinely tags these ("Mystery board", "Archival
+    # television"), and the movie gate must not demand a catalogue for them or a
+    # perfectly buildable video is blocked. Selection places them by look.
+    NON_LIBRARY = {"real_world", "stock", "b-roll", "broll", "archival", "press"}
     out: dict = {}
     for b in beats:
         for shot in (b.get("shots") or []):
             show = str(shot.get("source") or "").strip()
-            if not show or (shot.get("type") or "").strip() == "real_world":
+            if not show or (shot.get("type") or "").strip().lower() in NON_LIBRARY:
                 continue                       # stock / press photo — not our library
             ep = _epkey(str(shot.get("season_episode") or ""))
             out.setdefault(show.lower(), set())
