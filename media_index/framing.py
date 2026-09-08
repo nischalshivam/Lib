@@ -10,6 +10,8 @@ still, so the eye stays on the footage.
 """
 from __future__ import annotations
 
+from .venc import video_codec as _vc
+
 import os
 import subprocess
 import tempfile
@@ -104,8 +106,8 @@ def apply_frame(video_in: str, bg_path: str, out: str,
     run(["ffmpeg", "-y", "-v", "error", "-loop", "1", "-i", bg_png,
          "-i", video_in, "-i", mask, "-loop", "1", "-i", shadow,
          "-filter_complex", fc, "-map", "[o]", "-map", "1:a?",
-         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "veryfast",
-         "-crf", "20", "-threads", "0", "-c:a", "copy", "-shortest",
+         *_vc(crf=20, preset="veryfast"), "-pix_fmt", "yuv420p",
+         "-threads", "0", "-c:a", "copy", "-shortest",
          "-movflags", "+faststart", out], check=True)
     log(f"  frame: footage placed in the premium card on "
         f"{os.path.basename(bg_path)}")

@@ -6,6 +6,7 @@ import re
 import subprocess
 
 from .util import ffmpeg_exe
+from .venc import video_codec as _vc, label as _vc_label
 
 
 def compose(video: str, playlist: str, out: str, has_audio: bool,
@@ -18,7 +19,7 @@ def compose(video: str, playlist: str, out: str, has_audio: bool,
             "-map", "[v]"]
     if has_audio:
         args += ["-map", "0:a", "-c:a", "copy"]
-    args += ["-c:v", "libx264", "-preset", preset, "-crf", str(crf),
+    args += [*_vc(crf=crf, preset=preset),
              "-pix_fmt", "yuv420p", "-movflags", "+faststart", out]
     # utf-8/replace: ffmpeg echoes the (UTF-8) paths; the default cp1252 decode
     # on Windows crashes on a non-ASCII path char (e.g. a curly quote).

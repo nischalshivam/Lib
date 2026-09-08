@@ -18,6 +18,7 @@ import tempfile
 
 from . import FPS, RESOLUTIONS
 from .audio_sync import duration
+from .venc import video_codec as _vc, label as _vc_label
 from .formats import FORMATS, grade_for, theme_color as _theme_color
 from .textlayout import chunk_filters
 
@@ -32,6 +33,33 @@ def _run(cmd, log, timeout=None):
     if p.returncode:
         log("ffmpeg error:\n" + p.stderr[-1500:])
         raise RuntimeError("ffmpeg failed")
+
+
+_FC_FILE_FLAG = None
+
+
+def _fc_file_flag():
+    """Read a big filter graph from a FILE, on any ffmpeg. ffmpeg >= 7 removed
+    `-filter_complex_script FILE`; its replacement is the generic
+    `-/filter_complex FILE`. Probe once and use whichever this build accepts, so
+    the long graph never has to go on the (length-limited) command line."""
+    global _FC_FILE_FLAG
+    if _FC_FILE_FLAG is None:
+        _FC_FILE_FLAG = "-filter_complex_script"          # older ffmpeg default
+        try:
+            g = os.path.join(tempfile.gettempdir(), "_fc_probe.txt")
+            with open(g, "w", encoding="utf-8") as f:
+                f.write("color=c=black:s=32x32:d=1[v]")
+            out = os.path.join(tempfile.gettempdir(), "_fc_probe.png")
+            p = subprocess.run(["ffmpeg", "-nostdin", "-y", "-v", "error",
+                                "-/filter_complex", g, "-map", "[v]",
+                                "-frames:v", "1", out],
+                               capture_output=True, text=True, timeout=20)
+            if p.returncode == 0 and os.path.isfile(out):
+                _FC_FILE_FLAG = "-/filter_complex"         # ffmpeg >= 7
+        except Exception:
+            pass
+    return _FC_FILE_FLAG
 
 
 def _run_progress(cmd, log, total, work, lo=88, hi=99, stall_secs=900):
@@ -161,8 +189,8 @@ def _render_inset(shot, out, style, niche, W, H, secs, log, inset=0.90,
     )
     cmd = ["ffmpeg", "-nostdin", "-y", "-v", "error", *ins,
            "-filter_complex", fc, "-map", "[v]", "-t", f"{secs:.3f}",
-           "-an", "-r", str(FPS), "-c:v", "libx264", "-pix_fmt", "yuv420p",
-           "-preset", "veryfast", out]
+           "-an", "-r", str(FPS), *_vc(preset="veryfast"), "-pix_fmt", "yuv420p",
+           out]
     _run(cmd, log, timeout=timeout)
     _ensure_duration(out, secs, log)
 
@@ -269,7 +297,7 @@ def _ensure_duration(out, secs, log):
         tmp = out + ".p.mp4"
         _run(["ffmpeg", "-nostdin", "-y", "-v", "error", "-i", out, "-vf",
               f"tpad=stop_mode=clone:stop_duration={secs - got:.3f}",
-              "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "veryfast",
+              *_vc(preset="veryfast"), "-pix_fmt", "yuv420p",
               tmp], log, timeout=120)
         os.replace(tmp, out)
 
@@ -308,8 +336,8 @@ def _render_full(shot, out, style, niche, W, H, secs, glow, log, timeout):
                "-filter_complex", fc, "-map", "[v]"]
     else:
         cmd = ["ffmpeg", "-nostdin", "-y", "-v", "error", *ins, "-vf", vf]
-    cmd += ["-t", f"{secs:.3f}", "-an", "-r", str(FPS), "-c:v", "libx264",
-            "-pix_fmt", "yuv420p", "-preset", "veryfast", out]
+    cmd += ["-t", f"{secs:.3f}", "-an", "-r", str(FPS), *_vc(preset="veryfast"),
+            "-pix_fmt", "yuv420p", out]
     _run(cmd, log, timeout=timeout)
     _ensure_duration(out, secs, log)
 
@@ -359,8 +387,8 @@ def _render_still_simple(still, out, shot, W, H, secs, style, niche, log,
         vf += f",crop={W}:{vh},pad={W}:{H}:0:(oh-ih)/2:black"
     cmd = ["ffmpeg", "-nostdin", "-y", "-v", "error", "-loop", "1",
            "-t", f"{secs + 0.4:.3f}", "-i", still, "-vf", vf,
-           "-t", f"{secs:.3f}", "-an", "-r", str(FPS), "-c:v", "libx264",
-           "-pix_fmt", "yuv420p", "-preset", "veryfast", out]
+           "-t", f"{secs:.3f}", "-an", "-r", str(FPS), *_vc(preset="veryfast"),
+           "-pix_fmt", "yuv420p", out]
     _run(cmd, log, timeout=timeout)
     _ensure_duration(out, secs, log)
 
@@ -370,8 +398,8 @@ def _render_filler(out, W, H, secs, log):
     timeline never breaks even if a file is completely unusable."""
     _run(["ffmpeg", "-nostdin", "-y", "-v", "error", "-f", "lavfi",
           "-i", f"color=c=0x0b0d10:s={W}x{H}:r={FPS}:d={secs:.3f}",
-          "-t", f"{secs:.3f}", "-c:v", "libx264", "-pix_fmt", "yuv420p",
-          "-preset", "veryfast", out], log, timeout=60)
+          "-t", f"{secs:.3f}", *_vc(preset="veryfast"), "-pix_fmt", "yuv420p",
+          out], log, timeout=60)
 
 
 def _render_bare(shot, out, W, H, secs, log, timeout=120):
@@ -388,8 +416,8 @@ def _render_bare(shot, out, W, H, secs, log, timeout=120):
         ins = (["-ss", f"{ss:.3f}"] if ss > 0 else []) + \
             ["-t", f"{secs + 0.4:.3f}", "-i", shot.path]
     cmd = ["ffmpeg", "-nostdin", "-y", "-v", "error", *ins, "-vf", fit,
-           "-t", f"{secs:.3f}", "-an", "-r", str(FPS), "-c:v", "libx264",
-           "-pix_fmt", "yuv420p", "-preset", "veryfast", out]
+           "-t", f"{secs:.3f}", "-an", "-r", str(FPS), *_vc(preset="veryfast"),
+           "-pix_fmt", "yuv420p", out]
     _run(cmd, log, timeout=timeout)
     _ensure_duration(out, secs, log)
 
@@ -548,13 +576,14 @@ def _compose_chain(clips, nets, joins, out, W, H, crf, preset, work, log,
         maps[maps.index(vmap)] = "[vframed]"
 
     os.makedirs(os.path.dirname(os.path.abspath(out)) or ".", exist_ok=True)
+    log(f"  video encoder: {_vc_label()}")
     if filt:
         graph_file = os.path.join(work, f"graph_{tag}.txt")
         with open(graph_file, "w", encoding="utf-8") as f:
             f.write(";\n".join(filt))
         cmd = ["ffmpeg", "-nostdin", "-y", "-v", "error", *inputs, *loop_inputs,
-               "-filter_complex_script", graph_file, *maps,
-               "-c:v", "libx264", "-crf", str(crf), "-preset", preset,
+               _fc_file_flag(), graph_file, *maps,
+               *_vc(crf=crf, preset=preset),
                "-pix_fmt", "yuv420p", "-r", str(FPS), *acodec,
                "-movflags", "+faststart", "-t", f"{total:.3f}", out]
     else:                                   # single clip, no filters -> copy
@@ -590,7 +619,7 @@ def _concat_copy(segs, out, audio, log):
     except Exception as exc:
         log(f"  stream-copy join failed ({exc}); re-encoding once ...")
     # fallback: one clean re-encode (still a single pass, no effects)
-    _run(base + amap + ["-c:v", "libx264", "-crf", "20", "-preset", "veryfast",
+    _run(base + amap + [*_vc(crf=20, preset="veryfast"),
                         "-pix_fmt", "yuv420p", "-movflags", "+faststart", out],
          log, timeout=None)
 

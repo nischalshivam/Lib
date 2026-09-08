@@ -32,6 +32,8 @@ looks cheap; doing the motion at 3840 and resampling down does not.
 """
 from __future__ import annotations
 
+from .venc import video_codec as _vc
+
 import json
 import os
 import random
@@ -264,8 +266,8 @@ def render_item(item: dict, source_dir: str, out_path: str, seed: int,
                "-vf", still_filter(duration, seed, motion)]
     # No audio on a segment. The film's own sound under a narration track is
     # a mixing decision, and mixing it in here would bake it in permanently.
-    cmd += ["-an", "-c:v", "libx264", "-crf", str(SEGMENT_CRF),
-            "-preset", SEGMENT_PRESET, "-pix_fmt", "yuv420p",
+    cmd += ["-an", *_vc(crf=SEGMENT_CRF, preset=SEGMENT_PRESET),
+            "-pix_fmt", "yuv420p",
             "-r", str(FPS), out_path]
     _run(cmd)
 

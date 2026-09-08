@@ -21,6 +21,8 @@ resolution, with no watermark.
 """
 from __future__ import annotations
 
+from .venc import video_codec as _vc
+
 import os
 import re
 import subprocess
@@ -176,7 +178,7 @@ def cut_clip(path: str, start: float, end: float, out: str,
         vf = f"scale=-2:{height}" if height else None
         if vf:
             cmd += ["-vf", vf]
-        cmd += ["-c:v", "libx264", "-preset", "veryfast", "-crf", str(crf),
+        cmd += [*_vc(crf=crf, preset="veryfast"),
                 "-pix_fmt", "yuv420p"]
         if with_audio:
             cmd += ["-c:a", "aac", "-b:a", "160k"]

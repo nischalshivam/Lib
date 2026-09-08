@@ -262,16 +262,23 @@ def _default_bg_folder() -> str:
 
 
 def _mini_library(beats: list, movies_root: str) -> dict:
-    """Just the catalogues for the episodes this clue references — enough for a
-    punch-in/cold-open to resolve its source clip, without loading a whole show."""
+    """Just the catalogues for the episodes/films this clue references — enough
+    for a punch-in/cold-open to resolve its source clip, without loading a whole
+    show. TV episodes are matched by SxxExx; FILMS by title tokens (a movie shot
+    carries season_episode 'unknown', so it has no episode marker to match)."""
     import glob
-    from media_index import catalog
+    from media_index import catalog, plan
     eps = set()
+    movie_titles = []
     for b in beats:
         for s in (b.get("shots") or []):
             se = str(s.get("season_episode") or "").upper().replace(" ", "")
-            if se:
+            if se and se != "UNKNOWN":
                 eps.add(se)
+            else:                                  # a film — resolve by title
+                toks = plan._title_tokens(s.get("source") or "")
+                if toks:
+                    movie_titles.append(toks)
 
     def epof(path):
         m = re.search(r"s(\d{1,2})\s*e(\d{1,2})", os.path.basename(path), re.I)
@@ -280,7 +287,11 @@ def _mini_library(beats: list, movies_root: str) -> dict:
     lib = {}
     for c in glob.glob(os.path.join(movies_root, "**", "*.catalog.json"),
                        recursive=True):
-        if epof(c) in eps:
+        take = epof(c) in eps
+        if not take and movie_titles:             # films: title-token match
+            ctoks = plan._title_tokens(os.path.basename(c))
+            take = any(plan._tokens_contain(ctoks, w) for w in movie_titles)
+        if take:
             lib.update(catalog.load_library(c))
     return lib
 

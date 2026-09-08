@@ -20,6 +20,8 @@ from __future__ import annotations
 
 import os
 import re
+
+from .venc import video_codec as _vc
 import subprocess
 import tempfile
 
@@ -51,6 +53,13 @@ def resolve_video(source: str, season_episode: str, library: dict) -> str:
     want_show = subtitles.show_prefix(f"{source} {season_episode}")
     want_ep = plan._norm_ep(f"{source} {season_episode}")
     if not want_ep:
+        # A film has no episode marker — resolve by title tokens instead, so
+        # cold-open / punch-ins work on movie essays too (not just TV episodes).
+        sub = plan.scoped(library, source)
+        if sub is not library:            # scoped narrowed to a real title match
+            for s in sub.values():
+                if s.file and os.path.isfile(s.file):
+                    return s.file
         return ""
     for s in library.values():
         if plan._norm_ep(s.source) != want_ep:
@@ -188,7 +197,7 @@ def build_segment(video: str, line_start: float, line_len: float, out: str,
           f"atrim=0:{total},volume={VOICE_GAIN}")
     run(["ffmpeg", "-y", "-v", "error", "-ss", f"{grab_start}", "-i", video,
          "-t", f"{total}", "-filter_complex", f"[0:v]{vf}[v];[0:a]{af}[a]",
-         "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+         "-map", "[v]", "-map", "[a]", *_vc(preset="veryfast"), "-pix_fmt", "yuv420p",
          "-r", str(fps), "-c:a", "aac", "-ar", "48000", "-ac", "2", out],
         check=True)
     return out
@@ -270,8 +279,8 @@ def apply(video_in: str, picks: list, out: str,
     head = os.path.join(tmp, "head.mp4")
     run(["ffmpeg", "-y", "-v", "error"] + inputs +
         ["-filter_complex", ";".join(fc), "-map", "[v]", "-map", "[a]",
-         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-profile:v", "high",
-         "-preset", "veryfast", "-crf", "20", "-threads", "0", "-c:a", "aac",
+         *_vc(crf=20, preset="veryfast"), "-pix_fmt", "yuv420p", "-profile:v", "high",
+         "-threads", "0", "-c:a", "aac",
          "-ar", str(ar), "-ac", str(ac), head], check=True)
 
     # TAIL = base[split:end], stream-copied (split is a keyframe, so it is exact).
@@ -358,7 +367,7 @@ def build_cold_open(spec: dict, out: str, w: int, h: int, fps: int,
     run(["ffmpeg", "-y", "-v", "error", "-ss", f"{grab_start}", "-i",
          spec["video"], "-t", f"{total}",
          "-filter_complex", f"[0:v]{vf}[v];[0:a]{af}[a]",
-         "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+         "-map", "[v]", "-map", "[a]", *_vc(preset="veryfast"), "-pix_fmt", "yuv420p",
          "-profile:v", "high", "-r", str(fps),
          "-c:a", "aac", "-ar", str(ar), "-ac", str(ac), out], check=True)
     return out
