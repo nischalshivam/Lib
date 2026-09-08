@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
 import threading
 
@@ -26,6 +27,7 @@ class Api:
         self.window = None
         self._stop = False
         self._running = False
+        self._proc = None            # the child (makevideo/prostudio) now running
 
     # ---- native file / folder pickers ---------------------------------- #
     def pick_file(self, kind=""):
@@ -83,8 +85,32 @@ class Api:
         return True
 
     def stop(self):
+        # Set the flag AND actually kill the running child. The flag alone only
+        # lands BETWEEN stages (studio polls should_stop there), so a 40-80 min
+        # makevideo/prostudio would ignore Stop until it finished — which is why
+        # Stop "did nothing". Kill the whole process TREE so the ffmpeg workers
+        # spawned underneath die with it. The half-done build folder is kept, so
+        # the next Run resumes (makevideo reuses cut clips, prostudio the shots).
         self._stop = True
+        proc = self._proc
+        if proc is not None and proc.poll() is None:
+            try:
+                if os.name == "nt":
+                    subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                                   capture_output=True)
+                else:
+                    proc.terminate()
+            except Exception:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
         return True
+
+    def _set_proc(self, proc):
+        # studio.build hands us each child process (and None when it ends) so a
+        # Stop click can reach in and kill whatever is running right now.
+        self._proc = proc
 
     # ---- run the queue -------------------------------------------------- #
     def run(self, jobs_json):
@@ -134,7 +160,7 @@ class Api:
                     self._log("\n■ stopped by you.")
                     break
                 self._log(f"\n{'='*54}\nVIDEO {n}/{len(jobs)}\n{'='*54}")
-                studio.build(job, log=self._log,
+                studio.build(job, log=self._log, on_proc=self._set_proc,
                              should_stop=lambda: self._stop)
                 if job.status == "done":
                     ok += 1

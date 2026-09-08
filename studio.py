@@ -335,7 +335,7 @@ def _apply_intro_hooks(job: Job, final: str, log) -> None:
         log("  cold-open: koi opening hook line resolve nahi hui — skip")
 
 
-def _apply_kinetic_text(job: Job, final: str, log) -> None:
+def _apply_kinetic_text(job: Job, final: str, log, on_proc=None) -> None:
     """Add VText kinetic text to `final`. Manual instruction file if provided,
     else auto-generated from the clean narration + clue."""
     inst = (job.text_file or "").strip()
@@ -359,9 +359,21 @@ def _apply_kinetic_text(job: Job, final: str, log) -> None:
             log("  kinetic text: narration se koi text moment nahi nikla — skip")
             return
     out = os.path.join(job.out, "final_texted.mp4")
-    rc = subprocess.run([sys.executable, VTEXT, "--video", final, "--script",
-                         job.clean, "--instructions", inst, "--out", out],
-                        cwd=os.path.dirname(VTEXT)).returncode
+    # Popen (not subprocess.run) + on_proc so a Stop click can kill the VText
+    # pass too — on a long video its text re-encode runs many minutes. Inherit
+    # stdout/env so VText's progress still shows and the launcher's VTEXT_FFMPEG
+    # (NVENC-capable ffmpeg) is preserved.
+    vproc = subprocess.Popen(
+        [sys.executable, VTEXT, "--video", final, "--script", job.clean,
+         "--instructions", inst, "--out", out],
+        cwd=os.path.dirname(VTEXT),
+        creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0))
+    if on_proc:
+        on_proc(vproc)
+    vproc.wait()
+    if on_proc:
+        on_proc(None)
+    rc = vproc.returncode
     if rc == 0 and os.path.isfile(out):
         os.replace(out, final)
         log("  kinetic text: on-screen text composited")
@@ -492,7 +504,7 @@ def build(job: Job, log=print, on_proc=None, should_stop=None) -> Job:
     # from the narration. Runs last so text sits over the finished composition.
     if job.kinetic_text:
         try:
-            _apply_kinetic_text(job, final, log)
+            _apply_kinetic_text(job, final, log, on_proc=on_proc)
         except Exception as exc:
             log(f"  kinetic text skip ({type(exc).__name__}: {exc}) — final kept as-is")
 
