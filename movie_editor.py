@@ -46,6 +46,71 @@ class Api:
         res = self.window.create_file_dialog(webview.FOLDER_DIALOG)
         return res[0] if res else ""
 
+    def scan_folder(self, folder):
+        """Look inside ONE video's folder and guess each input file: the clean
+        (narration) script, the clue script, the voiceover audio, and the
+        optional kinetic-text file. Returns {clean, clue, audio, text_file} of
+        full paths (blank where nothing matched). Lets the user drop/choose a
+        whole folder instead of adding four files one by one."""
+        out = {"clean": "", "clue": "", "audio": "", "text_file": ""}
+        try:
+            if not folder or not os.path.isdir(folder):
+                return out
+            files = [os.path.join(folder, n) for n in sorted(os.listdir(folder))]
+            files = [f for f in files if os.path.isfile(f)]
+        except OSError:
+            return out
+
+        A_EXT = (".wav", ".mp3", ".m4a", ".aac", ".flac", ".ogg", ".opus")
+
+        def nm(f):
+            return os.path.basename(f).lower()
+
+        # voiceover: any audio file, preferring one named audio/voice/vo/narration
+        auds = [f for f in files if nm(f).endswith(A_EXT)]
+        if auds:
+            auds.sort(key=lambda f: (0 if any(k in nm(f) for k in
+                      ("audio", "voice", "vo", "narrat")) else 1, len(nm(f))))
+            out["audio"] = auds[0]
+
+        # clue: a .json/.jsonl, preferring one whose name says 'clue'
+        js = [f for f in files if nm(f).endswith((".json", ".jsonl"))]
+        if js:
+            js.sort(key=lambda f: (0 if "clue" in nm(f) else 1, len(nm(f))))
+            out["clue"] = js[0]
+
+        # clean vs kinetic-text: both are .txt. The kinetic-text file is the
+        # VText instruction file — spot it by name or by its header/markers;
+        # whatever .txt is left (and isn't the clue) is the clean script.
+        def is_textfile(f):
+            n = nm(f)
+            if any(k in n for k in ("text_instruction", "text-instruction",
+                    "textinstruction", "vtext", "kinetic", "caption",
+                    "onscreen", "on-screen", "_texts")):
+                return True
+            try:
+                head = open(f, encoding="utf-8-sig", errors="ignore").read(600).upper()
+            except OSError:
+                return False
+            return ("VTEXT INSTRUCTION" in head or "EVENT_TYPE" in head
+                    or "DISPLAY_TEXT" in head or "NARRATION_CUE" in head)
+
+        txts = [f for f in files if nm(f).endswith((".txt", ".md"))]
+        tf = [f for f in txts if is_textfile(f)]
+        if tf:
+            out["text_file"] = tf[0]
+        if not out["clue"]:                       # a .txt clue (rare) as a fallback
+            clue_txt = [f for f in txts if "clue" in nm(f) and f not in tf]
+            if clue_txt:
+                out["clue"] = clue_txt[0]
+        cleans = [f for f in txts if f not in tf and f != out["clue"]
+                  and "clue" not in nm(f)]
+        if cleans:
+            cleans.sort(key=lambda f: (0 if any(k in nm(f) for k in
+                        ("clean", "narrat", "script")) else 1, len(nm(f))))
+            out["clean"] = cleans[0]
+        return out
+
     # ---- native file drag-and-drop ------------------------------------- #
     # pywebview 6 only puts the dropped file's real path on the event that
     # reaches a Python-side DOM 'drop' handler (as file['pywebviewFullPath']);

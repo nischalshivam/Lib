@@ -127,9 +127,23 @@ function bindDrop(rowId){
 }
 window.applyDrop=function(rowId,path,name){
   var r=ROWS[rowId]; if(!r)return;
+  if(r.folder){ if(path) autoFill(path,r.data,r.rowEls,document.getElementById(rowId)); return; }
   if(path) setVal(r.key,path,r.row,r.data,false);
   else setVal(r.key,name||"",r.row,r.data,true);
 };
+function autoFill(folder,data,rowEls,ff){
+  if(!(window.pywebview&&window.pywebview.api&&window.pywebview.api.scan_folder))return;
+  window.pywebview.api.scan_folder(folder).then(function(res){
+    var keys=["clean","clue","audio","text_file"],got=[];
+    keys.forEach(function(k){
+      if(res&&res[k]&&rowEls[k]){setVal(k,res[k],rowEls[k],data,false);got.push(k);}
+    });
+    var v=ff.querySelector(".val"),base=folder.split(/[\\/]/).pop();
+    if(got.length){v.textContent="filled "+got.join(", ")+"  ("+base+")";v.style.color="var(--ok)";}
+    else{v.textContent="nothing recognised in "+base+" — use the rows below";v.style.color="var(--danger)";}
+    v.classList.remove("empty");
+  });
+}
 
 function addVideo(){
   var id=++vid;
@@ -143,10 +157,28 @@ function addVideo(){
   rm.onclick=function(){card.remove();videos=videos.filter(function(v){return v.card!==card;});};
   head.appendChild(rm); card.appendChild(head);
 
-  var dropIds=[];
+  var dropIds=[], rowEls={};
+  // --- auto-fill every input from ONE video folder -----------------------
+  var ff=el("div","row");
+  ff.style.cssText="border-style:solid;border-color:var(--accent-line);background:var(--accent-bg);";
+  ff.innerHTML='<i class="ti ti-folder-plus ic" style="color:var(--accent)"></i>'+
+    '<div class="mid"><div class="lab" style="color:var(--accent)">Auto-fill from a video folder</div>'+
+    '<div class="val empty">drop the whole folder here, or Choose &mdash; I place the script, clue, voiceover &amp; text</div></div>'+
+    '<button class="ghost fbtn">Choose folder</button>';
+  ff.id="folder-"+id;
+  ROWS[ff.id]={folder:true,data:data,rowEls:rowEls};
+  ff.querySelector(".fbtn").onclick=function(){
+    if(!window.pywebview){alert("File dialog needs the app (run Movie Editor).");return;}
+    window.pywebview.api.pick_folder().then(function(p){if(p)autoFill(p,data,rowEls,ff);});
+  };
+  ff.addEventListener("dragover",function(e){e.preventDefault();ff.classList.add("dragover");});
+  ff.addEventListener("dragleave",function(){ff.classList.remove("dragover");});
+  ff.addEventListener("drop",function(e){e.preventDefault();ff.classList.remove("dragover");});
+  card.appendChild(ff); dropIds.push(ff.id);
+
   FILES.forEach(function(f){
     var isDir=f[2]==="save_dir";
-    var row=el("div","row");
+    var row=el("div","row"); rowEls[f[2]]=row;
     var empty=isDir?"choose a folder":"drag a file here, or browse";
     row.innerHTML='<i class="ti '+f[0]+' ic"></i>'+
       '<div class="mid"><div class="lab">'+f[1]+'</div><div class="val empty">'+empty+'</div></div>'+
