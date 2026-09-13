@@ -28,6 +28,7 @@ class Api:
         self._stop = False
         self._running = False
         self._proc = None            # the child (makevideo/prostudio) now running
+        self._drop_broken = False    # this webview can't do DOM drag-drop -> stop trying
 
     # ---- native file / folder pickers ---------------------------------- #
     def pick_file(self, kind=""):
@@ -118,6 +119,15 @@ class Api:
     # a plain JS drop listener never sees it. So the UI asks us to bind each
     # droppable row here, and we push the resolved path back into the page.
     def bind_drop(self, row_id):
+        # CRITICAL: never str() a caught exception in here. On some pywebview 6 /
+        # WebView2 builds, get_element()/.on() surfaces a .NET exception whose
+        # str() recurses forever over its `SyncRoot` property
+        # ("SyncRoot.SyncRoot...: maximum recursion depth exceeded"). Formatting
+        # {exc} then floods the console and freezes the window ("not responding")
+        # for a minute+. So we log only the type name, and give up on DOM
+        # drag-drop after the first failure — Browse / Choose folder still work.
+        if self._drop_broken:
+            return False
         try:
             el = self.window.dom.get_element("#" + row_id)
             if el is None:
@@ -125,7 +135,12 @@ class Api:
             el.on("drop", lambda e, rid=row_id: self._on_drop(e, rid))
             return True
         except Exception as exc:                                # noqa: BLE001
-            self._log(f"[drop-bind err] {row_id}: {type(exc).__name__}: {exc}")
+            self._drop_broken = True
+            try:
+                self._log("  drag-drop unavailable on this webview "
+                          f"({type(exc).__name__}) — use Browse / Choose folder.")
+            except Exception:
+                pass
             return False
 
     def _on_drop(self, event, row_id):
@@ -139,7 +154,10 @@ class Api:
             self.window.evaluate_js(
                 f"applyDrop({json.dumps(row_id)},{json.dumps(path)},{json.dumps(name)})")
         except Exception as exc:                                # noqa: BLE001
-            self._log(f"[drop err] {type(exc).__name__}: {exc}")
+            try:                                # never str(exc): a .NET error can
+                self._log(f"[drop err] {type(exc).__name__}")  # recurse on SyncRoot
+            except Exception:
+                pass
 
     def copy(self, text):
         try:
