@@ -93,6 +93,9 @@ class Job:
                                      # audio-synced, at important moments only.
     text_file: str = ""              # hand-made VText instruction file; blank +
                                      # kinetic_text on = auto-generate from script.
+    auto_voice: bool = False         # no audio given -> generate the voiceover with
+                                     # the local OmniVoice server (voice-cloned).
+    voice_ref: str = ""              # a short sample of the narrator's voice to clone
     index: int = 0                   # position in the queue (drives format rotation)
     # results
     status: str = "queued"           # queued|blocked|running|done|error
@@ -381,6 +384,69 @@ def _apply_kinetic_text(job: Job, final: str, log, on_proc=None) -> None:
         log(f"  kinetic text: vtext returncode {rc} — final kept as-is")
 
 
+def _generate_voiceover(job: "Job", out_wav: str, log=print) -> str:
+    """No voiceover was provided -> generate one with the local OmniVoice server
+    (voice-cloned from `job.voice_ref`, in `job.language`). OmniVoice runs in its
+    OWN Python-3.12 env; we only talk to it over HTTP here, so nothing in this
+    tool depends on torch/omnivoice. Start the server once by double-clicking
+    `omnivoice-wrapper\\run.bat` (it loads the ~3 GB voice model). Override the
+    address with the OMNIVOICE_API env var (default http://127.0.0.1:8001)."""
+    import time
+    import requests
+    api = (os.environ.get("OMNIVOICE_API") or "http://127.0.0.1:8001").rstrip("/")
+    try:
+        ready = requests.get(api + "/api/ready", timeout=5).status_code == 200
+    except Exception:
+        ready = False
+    if not ready:
+        raise RuntimeError(
+            f"OmniVoice voice server is not running at {api}. Start it once "
+            "(omnivoice-wrapper\\run.bat), wait for 'ready', then Run again.")
+    voice = (job.voice_ref or "").strip()
+    if not voice or not os.path.isfile(voice):
+        raise RuntimeError("auto-voiceover is on but no reference voice was chosen "
+                           "— pick a short (6-10 s) sample of the narrator's voice.")
+    try:
+        with open(job.clean, encoding="utf-8-sig") as f:
+            text = f.read().strip()
+    except OSError as exc:
+        raise RuntimeError(f"cannot read the clean script: {exc}")
+    if not text:
+        raise RuntimeError("the clean script is empty — nothing to speak.")
+    log(f"  [voiceover] OmniVoice: speaking {len(text.split())} words in "
+        f"'{job.language}', voice-cloned from {os.path.basename(voice)} ...")
+    t0 = time.time()
+    with open(voice, "rb") as vf:
+        r = requests.post(api + "/api/tts/async",
+                          data={"text": text, "language": job.language},
+                          files={"voice": (os.path.basename(voice), vf)}, timeout=120)
+    r.raise_for_status()
+    jid = r.json().get("job_id")
+    if jid is None:
+        raise RuntimeError(f"OmniVoice did not return a job id: {r.text[:200]}")
+    info = {}
+    while True:
+        time.sleep(3)
+        info = requests.get(f"{api}/api/jobs/{jid}", timeout=20).json()
+        st = info.get("status")
+        if st == "done":
+            break
+        if st in ("error", "failed"):
+            raise RuntimeError(f"OmniVoice job failed: {info.get('info') or info}")
+        if time.time() - t0 > 3600:
+            raise RuntimeError("OmniVoice generation timed out (>60 min)")
+    d = requests.get(f"{api}/api/jobs/{jid}/download", timeout=120)
+    d.raise_for_status()
+    os.makedirs(os.path.dirname(os.path.abspath(out_wav)) or ".", exist_ok=True)
+    with open(out_wav, "wb") as f:
+        f.write(d.content)
+    if not os.path.isfile(out_wav) or os.path.getsize(out_wav) < 2000:
+        raise RuntimeError("OmniVoice returned no audio")
+    log(f"  [voiceover] done: {info.get('audio_sec', '?')}s of audio in "
+        f"{time.time() - t0:.0f}s -> {os.path.basename(out_wav)}")
+    return out_wav
+
+
 def build(job: Job, log=print, on_proc=None, should_stop=None) -> Job:
     """The whole pipeline for ONE video. Never raises — reports via job.status.
 
@@ -394,6 +460,18 @@ def build(job: Job, log=print, on_proc=None, should_stop=None) -> Job:
     if _stop():
         job.status, job.message = "stopped", "stopped before it started"
         return job
+    # auto-voiceover: no audio given -> generate it with OmniVoice, THEN preflight
+    if not job.audio and job.auto_voice:
+        job.out = job.out or _default_out(job)
+        os.makedirs(job.out, exist_ok=True)
+        wav = os.path.join(job.out, "audio.wav")
+        try:
+            _generate_voiceover(job, wav, log)
+            job.audio = wav
+        except Exception as exc:
+            job.status, job.message = "error", f"auto-voiceover failed: {exc}"
+            log("  [X] " + job.message)
+            return job
     if not preflight(job, log):
         return job
 
@@ -573,6 +651,11 @@ def _cli(argv=None):
                    help="competitor-style on-screen text (VText), audio-synced")
     p.add_argument("--text-file", dest="text_file", default="",
                    help="hand-made VText instruction file; blank = auto-generate from script")
+    p.add_argument("--auto-voice", dest="auto_voice", action="store_true",
+                   help="no --audio? generate the voiceover with the local OmniVoice "
+                        "server (needs --voice-ref)")
+    p.add_argument("--voice-ref", dest="voice_ref", default="",
+                   help="a short sample of the narrator's voice to clone for --auto-voice")
     p.add_argument("--queue", help="jobs.json: [{clean,clue,audio,out?}, ...]")
     a = p.parse_args(argv)
 
@@ -591,8 +674,10 @@ def _cli(argv=None):
                     frame=j.get("frame", getattr(a, "frame", False)),
                     bg_folder=j.get("bg_folder", getattr(a, "bg_folder", "")),
                     kinetic_text=j.get("kinetic_text", getattr(a, "kinetic_text", False)),
-                    text_file=j.get("text_file", getattr(a, "text_file", ""))) for j in raw]
-    elif a.clean and a.clue and a.audio:
+                    text_file=j.get("text_file", getattr(a, "text_file", "")),
+                    auto_voice=j.get("auto_voice", getattr(a, "auto_voice", False)),
+                    voice_ref=j.get("voice_ref", getattr(a, "voice_ref", ""))) for j in raw]
+    elif a.clean and a.clue and (a.audio or a.auto_voice):
         jobs = [Job(clean=a.clean, clue=a.clue, audio=a.audio, out=a.out,
                     save_dir=a.save_dir, movies_root=a.movies, fmt=a.format,
                     resolution=a.resolution, text=a.text, verify=a.verify, verify_intro_min=a.verify_intro_min,
@@ -603,9 +688,11 @@ def _cli(argv=None):
                     frame=getattr(a, "frame", False),
                     bg_folder=getattr(a, "bg_folder", ""),
                     kinetic_text=getattr(a, "kinetic_text", False),
-                    text_file=getattr(a, "text_file", ""))]
+                    text_file=getattr(a, "text_file", ""),
+                    auto_voice=getattr(a, "auto_voice", False),
+                    voice_ref=getattr(a, "voice_ref", ""))]
     else:
-        p.error("give --clean --clue --audio, or --queue jobs.json")
+        p.error("give --clean --clue --audio (or --auto-voice --voice-ref), or --queue jobs.json")
 
     run_queue(jobs)
     return 0 if all(j.status == "done" for j in jobs) else 1

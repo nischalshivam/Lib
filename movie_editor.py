@@ -36,6 +36,7 @@ class Api:
             "clue": ("Clue (*.json;*.jsonl;*.txt)", "*.json;*.jsonl;*.txt"),
             "audio": ("Audio (*.wav;*.mp3;*.m4a)", "*.wav;*.mp3;*.m4a"),
             "text_file": ("Text instructions (*.txt)", "*.txt"),
+            "voice_ref": ("Voice sample (*.wav;*.mp3;*.m4a)", "*.wav;*.mp3;*.m4a"),
         }.get(kind, ("All files (*.*)", "*.*"))
         res = self.window.create_file_dialog(
             webview.OPEN_DIALOG, allow_multiple=False,
@@ -218,7 +219,9 @@ class Api:
                     ken_burns=bool(s.get("ken_burns")),
                     frame=bool(s.get("frame")),
                     kinetic_text=bool(s.get("kinetic_text")),
-                    text_file=s.get("text_file", ""), index=i))
+                    text_file=s.get("text_file", ""),
+                    auto_voice=bool(s.get("auto_voice")),
+                    voice_ref=s.get("voice_ref", ""), index=i))
             ok = 0
             for n, job in enumerate(jobs, 1):
                 if self._stop:

@@ -110,8 +110,8 @@ select{background:var(--panel2);color:var(--text);border:.5px solid var(--line2)
 </div>
 
 <script>
-var FILES=[["ti-file-text","Clean script (.txt)","clean"],["ti-code","Clue script (.json)","clue"],["ti-microphone","Voiceover audio","audio"],["ti-typography","Kinetic-text file (optional)","text_file"],["ti-folder","Save finished video to","save_dir"]];
-var TOGGLES=[["ti-bolt","Cold-open","cold_open",true],["ti-volume","Intro punch-ins","intro_punch",true],["ti-frame","Frames","frame",true],["ti-typography","Text","kinetic_text",true],["ti-zoom-in","Ken Burns","ken_burns",true]];
+var FILES=[["ti-file-text","Clean script (.txt)","clean"],["ti-code","Clue script (.json)","clue"],["ti-microphone","Voiceover audio (or use Auto voiceover)","audio"],["ti-user-check","Reference voice — for Auto voiceover (optional)","voice_ref"],["ti-typography","Kinetic-text file (optional)","text_file"],["ti-folder","Save finished video to","save_dir"]];
+var TOGGLES=[["ti-bolt","Cold-open","cold_open",true],["ti-volume","Intro punch-ins","intro_punch",true],["ti-frame","Frames","frame",true],["ti-typography","Text","kinetic_text",true],["ti-zoom-in","Ken Burns","ken_burns",true],["ti-microphone-2","Auto voiceover (OmniVoice)","auto_voice",false]];
 var FORMATS=["auto","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","No Filter"];
 var LANGS=["en","pt","fr","es","de","it","auto"];
 var videos=[], vid=0, ROWS={};
@@ -148,7 +148,7 @@ function autoFill(folder,data,rowEls,ff){
 function addVideo(){
   var id=++vid;
   var data={clean:"",clue:"",audio:"",text_file:"",save_dir:"",fmt:"auto",res:"1080p",lang:"en",
-            cold_open:true,intro_punch:true,frame:true,kinetic_text:true,ken_burns:true,text:false,
+            cold_open:true,intro_punch:true,frame:true,kinetic_text:true,ken_burns:true,text:false,auto_voice:false,voice_ref:"",
             verify:false,verify_min:0};
   var card=el("div","card");
   var head=el("div","card-h");
