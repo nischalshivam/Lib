@@ -108,14 +108,15 @@ def find_intro_punches(beats: list, scenes: list, library: dict,
         t0 = scene_start.get(bn)
         if t0 is None or t0 > intro_s:
             continue
-        # A shot qualifies on its exact_dialogue + a speaker (a real line someone
-        # says on screen). hook:true is preferred but NOT required — most clue
-        # scripts never set the hook flag, and requiring it left the intro with
-        # zero punch-ins. Take the first qualifying line per scene.
+        # A shot qualifies on its exact_dialogue ALONE — it is a real spoken line
+        # because it is checked against the subtitle below (subtitle_span). A
+        # named `speaker` and `hook:true` are PREFERRED (sorted first) but NOT
+        # required: most clue scripts leave `speaker` empty, and demanding it left
+        # every intro with zero punch-ins even when the lines resolved cleanly.
         cand_shots = [s for s in (b.get("shots") or [])
-                      if (s.get("exact_dialogue") or "").strip()
-                      and (s.get("speaker") or "").strip()]
-        cand_shots.sort(key=lambda s: (0 if s.get("hook") else 1))
+                      if (s.get("exact_dialogue") or "").strip()]
+        cand_shots.sort(key=lambda s: (0 if (s.get("speaker") or "").strip() else 1,
+                                       0 if s.get("hook") else 1))
         for s in cand_shots:
             vid = resolve_video(s.get("source", ""), s.get("season_episode", ""),
                                 library)
