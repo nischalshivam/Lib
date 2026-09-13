@@ -93,7 +93,7 @@ select{background:var(--panel2);color:var(--text);border:.5px solid var(--line2)
   <button class="ghost" id="addBtn"><i class="ti ti-plus" style="vertical-align:-2px;margin-right:5px"></i>Add video</button>
 
   <div class="footer">
-    <div class="sub" id="hint">drop files on a row, or browse</div>
+    <div class="sub" id="hint">Browse each file, or Choose folder to auto-fill</div>
     <div style="display:flex;gap:9px;">
       <button class="stop" id="stopBtn"><i class="ti ti-player-stop"></i>Stop</button>
       <button class="run" id="runBtn"><i class="ti ti-player-play"></i>Run</button>
@@ -163,7 +163,7 @@ function addVideo(){
   ff.style.cssText="border-style:solid;border-color:var(--accent-line);background:var(--accent-bg);";
   ff.innerHTML='<i class="ti ti-folder-plus ic" style="color:var(--accent)"></i>'+
     '<div class="mid"><div class="lab" style="color:var(--accent)">Auto-fill from a video folder</div>'+
-    '<div class="val empty">drop the whole folder here, or Choose &mdash; I place the script, clue, voiceover &amp; text</div></div>'+
+    '<div class="val empty">click Choose folder &mdash; I place the script, clue, voiceover &amp; text</div></div>'+
     '<button class="ghost fbtn">Choose folder</button>';
   ff.id="folder-"+id;
   ROWS[ff.id]={folder:true,data:data,rowEls:rowEls};
@@ -179,7 +179,7 @@ function addVideo(){
   FILES.forEach(function(f){
     var isDir=f[2]==="save_dir";
     var row=el("div","row"); rowEls[f[2]]=row;
-    var empty=isDir?"choose a folder":"drag a file here, or browse";
+    var empty=isDir?"choose a folder":"click Browse to choose";
     row.innerHTML='<i class="ti '+f[0]+' ic"></i>'+
       '<div class="mid"><div class="lab">'+f[1]+'</div><div class="val empty">'+empty+'</div></div>'+
       '<button class="ghost fbtn">'+(isDir?"Choose":"Browse")+'</button>'+

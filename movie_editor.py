@@ -119,13 +119,18 @@ class Api:
     # a plain JS drop listener never sees it. So the UI asks us to bind each
     # droppable row here, and we push the resolved path back into the page.
     def bind_drop(self, row_id):
-        # CRITICAL: never str() a caught exception in here. On some pywebview 6 /
-        # WebView2 builds, get_element()/.on() surfaces a .NET exception whose
-        # str() recurses forever over its `SyncRoot` property
-        # ("SyncRoot.SyncRoot...: maximum recursion depth exceeded"). Formatting
-        # {exc} then floods the console and freezes the window ("not responding")
-        # for a minute+. So we log only the type name, and give up on DOM
-        # drag-drop after the first failure — Browse / Choose folder still work.
+        # DOM drag-drop is DISABLED by default. On this pywebview 6 / WebView2
+        # build, `window.dom.get_element(...).on(...)` makes pythonnet recurse
+        # forever over a .NET object's properties (SyncRoot / Empty), and the
+        # flood happens INSIDE pywebview before we can catch it — it fills the
+        # console and freezes the window ("not responding") for a minute+ on
+        # every launch. We never touch window.dom, so that code path never runs.
+        # Browse and "Choose folder" (native dialogs, no DOM) do the same job —
+        # folder auto-fill still works via its button. Re-enable drag-drop only
+        # on a webview where it's fixed:  set  MOVIE_EDITOR_DND=1 .
+        if os.environ.get("MOVIE_EDITOR_DND", "").strip().lower() not in (
+                "1", "true", "yes", "on"):
+            return False
         if self._drop_broken:
             return False
         try:
@@ -134,13 +139,8 @@ class Api:
                 return False
             el.on("drop", lambda e, rid=row_id: self._on_drop(e, rid))
             return True
-        except Exception as exc:                                # noqa: BLE001
+        except Exception:                                       # noqa: BLE001
             self._drop_broken = True
-            try:
-                self._log("  drag-drop unavailable on this webview "
-                          f"({type(exc).__name__}) — use Browse / Choose folder.")
-            except Exception:
-                pass
             return False
 
     def _on_drop(self, event, row_id):
