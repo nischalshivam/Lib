@@ -18,6 +18,12 @@ import webview                                        # pip install pywebview
 
 import studio
 
+for _s in (sys.stdout, sys.stderr):      # UTF-8 console: never crash on a "→" path
+    try:
+        _s.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 UI = os.path.join(HERE, "movie_editor_ui.html")
 

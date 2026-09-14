@@ -19,6 +19,16 @@ import sys
 import time
 from dataclasses import dataclass
 
+# UTF-8 stdout/stderr: a scenes/out path with a non-Latin-1 char (e.g. a video
+# folder named "... -> ..." written with U+2192) otherwise crashes a print with
+# UnicodeEncodeError on Windows cp1252 right at the final "done" log — AFTER the
+# whole render. Belt for standalone runs; studio also sets PYTHONUTF8 for the child.
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from engine import RESOLUTIONS  # noqa: E402

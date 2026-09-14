@@ -41,6 +41,12 @@ import sys
 import time
 from dataclasses import dataclass, field
 
+for _s in (sys.stdout, sys.stderr):      # UTF-8 console: never crash on a "→" path
+    try:
+        _s.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
@@ -219,6 +225,13 @@ def _child_env() -> dict:
     """
     env = dict(os.environ)
     env["PYTHONUNBUFFERED"] = "1"
+    # UTF-8 stdout/stderr in every child. Windows defaults a piped child to the
+    # locale codepage (cp1252), so a child printing a path with a non-Latin-1
+    # char (e.g. a video folder named "... → ..." U+2192) dies with
+    # UnicodeEncodeError right at the final "done" log — AFTER the render. Force
+    # UTF-8 so any Unicode in a path or the script never crashes a subprocess.
+    env["PYTHONUTF8"] = "1"
+    env["PYTHONIOENCODING"] = "utf-8"
     env.setdefault("HF_HUB_ETAG_TIMEOUT", "5")
     cache = os.path.join(os.path.expanduser("~"), ".cache", "huggingface", "hub")
     try:
@@ -369,7 +382,7 @@ def _apply_kinetic_text(job: Job, final: str, log, on_proc=None) -> None:
     vproc = subprocess.Popen(
         [sys.executable, VTEXT, "--video", final, "--script", job.clean,
          "--instructions", inst, "--out", out],
-        cwd=os.path.dirname(VTEXT),
+        cwd=os.path.dirname(VTEXT), env=_child_env(),
         creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0))
     if on_proc:
         on_proc(vproc)
