@@ -575,9 +575,32 @@ def _generate_voiceover(job: "Job", out_wav: str, log=print) -> str:
         raise RuntimeError("auto-voiceover is on but no Voice sample was chosen"
                            + (f" (file not found: {voice})" if voice else "")
                            + " - pick the narrator sample in the 'Voice sample' row (keep 'Voiceover audio' empty).")
-    with _GpuSlots(log):
-        _omnivoice_ensure(api, log)
-        return _generate_voiceover_now(job, out_wav, log, api)
+    # one voiceover at a time across parallel builds (batch phase 1 runs 2 videos): two builds each holding some of
+    # the GPU slots would wait on each other; OmniVoice also speaks one clip at a time anyway
+    import msvcrt
+    os.makedirs(GPU_SLOT_DIR, exist_ok=True)
+    with open(os.path.join(GPU_SLOT_DIR, "voice.lock"), "a+") as vl:
+        t0, last = time.time(), 0.0
+        while True:
+            try:
+                vl.seek(0)
+                msvcrt.locking(vl.fileno(), msvcrt.LK_NBLCK, 1)
+                break
+            except OSError:
+                if time.time() - last > 60:
+                    log(f"  [voiceover] waiting for the other video's voiceover ({(time.time() - t0) / 60:.0f} min)")
+                    last = time.time()
+                time.sleep(3)
+        try:
+            with _GpuSlots(log):
+                _omnivoice_ensure(api, log)
+                return _generate_voiceover_now(job, out_wav, log, api)
+        finally:
+            try:
+                vl.seek(0)
+                msvcrt.locking(vl.fileno(), msvcrt.LK_UNLCK, 1)
+            except OSError:
+                pass
 
 
 def _generate_voiceover_now(job: "Job", out_wav: str, log, api) -> str:
@@ -633,7 +656,7 @@ def _generate_voiceover_now(job: "Job", out_wav: str, log, api) -> str:
     return out_wav
 
 
-def _build_v2(job: "Job", log, on_proc, stop) -> "Job":
+def _build_v2(job: "Job", log, on_proc, stop, until=None) -> "Job":
     """Pro engine (editv2). Runs as a child process so Stop kills it; the build
     folder is resumable stage by stage. The clue is generated inside (agy Claude)
     — a clue file in the job is ignored."""
@@ -657,7 +680,9 @@ def _build_v2(job: "Job", log, on_proc, stop) -> "Job":
                 log(f"  [voiceover] could not pre-start OmniVoice ({exc}) - the voice stage will retry")
     if job.save_dir:
         cmd += ["--save", job.save_dir]
-    log(f"  [v2] pro engine, look {job.look}, language {job.language}")
+    if until:
+        cmd += ["--until", until]
+    log(f"  [v2] pro engine, look {job.look}, language {job.language}" + (f" - {until} phase" if until else ""))
     proc = subprocess.Popen(cmd, cwd=HERE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                             text=True, encoding="utf-8", errors="replace",
                             env={**_child_env(), "PYTHONIOENCODING": "utf-8"})   # HF offline when cached + UTF-8
@@ -665,9 +690,13 @@ def _build_v2(job: "Job", log, on_proc, stop) -> "Job":
         on_proc(proc)
     if stop():                                     # Stop pressed while the child was being created: it missed the kill
         subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], capture_output=True)
-    last = ""
+    last, tail = "", []
+    job.tail = tail
     for line in proc.stdout:
         line = line.rstrip()
+        if line:
+            tail.append(line)
+            del tail[:-40]
         # drop only Python/library warning noise; the old `"warn" not in line` also hid QA 'WARN' verdicts and reasons
         if line and not re.search(r"\b\w+Warning\b|warnings\.warn|^\s*warnings\.|^\[ ?WARN:\d|cv::dnn", line):
             log(line)
@@ -677,6 +706,8 @@ def _build_v2(job: "Job", log, on_proc, stop) -> "Job":
         on_proc(None)
     if stop():
         job.status, job.message = "stopped", "stopped — Run again to resume"
+    elif proc.returncode == 0 and last.startswith("ONLINE-DONE"):
+        job.status, job.message = "online_done", f"internet work done in {(time.time() - t0) / 60:.0f} min"
     elif proc.returncode == 0 and last and os.path.isfile(last.strip()):
         job.status, job.video = "done", last.strip()
         qa = os.path.join(job.out, "QA.txt")
@@ -685,6 +716,151 @@ def _build_v2(job: "Job", log, on_proc, stop) -> "Job":
     else:
         job.status, job.message = "error", f"v2 engine failed: {last[:300]}"
     return job
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# Two-phase batch (user 2026-10-13): a 30-40 video night queue must not die on an internet drop. Phase 1 does every
+# step that needs the internet (clue, plan, cut, look + footage from Google Drive) for ALL videos, 2 at a time,
+# waiting out outages; then a GREEN SIGNAL; phase 2 renders / mixes / QAs everything fully offline.
+NET_ERR = re.compile(r"LLM failed|HTTP Error 5\d\d|URLError|urlopen|proxy|Connection|timed out|getaddrinfo|"
+                     r"incomplete read|cannot read|vision unavailable|RemoteDisconnected|10054|10060|11001|"
+                     r"Temporary failure|Max retries|not readable", re.I)
+GREEN_FILE = os.path.join(os.path.expanduser("~"), "Desktop", "MOVIE EDITOR - INTERNET KA KAAM POORA.txt")
+BATCH_FILE = os.path.join(HERE, "editv2", "cache", "last_batch.json")
+
+
+def internet_up() -> bool:
+    import socket
+    for host in ("www.google.com", "oauth2.googleapis.com"):
+        try:
+            socket.create_connection((host, 443), timeout=6).close()
+            return True
+        except OSError:
+            pass
+    return False
+
+
+def build_batch(jobs, log=print, on_proc=None, should_stop=None, on_status=None, parallel=2, wait_hours=12):
+    """Run a queue of jobs. v2 jobs go through the two phases above; others run as before. Never raises."""
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+    stop = should_stop or (lambda: False)
+    status = on_status or (lambda job, st: None)
+    lock = threading.Lock()
+    procs = {}
+
+    def tlog(prefix):
+        def f(*a):
+            with lock:
+                log(prefix + " ".join(str(x) for x in a))
+        return f
+
+    def reg(job):                                  # every child is tracked so Stop can kill all of them
+        def f(p):
+            with lock:
+                if p is None:
+                    procs.pop(id(job), None)
+                else:
+                    procs[id(job)] = p
+            if on_proc:
+                on_proc(p)
+        return f
+
+    def stopper():
+        while not done_flag.is_set():
+            if stop():
+                with lock:
+                    live = list(procs.values())
+                for p in live:
+                    subprocess.run(["taskkill", "/PID", str(p.pid), "/T", "/F"], capture_output=True)
+                return
+            time.sleep(1.5)
+    done_flag = threading.Event()
+    threading.Thread(target=stopper, daemon=True).start()
+
+    v2 = [j for j in jobs if (j.engine or "") == "v2"]
+    other = [j for j in jobs if (j.engine or "") != "v2"]
+    try:
+        if os.path.exists(GREEN_FILE):
+            os.remove(GREEN_FILE)
+    except OSError:
+        pass
+    # ---- phase 1: everything that needs the internet ----
+    if v2:
+        log(f"\n=== PHASE 1 / 2 - internet work for {len(v2)} video(s) ({parallel} at a time): clue, plan, cut, look ===")
+    pending, tries, t_start = list(v2), {id(j): 0 for j in v2}, time.time()
+    while pending and not stop():
+        if not internet_up():
+            if time.time() - t_start > wait_hours * 3600:
+                log(f"  internet down for too long - {len(pending)} video(s) left for the next Run")
+                break
+            log(f"  no internet - waiting (checked {time.strftime('%H:%M')}); {len(pending)} video(s) still need it")
+            for _ in range(60):
+                if stop():
+                    break
+                time.sleep(5)
+            continue
+
+        def one(job):
+            status(job, "building")
+            _build_v2(job, tlog(f"[V{job.index + 1}] "), reg(job), stop, until="online")
+            return job
+        with ThreadPoolExecutor(max(1, parallel)) as ex:
+            ran = list(ex.map(one, pending))
+        retry = []
+        for j in ran:
+            if j.status == "online_done":
+                status(j, "online")
+                log(f"  [V{j.index + 1}] internet work done ✓")
+            elif j.status == "stopped" or stop():
+                status(j, "pending")
+            else:
+                tries[id(j)] += 1
+                why = " ".join((getattr(j, "tail", []) or [])[-15:]) + " " + (j.message or "")
+                if NET_ERR.search(why) and tries[id(j)] < 6:
+                    status(j, "pending")
+                    log(f"  [V{j.index + 1}] stopped by an internet/proxy problem - will continue when it is back "
+                        f"(try {tries[id(j)]}/5)")
+                    retry.append(j)
+                else:
+                    status(j, "failed")
+                    log(f"  [V{j.index + 1}] ✗ {j.message}")
+        pending = retry
+        if pending and not stop():
+            log(f"  {len(pending)} video(s) to retry in 3 min")
+            for _ in range(36):
+                if stop():
+                    break
+                time.sleep(5)
+    ready = [j for j in v2 if j.status == "online_done"]
+    if v2 and not stop() and not pending:
+        msg = (f"GREEN SIGNAL {time.strftime('%Y-%m-%d %H:%M')}: internet work is done for {len(ready)}/{len(v2)} "
+               "video(s). From now on the rest (render, mix, QA) needs NO internet.")
+        log("\n🟢 " + msg)
+        try:
+            with open(GREEN_FILE, "w", encoding="utf-8") as f:
+                f.write(msg + "\n\n" + "\n".join(os.path.basename(os.path.dirname(j.clean)) for j in ready) + "\n")
+        except OSError:
+            pass
+        status(None, "green")
+    # ---- phase 2: offline ----
+    if ready and not stop():
+        log(f"\n=== PHASE 2 / 2 - render, mix, QA for {len(ready)} video(s) (offline) ===")
+    for j in ready:
+        if stop():
+            break
+        status(j, "building")
+        _build_v2(j, tlog(f"[V{j.index + 1}] "), reg(j), stop)
+        status(j, "done" if j.status == "done" else ("pending" if j.status == "stopped" else "failed"))
+        log(f"  [V{j.index + 1}] {'✓' if j.status == 'done' else '✗'} {j.message}")
+    for j in other:                                    # classic engine: unchanged, one by one
+        if stop():
+            break
+        status(j, "building")
+        build(j, log=log, on_proc=on_proc, should_stop=stop)
+        status(j, "done" if j.status == "done" else "failed")
+    done_flag.set()
+    return jobs
 
 
 def build(job: Job, log=print, on_proc=None, should_stop=None) -> Job:

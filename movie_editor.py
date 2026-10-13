@@ -13,6 +13,7 @@ import os
 import subprocess
 import sys
 import threading
+import time
 
 import webview                                        # pip install pywebview
 
@@ -317,6 +318,38 @@ class Api:
                     pass
         return True
 
+    # ---- batch memory: resume after a crash / shutdown -------------------- #
+    def _save_batch(self, specs, states):
+        try:
+            p = studio.BATCH_FILE
+            old = json.load(open(p, encoding="utf-8")) if os.path.exists(p) else {}
+            if old.get("specs") != specs:
+                old = {"specs": specs, "state": {}, "saved": time.strftime("%Y-%m-%d %H:%M")}
+            old["state"].update({str(k): v for k, v in states.items()})
+            os.makedirs(os.path.dirname(p), exist_ok=True)
+            json.dump(old, open(p + ".tmp", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+            os.replace(p + ".tmp", p)
+        except Exception:
+            pass
+
+    def last_batch(self):
+        """-> {pending, total, saved} of the last batch if it has unfinished videos, else {} (for the Resume button)."""
+        try:
+            b = json.load(open(studio.BATCH_FILE, encoding="utf-8"))
+            left = [i for i in range(len(b["specs"])) if b["state"].get(str(i)) != "done"]
+            return {"pending": len(left), "total": len(b["specs"]), "saved": b.get("saved", "")} if left else {}
+        except Exception:
+            return {}
+
+    def resume_batch(self):
+        """run the unfinished videos of the last batch again - every build folder continues from its last saved stage."""
+        try:
+            b = json.load(open(studio.BATCH_FILE, encoding="utf-8"))
+        except Exception:
+            return False
+        left = [s for i, s in enumerate(b["specs"]) if b["state"].get(str(i)) != "done"]
+        return self.run(json.dumps(left)) if left else False
+
     def _set_proc(self, proc):
         # studio.build hands us each child process (and None when it ends) so a
         # Stop click can reach in and kill whatever is running right now.
@@ -376,26 +409,26 @@ class Api:
                     auto_voice=bool(s.get("auto_voice")),
                     voice_ref=s.get("voice_ref", ""), index=i,
                     engine=s.get("engine", "classic"), look=s.get("look", "auto")))
-            ok = 0
             for j in range(len(jobs)):           # everything starts as pending
                 self._video_status(j, "pending")
-            for n, job in enumerate(jobs, 1):
-                if self._stop:
-                    self._log("\n■ stopped by you.")
-                    break
-                self._video_status(job.index, "building")
-                self._log(f"\n{'='*54}\nVIDEO {n}/{len(jobs)}\n{'='*54}")
-                studio.build(job, log=self._log, on_proc=self._set_proc,
-                             should_stop=lambda: self._stop)
-                if job.status == "done":
-                    ok += 1
-                    self._video_status(job.index, "done")
-                    self._log(f"\n  ✓ {job.message}")
-                else:
-                    self._video_status(job.index, "failed")
-                    self._log(f"\n  ! {job.status}: {job.message}")
-            self._status(f"done — {ok}/{len(jobs)} ok" if not self._stop
-                         else "stopped", "#3ecf8e")
+            # remember the batch: after a crash / shutdown / closed window the next start offers "Resume last batch"
+            self._save_batch(specs, {})
+
+            def on_status(job, st):
+                if job is None and st == "green":
+                    self._status("🟢 internet work done for all videos - the rest needs NO internet", "#3ecf8e")
+                    return
+                self._video_status(job.index, st)
+                if st in ("done", "failed", "online"):
+                    self._save_batch(specs, {job.index: st})
+            # two phases (studio.build_batch): all internet work first (2 videos at a time, outages waited out),
+            # green signal, then render / mix / QA offline. Each build folder resumes stage by stage.
+            studio.build_batch(jobs, log=self._log, on_proc=self._set_proc, should_stop=lambda: self._stop,
+                               on_status=on_status)
+            ok = sum(1 for j in jobs if j.status == "done")
+            if self._stop:
+                self._log("\n■ stopped by you - Run again (or 'Resume last batch') continues where it stopped.")
+            self._status(f"done — {ok}/{len(jobs)} ok" if not self._stop else "stopped", "#3ecf8e")
         except Exception as exc:
             self._log(f"\n! error: {type(exc).__name__}: {exc}")
             self._status("error", "#f25555")

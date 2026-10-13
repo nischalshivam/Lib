@@ -39,6 +39,8 @@ button:active{transform:scale(.98);}
 .vbadge.building{background:#233042;color:#6fb2ff;}
 .vbadge.done{background:#1f3a2b;color:#3ecf8e;}
 .vbadge.failed{background:#3a2323;color:#f28080;}
+.vbadge.online{background:#1f3340;color:#7fd3ff;}
+#resumeBtn{display:none;background:#1f3a2b;color:#3ecf8e;border:1px solid #2f6b4c;}
 #count{margin-left:12px;font-size:12px;color:var(--muted);}
 #bulkbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--card);}
 .bulk{border-color:var(--accent-line)!important;color:var(--accent)!important;font-weight:600;}
@@ -114,6 +116,7 @@ select{background:var(--panel2);color:var(--text);border:.5px solid var(--line2)
   <div class="footer">
     <div class="sub" id="hint">Easiest way: click <b>Choose folder</b> on a video and pick its folder — every file fills in automatically. (Adding files one by one still works too.)</div>
     <div style="display:flex;gap:9px;">
+      <button id="resumeBtn" title="The last batch did not finish (PC off / internet / closed window): continue it - every video resumes from its last saved stage"><i class="ti ti-player-track-next"></i><span id="resumeTxt">Resume last batch</span></button>
       <button class="stop" id="stopBtn"><i class="ti ti-player-stop"></i>Stop</button>
       <button class="run" id="runBtn"><i class="ti ti-player-play"></i>Run</button>
     </div>
@@ -359,7 +362,17 @@ function pick(key,isDir,row,data){
 var logEl=document.getElementById("log");
 function appendLog(line){logEl.textContent+= "\n"+line;logEl.scrollTop=logEl.scrollHeight;}
 function setStatus(t,color){document.getElementById("statusText").textContent=t;document.getElementById("statusDot").style.background=color;}
-var LABEL={pending:"pending",building:"building…",done:"✓ done",failed:"✗ failed","not started":"not started"};
+var LABEL={pending:"pending",building:"building…",online:"🌐 internet work done",done:"✓ done",failed:"✗ failed","not started":"not started"};
+// resume offer: the last batch has unfinished videos (PC shut down, internet, window closed)
+function checkResume(){
+  if(!(window.pywebview&&window.pywebview.api&&window.pywebview.api.last_batch))return;
+  window.pywebview.api.last_batch().then(function(b){
+    var btn=document.getElementById("resumeBtn");
+    if(b&&b.pending){document.getElementById("resumeTxt").textContent="Resume last batch ("+b.pending+"/"+b.total+" left, "+b.saved+")";btn.style.display="";}
+    else btn.style.display="none";
+  });
+}
+if(window.pywebview&&window.pywebview.api)checkResume();else window.addEventListener("pywebviewready",checkResume,{once:true});
 function setVideoStatus(index,status){
   var v=videos[index]; if(!v||!v.card||!v.card._badge)return;
   var b=v.card._badge; b.className="vbadge "+status; b.textContent=LABEL[status]||status;
@@ -582,6 +595,13 @@ document.getElementById("runBtn").onclick=function(){
   if(window.pywebview)window.pywebview.api.run(JSON.stringify(jobs));
 };
 document.getElementById("stopBtn").onclick=function(){if(window.pywebview)window.pywebview.api.stop();setStatus("stopping","var(--danger)");};
+document.getElementById("resumeBtn").onclick=function(){
+  if(!window.pywebview)return;
+  window.pywebview.api.resume_batch().then(function(ok){
+    if(ok){logEl.textContent="Resuming the last batch - every video continues from its last saved stage…";setStatus("running","var(--accent)");document.getElementById("resumeBtn").style.display="none";}
+    else setStatus("nothing to resume (or a batch is already running)","var(--danger)");
+  });
+};
 document.getElementById("addSetBtn").onclick=addSet;
 document.getElementById("clueBtn").onclick=function(){
   if(window.pywebview&&window.pywebview.api)window.pywebview.api.prepare_clues().then(function(ok){if(ok)setStatus("preparing clues…","#6fb2ff");});

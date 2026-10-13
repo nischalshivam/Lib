@@ -237,8 +237,11 @@ def preflight(clean, out_dir, audio, voice_ref, save_dir):
 
 
 def build(clean, out_dir="", audio="", language="en", look="auto", save_dir="", voice_ref="",
-          shows=None, log=None, stop=None):
-    """Returns the delivered video path. Raises on a hard failure (the caller reports it)."""
+          shows=None, log=None, stop=None, until=None):
+    """Returns the delivered video path. Raises on a hard failure (the caller reports it).
+    until="online": stop after the LOOK stage - every step that needs the internet (clue, plan, cut, look; footage on
+    Google Drive) is then done and saved; render / mix / QA run later fully OFFLINE (user 2026-10-13: a 30-video night
+    queue must not die on an internet drop). Returns 'ONLINE-DONE <build dir>'."""
     stop = stop or (lambda: False)
     name = os.path.splitext(os.path.basename(clean))[0]
     out_dir = out_dir or os.path.join(os.path.dirname(os.path.abspath(clean)), name + "_v2build")
@@ -286,6 +289,11 @@ def build(clean, out_dir="", audio="", language="en", look="auto", save_dir="", 
     if not os.path.exists(os.path.join(out_dir, "look.json")):
         stage("look (effects + typography)")
         Look(ctx, log).build()
+    json.dump({"t": time.strftime("%Y-%m-%d %H:%M:%S")}, open(os.path.join(out_dir, "online_done.json"), "w"))
+    if until == "online":
+        log(f"\nONLINE PHASE DONE - everything that needs the internet is saved ({(time.time() - T) / 60:.1f} min); "
+            "render / mix / QA can run offline")
+        return f"ONLINE-DONE {out_dir}"
     stage("render (HyperFrames)")
     silent = render(out_dir, log)
     stage("mix")

@@ -500,11 +500,17 @@ class Plan:
         cache = json.load(open(cache_p, encoding="utf-8")) if os.path.exists(cache_p) else {}
         todo = [s for s in vs if f"{s}|{line_of[s]}" not in cache]
         log(f"  verify: {len(vs)} shots ({len(todo)} new) — Gemini 4x4 re-anchor")
+        def save_cache():                             # atomic: a crash mid-write must not lose the earlier verdicts
+            json.dump(cache, open(cache_p + ".tmp", "w", encoding="utf-8"), ensure_ascii=False, indent=0)
+            os.replace(cache_p + ".tmp", cache_p)
         with cf.ThreadPoolExecutor(8) as ex:
-            for s, v in zip(todo, ex.map(lambda s: self.reanchor(s, line_of[s]), todo)):
+            for n, (s, v) in enumerate(zip(todo, ex.map(lambda s: self.reanchor(s, line_of[s]), todo)), 1):
                 if "verify-error" not in str(v.get("why", "")):
                     cache[f"{s}|{line_of[s]}"] = v
-        json.dump(cache, open(cache_p, "w", encoding="utf-8"), ensure_ascii=False, indent=0)
+                if n % 20 == 0:
+                    # saved as it goes: PC off / internet / Stop during a 15 min - 2.5 h verify keeps what is done
+                    save_cache()
+        save_cache()
         V = {s: cache.get(f"{s}|{line_of[s]}", {"pick": 0, "score": 0, "why": "no verdict"}) for s in vs}
         rej = {s for s, v in V.items() if v.get("score", 0) < 5 or not v.get("pick")}
         log(f"  verify: rejected {len(rej)}/{len(vs)}")

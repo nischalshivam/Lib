@@ -15,10 +15,11 @@ ap.add_argument("--look", default="auto")
 ap.add_argument("--out", default="")
 ap.add_argument("--save", default="")
 ap.add_argument("--voice-ref", default="")
+ap.add_argument("--until", default="", help="online = stop after look (all internet work done)")
 a = ap.parse_args()
 if a.cmd == "build":
     try:
-        print(pipeline.build(a.path, a.out, a.audio, a.lang, a.look, a.save, a.voice_ref))
+        print(pipeline.build(a.path, a.out, a.audio, a.lang, a.look, a.save, a.voice_ref, until=a.until or None))
     except Exception as e:                       # the reason must also land in build.log, not only in the GUI window
         import os, time, traceback
         bd = a.out or os.path.join(os.path.dirname(os.path.abspath(a.path)), os.path.splitext(os.path.basename(a.path))[0] + "_v2build")
