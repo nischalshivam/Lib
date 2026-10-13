@@ -19,7 +19,7 @@ for f in sorted(glob.glob(os.path.join(C.HERE, "heartbeat_*.json"))):
     except Exception:
         continue
     age = time.time() - h["t"]
-    print(f"  w{f[-6]} {age:5.0f}s {'STALE' if age > 900 else 'ok   '} {h.get('stage', '')[:32]:32s} {os.path.basename(h.get('video', ''))[:60]}")
+    print(f"  w{os.path.basename(f)[10:-5]:<2} {age:5.0f}s {'STALE' if age > 900 else 'ok   '} {h.get('stage', '')[:32]:32s} {os.path.basename(h.get('video', ''))[:60]}")
 print(f"proxy {C.proxy_ok()}  drive {C.drive_ok()}  I: {os.path.isdir('I:/My Drive')}  J: {os.path.isdir('J:/')}  "
       f"alert file {os.path.exists(os.path.expanduser('~/Desktop/INDEXING ALERT.txt'))}")
 sup = [ln.strip() for ln in open(os.path.join(C.LOGS, "supervisor.log"), encoding="utf-8", errors="replace")

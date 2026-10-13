@@ -1080,7 +1080,7 @@ def sync_dialogue(video, data, work, dur, tagged="und", progress=_nop):
         return _sync_dialogue_gpu(video, data, work, dur, tagged, progress, wav, checked)
 
 
-GPU_SLOTS = 3
+GPU_SLOTS = 4                       # 2026-10-13 night: indexing only (no render / OmniVoice on the GPU) -> 4 fit in 12 GB
 GPU_SLOT_DIR = r"D:\Lib\libjobs\gpu"
 
 
