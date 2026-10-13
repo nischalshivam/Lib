@@ -51,6 +51,9 @@ def run():
         return C.is_done(v)
     for v, n in starts.items():
         if n > 4 and not done(v) and C.fails(v)["n"] < C.MAX_FAILS:
+            since = C.reset_time(v)               # starts before a manual / file-replaced reset do not count
+            if since and counted_starts([(t, e) for t, e in ev6 if t.timestamp() >= since]).get(v, 0) <= 4:
+                continue
             for _ in range(C.MAX_FAILS - C.fails(v)["n"]):
                 C.add_fail(v, f"watchdog: started {n}x in 6 h without finishing (loop)")
             parked.append(v)

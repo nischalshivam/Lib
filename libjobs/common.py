@@ -144,6 +144,21 @@ def reset_counters(v):
             os.remove(p)
         except OSError:
             pass
+    # the watchdog's loop guard counts starts of the last 6 h; without this mark it re-parked a reset video at once
+    # (Andor S02E10, 2026-10-13: its old starts came from the tail-chunk bug that was already fixed)
+    try:
+        os.makedirs(os.path.join(HERE, "resets"), exist_ok=True)
+        open(os.path.join(HERE, "resets", key(v)), "w").write(str(time.time()))
+    except OSError:
+        pass
+
+
+def reset_time(v):
+    """when reset_counters() last ran for v (epoch seconds), or 0."""
+    try:
+        return float(open(os.path.join(HERE, "resets", key(v))).read().split()[0])
+    except (OSError, ValueError, IndexError):
+        return 0.0
 
 
 def note_unreadable(v):
