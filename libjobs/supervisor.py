@@ -191,6 +191,19 @@ try:
 except Exception as _e:
     log(f"priority-stop check error: {type(_e).__name__}: {_e}")
 
+# 2f) THE WIRE TEST VIDEO (user 2026-10-14): once the priority list is done and indexing has stopped, build ONE The Wire
+#     video unattended, the Movie Editor way (tools\wire_test.cmd -> wire_test.py). Once only: the marker file.
+try:
+    _mark = os.path.join(os.path.dirname(C.HERE), "tools", "wire_test.started")
+    if not os.path.exists(_mark) and int(C.cfg().get("workers", 3)) == 0 and _priority_done():
+        import psutil
+        if not any("worker.py" in " ".join(_p.info["cmdline"] or []) for _p in psutil.process_iter(["cmdline"])):
+            open(_mark, "w").write(time.strftime("%Y-%m-%d %H:%M"))
+            _p = spawn(["cmd.exe", "/c", os.path.join(os.path.dirname(C.HERE), "tools", "wire_test.cmd")])
+            log(f"WIRE TEST VIDEO started (pid {_p.pid}) - see tools\\wire_test_status.txt")
+except Exception as _e:
+    log(f"wire test start error: {type(_e).__name__}: {_e}")
+
 # 3) workers
 want = int(C.cfg().get("workers", 3))
 for i in range(want):
