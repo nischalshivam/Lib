@@ -165,6 +165,32 @@ if stuck_alive and os.path.exists(DRIVE_LAUNCH):
             break
     log(f"STALL: Drive back: {C.drive_ok()}")
 
+# 2e) STOP WHEN THE PRIORITY LIST IS DONE (user 2026-10-13: finish only.json's shows, then free the PC for the Movie
+#     Editor). Lives here, not in a separate watcher: the PC crashed / is restarted and the supervisor is the one
+#     thing Task Scheduler always brings back.
+def _priority_done():
+    if not os.path.exists(os.path.join(C.HERE, "only.json")):
+        return False
+    q = json.load(open(C.QUEUE, encoding="utf-8"))
+    return bool(q) and all(C.is_done(v) or C.fails(v)["n"] >= C.MAX_FAILS for v in q)
+
+
+try:
+    if int(C.cfg().get("workers", 3)) > 0 and _priority_done():
+        json.dump({"workers": 0}, open(os.path.join(C.HERE, "config.json"), "w"))
+        import psutil
+        for _p in psutil.process_iter(["cmdline"]):
+            if "worker.py" in " ".join(_p.info["cmdline"] or []):
+                try:
+                    _p.kill()
+                except Exception:
+                    pass
+        log("PRIORITY LIST DONE - indexing stopped (config workers=0); the PC is free for the Movie Editor")
+        open(os.path.join(os.path.dirname(C.HERE), "tools", "indexing_stop.txt"), "a", encoding="utf-8").write(
+            time.strftime("%Y-%m-%d %H:%M ") + "PRIORITY DONE - indexing stopped by the supervisor\n")
+except Exception as _e:
+    log(f"priority-stop check error: {type(_e).__name__}: {_e}")
+
 # 3) workers
 want = int(C.cfg().get("workers", 3))
 for i in range(want):

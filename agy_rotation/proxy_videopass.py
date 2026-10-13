@@ -138,6 +138,10 @@ def build(video, out_json, cast_names, log=print):
     cast = ", ".join(cast_names)
     chunks = []; t = 0.0
     while t < dur:
+        # a sliver after the last full chunk (Andor S02E10: 2880.34 s -> a 0.34 s chunk Gemini rejects with HTTP 400,
+        # failing the episode 4x) is already inside the previous chunk's OVERLAP - skip it
+        if chunks and dur - t <= OVERLAP:
+            break
         chunks.append((t, min(CHUNK_S + OVERLAP, dur - t))); t += CHUNK_S
     log(f"proxy video-pass: {dur:.0f}s -> {len(chunks)} chunks, {len(cues)} subs, workers={WORKERS}, model={os.environ.get("VP_MODEL") or __import__("editv2.common", fromlist=["x"]).VISION_MODEL}")
     tmproot = tempfile.mkdtemp(prefix="pvp_")
