@@ -1041,6 +1041,33 @@ def _is_english(cues):
     return bool(ws) and sum(1 for w in ws if w in EN_STOP) / len(ws) >= 0.08
 
 
+def other_embedded(video, work):
+    """The embedded text track read_once() chose came out EMPTY (or none was chosen): try the file's other text tracks.
+    The Middle (2026-10-14): an empty 'eng' ASS track next to the real, untagged one -> every episode fell back to the
+    LARGE whisper model and 4 of those overflowed the 12 GB GPU. Right after the read the file is in the Drive cache, so
+    this extra pass takes seconds. The alignment decides which track (if any) really is this episode's dialogue."""
+    out = []
+    try:
+        meta = probe(video)
+    except Exception:
+        return out
+    chosen = pick_text_sub(meta)
+    t = [x for x in meta["subs"] if x["codec"] in TEXT_SUB_CODECS and x["n"] != chosen and not x["forced"]
+         and not re.search(r"forced|sign", x["title"], re.I)]
+    t.sort(key=lambda x: 0 if x["lang"] in ("eng", "en", "english") else 1 if x["lang"] == "und" else 2)
+    for x in t[:3]:
+        p = os.path.join(work, f"emb{x['n']}.srt")
+        try:
+            subprocess.run(["ffmpeg", "-v", "error", "-nostdin", "-y", "-i", _lp(video), "-map", f"0:s:{x['n']}",
+                            "-c:s", "srt", p], cwd=work, capture_output=True, timeout=600)
+            cues = clean_cues(subtitles.parse_file(p)) if os.path.exists(p) and os.path.getsize(p) else []
+        except Exception:
+            cues = []
+        if cues:
+            out.append((f"embedded:{x['n']}", cues))
+    return out
+
+
 def dialogue_sources(video, data, work):
     """All candidate subtitle texts: every sidecar rip, the embedded text track, stored non-whisper cues."""
     c = []
@@ -1052,10 +1079,11 @@ def dialogue_sources(video, data, work):
         if cues:
             c.append((os.path.basename(p), cues))
     emb = os.path.join(work, "emb.srt")
-    if os.path.exists(emb):
-        cues = clean_cues(subtitles.parse_file(emb))
-        if cues:
-            c.append(("embedded", cues))
+    cues = clean_cues(subtitles.parse_file(emb)) if os.path.exists(emb) and os.path.getsize(emb) else []
+    if cues:
+        c.append(("embedded", cues))
+    else:
+        c += other_embedded(video, work)
     src = str(data.get("dialogue_source", ""))
     if data.get("cues") and not src.startswith("whisper"):
         c.append(("stored:" + src[:60], clean_cues([subtitles.Cue(i, int(a * 1000), int(b * 1000), t)
@@ -1077,7 +1105,51 @@ def sync_dialogue(video, data, work, dur, tagged="und", progress=_nop):
     if not os.path.exists(wav):
         return [], "none (no audio)", dict(checked=checked)
     with gpu_slot(progress):
-        return _sync_dialogue_gpu(video, data, work, dur, tagged, progress, wav, checked)
+        if os.environ.get("REFINE_GPU_INPROC"):
+            return _sync_dialogue_gpu(video, data, work, dur, tagged, progress, wav, checked)
+        return _gpu_pass_child(video, data, work, dur, tagged, progress, wav, checked)
+
+
+def _gpu_pass_child(video, data, work, dur, tagged, progress, wav, checked):
+    """_sync_dialogue_gpu in a short-lived child (media_index/gpu_pass.py): its CUDA context and allocator cache leave
+    the GPU when it exits. Without it every worker kept ~0.9 GB of VRAM after its first whisper (2026-10-14)."""
+    import pickle
+    a, b = os.path.join(work, "gpu_in.pkl"), os.path.join(work, "gpu_out.pkl")
+    for f in (b, b + ".tmp"):
+        try:
+            os.remove(f)
+        except OSError:
+            pass
+    slim = {k: data[k] for k in ("dialogue_source", "cues") if k in data}      # all dialogue_sources() reads
+    with open(a, "wb") as f:
+        pickle.dump(dict(video=video, data=slim, work=work, dur=dur, tagged=tagged, wav=wav, checked=checked), f)
+    exe = os.path.join(os.path.dirname(sys.executable), "python.exe")       # pythonw has no stdout for the progress
+    if not os.path.exists(exe):
+        exe = sys.executable
+    p = subprocess.Popen([exe, "-u", os.path.join(os.path.dirname(os.path.abspath(__file__)), "gpu_pass.py"), a, b],
+                         stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                         encoding="utf-8", errors="replace", creationflags=0x08000000,
+                         env={**os.environ, "PYTHONIOENCODING": "utf-8"})
+    tail = []
+    try:
+        for line in p.stdout:
+            line = line.rstrip()
+            if line.startswith("P "):
+                progress(line[2:])
+            elif line:
+                tail.append(line[:300])
+                del tail[:-8]
+        p.wait()
+    finally:
+        if p.poll() is None:                          # the worker is being stopped: never leave a GPU child behind
+            p.kill()
+    if not os.path.exists(b):
+        raise RuntimeError(f"GPU pass child failed (exit {p.returncode}): " + " | ".join(tail[-4:]))
+    with open(b, "rb") as f:
+        kind, val = pickle.load(f)
+    if kind == "e":
+        raise RuntimeError(val)                       # same text: 'CUDA ...' / 'out of memory' still routed as GPU busy
+    return val
 
 
 GPU_SLOTS = 4                       # 2026-10-13 night: indexing only (no render / OmniVoice on the GPU) -> 4 fit in 12 GB
