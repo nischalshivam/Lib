@@ -33,10 +33,32 @@ def _font(path: str, size: int):
     return _FONTS[key]
 
 
+import shutil as _shutil
+
+# ffmpeg's filtergraph parser (read from a -/filter_complex FILE on this Windows
+# build) does NOT honour quotes or backslashes around a drawtext `fontfile`, so a
+# Windows drive colon (D:\) always breaks the graph ("No option name near …").
+# The only reliable fix: reference the font by BARE filename and run ffmpeg with
+# its working directory set to the fonts folder. So _ff_font copies whatever font
+# was chosen into FONTS_DIR (if not already there) and returns just its basename;
+# the renderer runs the text compose with cwd=FONTS_DIR.
+FONTS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                         "assets", "fonts")
+
+
 def _ff_font(path: str) -> str:
-    """Font path for ffmpeg drawtext. Single quotes already protect the drive
-    colon and spaces (verified), but Windows backslashes are escape chars in a
-    filtergraph — convert them to forward slashes."""
+    """Bare font filename usable in a drawtext filter (colon-free). Copies the
+    font into FONTS_DIR when needed; the compose step runs from that directory."""
+    try:
+        bn = os.path.basename(path)
+        dst = os.path.join(FONTS_DIR, bn)
+        if os.path.isfile(path) and os.path.abspath(path) != os.path.abspath(dst) \
+                and not os.path.isfile(dst):
+            _shutil.copy2(path, dst)
+        if os.path.isfile(dst) or os.path.isfile(os.path.join(FONTS_DIR, bn)):
+            return bn
+    except Exception:
+        pass
     return path.replace("\\", "/")
 
 

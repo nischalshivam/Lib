@@ -50,6 +50,40 @@ def movies_root() -> str:
     return f"{d}:\\{MOVIES_MARKER}" if d else ""
 
 
+# Libraries that live OUTSIDE the SSD's Movies folder (the Google-Drive shows:
+# Malcolm in the Middle, Everybody Hates Chris, Modern Family, The Office, ...).
+# Without these a script that draws on them silently gets NO footage for its
+# show. Override with env MI_EXTRA_ROOTS ('A;B'); set it to '' to disable.
+EXTRA_LIBRARY_ROOTS = (r"I:\My Drive\Movies DATA",)
+
+
+def split_roots(s: str) -> list:
+    """'E:\\Movies;I:\\My Drive\\Movies DATA' -> ['E:\\Movies', 'I:\\...']."""
+    return [p.strip() for p in str(s or "").split(";") if p.strip()]
+
+
+def library_roots() -> str:
+    """Every library root to search, joined with ';' — the SSD's Movies folder
+    first, then each extra root that exists. Every consumer of a movies_root
+    (catalog.load_library, libcheck, studio) accepts this ';' form."""
+    roots = []
+    m = movies_root()
+    if m:
+        roots.append(m)
+    env = os.environ.get("MI_EXTRA_ROOTS")
+    extra = split_roots(env) if env is not None else list(EXTRA_LIBRARY_ROOTS)
+    if env is None:
+        try:                        # the locator's map of every drive (+ user-added)
+            from . import locator                      # noqa: PLC0415
+            extra = locator.roots() + extra
+        except Exception:
+            pass
+    for r in extra:
+        if os.path.isdir(r) and r.lower() not in (x.lower() for x in roots):
+            roots.append(r)
+    return ";".join(roots)
+
+
 def resolve(path: str) -> str:
     """A usable path for a stored one, whatever letter the SSD is on now.
 

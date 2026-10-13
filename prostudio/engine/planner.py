@@ -189,45 +189,93 @@ def _placeholder_still():
 
 
 def plan_shots(scenes, windows, rng: random.Random, log=print,
-               clip_min=2.0, clip_max=5.0, img_min=2.6, img_max=7.0,
-               jl_offset=0.4, niche="Movie Essay"):
+               clip_min=4.0, clip_max=5.0, img_min=4.0, img_max=7.0,
+               jl_offset=0.4, niche="Movie Essay",
+               safe_mode=None, hook_secs=60.0, img_share=0.70):
+    """safe_mode (copyright): after the first `hook_secs` seconds, hold real
+    moving footage to ~(1-img_share) of the screen time — the rest is filled with
+    STILL frames pulled from the exact same matched clips (a freeze of the scene
+    being discussed). Each remaining video clip stays <= clip_max (~5s). The first
+    minute (the hook) is left clip-heavy for retention. This slashes how much
+    continuous copyrighted video is on screen, which is what YouTube Content ID
+    matches. Default ON; disable with env PS_SAFE=0."""
     import math
     from .audio_sync import duration
     from .subjects import detect_faces
+    if safe_mode is None:
+        safe_mode = os.environ.get("PS_SAFE", "1").strip().lower() not in ("0", "", "false", "no")
+    try:
+        img_share = float(os.environ.get("PS_IMG_SHARE", img_share))
+        hook_secs = float(os.environ.get("PS_HOOK_SECS", hook_secs))
+    except ValueError:
+        pass
     shots = []
     starved = 0
+    safe_clips = safe_imgs = 0
     for si, (scene, (w0, w1)) in enumerate(zip(scenes, windows)):
         # J/L cut: shift the visual boundary off the audio boundary
         v0 = max(0.0, w0 - jl_offset) if (si % 2 == 1 and si > 0) else w0
         v1 = w1
+        # shots play back-to-back, so a J-cut must TAKE its lead from the
+        # previous scene's last shot — before this, every odd scene added
+        # jl_offset (0.4 s) to the video: 31 scenes = 12.4 s of drift, the
+        # picture ended up seconds behind the voice.
+        if shots and shots[-1].t1 > v0:
+            shots[-1].t1 = max(shots[-1].t0 + 0.5, v0)
+            v0 = shots[-1].t1
         span = v1 - v0
         pool_v = list(scene.videos)
         pool_i = list(scene.images)
+        # In the hook (first minute) OR when safe_mode is off, clips carry the
+        # story freely. In the safe zone, cap moving footage to ~(1-img_share)
+        # of this scene's time so most of the screen is still frames.
+        in_hook = (not safe_mode) or (v0 < hook_secs)
+        vid_budget = span if in_hook else span * (1.0 - img_share)
         # budget clips first (they carry the story) — capped to each clip's
-        # REAL length so a short clip is never frozen-stretched
+        # REAL length so a short clip is never frozen-stretched, and (safe zone)
+        # to the moving-footage budget so clips never dominate.
         t = v0
+        used_v = 0.0
         scene_shots = []
         for v in pool_v:
             if v1 - t < clip_min:
                 break
+            if not in_hook and (vid_budget - used_v) < clip_min:
+                break                              # safe zone: clip budget spent
             d = min(clip_max, max(clip_min, span * 0.45), v1 - t)
+            if not in_hook:
+                d = min(d, vid_budget - used_v)
             real = duration(v.path)
             if real > 0:
                 d = min(d, max(1.2, real))
+            if d < clip_min - 0.4:
+                break
             scene_shots.append(Shot(v.path, "video", t, t + d, si, scene.mood))
             t += d
+            used_v += d
+            if not in_hook:
+                safe_clips += 1
         # images fill the rest — each UNIQUE image used once; longer holds
-        # over repeats; top up a media-starved scene with distinct clip frames.
+        # over repeats; top up with distinct STILL FRAMES cut from THIS scene's
+        # own matched clips (a freeze of the exact scene) so the safe zone can be
+        # image-heavy without copyrighted motion.
         remaining = v1 - t
         imgs = list(pool_i)
         if remaining >= img_min:
-            max_hold, target = 8.5, 5.5
+            # each still holds ~6.5s (min ~5) so cards are never rapid-fire
+            max_hold, target = 9.5, 6.5
             need_min = max(1, math.ceil(remaining / max_hold))
             n_pref = max(1, round(remaining / target))
-            if len(imgs) < max(need_min, n_pref) and scene.videos:
-                short = max(need_min, n_pref) - len(imgs)
-                imgs += _clip_fill_frames(scene.videos[0].path, min(short, 4))
-            n = min(len(imgs), max(need_min, n_pref)) if imgs else 0
+            need = max(need_min, n_pref)
+            if len(imgs) < need and scene.videos:
+                # pull frames from ALL of this scene's clips (not just the first)
+                # so the safe zone has enough DISTINCT exact-scene stills.
+                per = max(1, math.ceil((need - len(imgs)) / len(scene.videos)))
+                for v in scene.videos:
+                    if len(imgs) >= need:
+                        break
+                    imgs += _clip_fill_frames(v.path, min(per, 4))
+            n = min(len(imgs), need) if imgs else 0
             seq = imgs[:n]
             if seq:
                 share = remaining / len(seq)
@@ -236,6 +284,8 @@ def plan_shots(scenes, windows, rng: random.Random, log=print,
                     scene_shots.append(Shot(m.path, m.kind, t, t + d, si,
                                             scene.mood))
                     t += d
+                    if not in_hook and m.kind == "image":
+                        safe_imgs += 1
 
         # ---- GUARANTEE the whole window is covered (keeps audio in sync) ----
         # If this scene ran short (few/no clips, all images used, or the folder
@@ -266,6 +316,32 @@ def plan_shots(scenes, windows, rng: random.Random, log=print,
                                         scene.mood))
                 tt += d
 
+        # INTERLEAVE so video clips are spread out (a still between them), not
+        # bunched. With the safe-zone mix ~70% stills the stills naturally
+        # separate the clips, so no short filler frames are injected (those made
+        # the edit flash by 1s at a time) — each shot keeps its full 4-7s hold.
+        vids = [s for s in scene_shots if s.kind == "video"]
+        imgs = [s for s in scene_shots if s.kind == "image"]
+        if vids and imgs:
+            gap = max(1, round(len(imgs) / len(vids)))   # stills between clips
+            woven, vi, ii = [], 0, 0
+            while vi < len(vids) or ii < len(imgs):
+                if vi < len(vids):
+                    woven.append(vids[vi]); vi += 1
+                for _ in range(gap):
+                    if ii < len(imgs):
+                        woven.append(imgs[ii]); ii += 1
+            tt = scene_shots[0].t0
+            for s in woven:                              # re-stamp times in order
+                d = s.t1 - s.t0
+                s.t0, s.t1 = tt, tt + d
+                tt += d
+            # keep the scene window EXACT after shrink/inject: land the last shot
+            # on the original scene end so audio stays perfectly in sync.
+            if woven:
+                woven[-1].t1 = max(woven[-1].t0 + 0.8, v1)
+            scene_shots = woven
+
         # per-shot flavour: alternating zoom, occasional punch-in, drift seed,
         # detected faces (so text can be placed in negative space later)
         for j, sh in enumerate(scene_shots):
@@ -279,6 +355,18 @@ def plan_shots(scenes, windows, rng: random.Random, log=print,
         log(f"  note: {starved} scene(s) had too little footage — filled with "
             "borrowed/neutral visuals to keep audio in sync (add more clips to "
             "those scene folders for a richer edit)")
+    if safe_mode:
+        sv = sum(1 for s in shots if s.kind == "video")
+        si_ = sum(1 for s in shots if s.kind == "image")
+        vid_t = sum(s.secs for s in shots if s.kind == "video")
+        img_t = sum(s.secs for s in shots if s.kind == "image")
+        tot_t = max(0.001, vid_t + img_t)
+        log(f"  copyright-safe ON: first {hook_secs:.0f}s clip-heavy, then "
+            f"~{int(img_share*100)}% stills. Whole video: {img_t/tot_t*100:.0f}% "
+            f"still / {vid_t/tot_t*100:.0f}% clip on screen "
+            f"({si_} stills, {sv} clips; every clip <= {clip_max:.0f}s)")
+    else:
+        log("  copyright-safe OFF (PS_SAFE=0) — clips carry the whole video")
     # camera moves: varied + anti-repeat across the whole video (premium feel)
     from .variety import pick_framings, pick_moves
     for sh, mv in zip(shots, pick_moves(len(shots), rng)):

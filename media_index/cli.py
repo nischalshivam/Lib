@@ -605,7 +605,7 @@ def cmd_plan(a):
         print(f"  script nahi mila: {a.script}")
         return 1
     # A catalogue is a single catalog.json OR a whole-series folder.
-    if not (os.path.isfile(a.catalog) or os.path.isdir(a.catalog)):
+    if not any(os.path.isfile(r) or os.path.isdir(r) for r in (a.catalog or "").split(";") if r.strip()):
         print(f"  catalogue nahi mila: {a.catalog}")
         print("  ek catalog.json do, ya poori series ka folder "
               "(jaise E:\\Movies\\Breaking Bad)")
@@ -663,6 +663,61 @@ def cmd_plan(a):
     return 0
 
 
+def _script_show_folders(script: str, catalog_arg: str) -> str:
+    """Only the show/film folders THIS script draws on, across every library
+    root — not the whole library. A Malcolm video loads Malcolm's 44k shots,
+    not 1M shots from every drive (minutes of Google-Drive reads, and every
+    other show a chance to leak in). Falls back to the full roots if nothing
+    in the script matches a folder, or if `catalog_arg` is a single catalogue."""
+    from . import libcheck                                  # noqa: PLC0415
+    roots = [r.strip() for r in (catalog_arg or "").split(";") if r.strip()]
+    if not roots or any(not os.path.isdir(r) for r in roots):
+        return catalog_arg
+    try:
+        need = libcheck.needed_from_script(script)
+    except Exception:
+        return catalog_arg
+    folders = {}                                  # lower name -> path (first root wins)
+    for r in roots:
+        try:
+            for d in os.listdir(r):
+                p = os.path.join(r, d)
+                if os.path.isdir(p):
+                    folders.setdefault(d.lower(), p)
+        except OSError:
+            continue
+    if not folders:                               # catalog_arg is itself a show folder
+        return catalog_arg
+    picked, unmatched = [], []
+    for show in need:
+        m = libcheck._match_show(show, set(folders))
+        if m:
+            if folders[m] not in picked:
+                picked.append(folders[m])
+        elif not libcheck._is_editorial(show):
+            unmatched.append(show)
+    # A FILM is often a loose file (or sits in a folder of films such as
+    # 'Western Movies'), not a folder of its own: find its catalogue by title.
+    if unmatched:
+        import glob as _glob                                 # noqa: PLC0415
+        films = []
+        for r in roots:
+            for c in _glob.glob(os.path.join(r, "**", "*.catalog.json"), recursive=True):
+                if not libcheck._epkeys(os.path.basename(c)):
+                    films.append((libcheck._title_tokens(
+                        os.path.basename(c)[:-len(".catalog.json")]), c))
+        for show in unmatched:
+            want = libcheck._title_tokens(show)
+            for toks, c in films:
+                if want and libcheck._tokens_contain(toks, want) and c not in picked:
+                    picked.append(c)
+    if not picked:
+        return catalog_arg
+    print("  library: loading only this script's shows -> "
+          + ", ".join(os.path.basename(p) for p in picked))
+    return ";".join(picked)
+
+
 def cmd_makevideo(a):
     """Stage 3: script + catalogue + voiceover -> a finished video.
 
@@ -675,13 +730,13 @@ def cmd_makevideo(a):
     if not os.path.isfile(a.script):
         print(f"  script nahi mila: {a.script}")
         return 1
-    if not (os.path.isfile(a.catalog) or os.path.isdir(a.catalog)):
+    if not any(os.path.isfile(r) or os.path.isdir(r) for r in (a.catalog or "").split(";") if r.strip()):
         print(f"  catalogue nahi mila: {a.catalog}")
         return 1
     if not os.path.isfile(a.audio):
         print(f"  voiceover (audio) nahi mila: {a.audio}")
         return 1
-    library = catalog.load_library(a.catalog)
+    library = catalog.load_library(_script_show_folders(a.script, a.catalog))
     if not library:
         print(f"  is jagah koi catalog.json nahi mili: {a.catalog}")
         return 1

@@ -44,6 +44,20 @@ import tempfile
 import time
 from dataclasses import dataclass, field, asdict
 
+
+def _lp(p: str) -> str:
+    """Long-path-safe path for Windows: a catalogue whose absolute path is >260
+    chars (deep Google-Drive folders + long release names) is listed by os.walk
+    but plain open() raises OSError, so load_library would silently return {} and
+    every shot in that episode becomes a gap. Prefix with \\\\?\\ to lift MAX_PATH."""
+    if os.name != "nt" or not p:
+        return p
+    ap = os.path.abspath(p)
+    if len(ap) >= 255 and not ap.startswith("\\\\?\\"):
+        return "\\\\?\\" + ap
+    return ap
+
+
 # A shot shorter than this is merged into its neighbour (a 4-frame flash is not
 # a usable clip); one longer than this is split (a 40-second static talk is
 # several beats' worth of footage, not one).
@@ -266,7 +280,7 @@ def dialogue_for(cues: list, start: float, end: float) -> str:
             t = (c.text or "").strip()
             if t:
                 parts.append(t)
-    return " ".join(parts)[:400]
+    return " ".join(parts)[:1000]
 
 
 # ---------------------------------------------------------------------------
@@ -473,18 +487,39 @@ def load_library(path: str) -> dict:
     per-episode catalogues, and retrieval has to see all of them at once, so a
     folder loads and merges every `*.catalog.json` under it.
     """
+    parts = [p.strip() for p in str(path or "").split(";") if p.strip()]
+    if len(parts) > 1:                     # several library roots: merge them all
+        # Several library roots. The same catalogue can sit in more than one
+        # (e.g. a backup copy of BB/GOT on Google Drive next to the SSD's): the
+        # FIRST root wins — usually the local SSD, fast to cut from — so no show
+        # is loaded twice and no clip is cut from a slow cloud copy.
+        merged, seen = {}, set()
+        for p in parts:
+            if os.path.isdir(p):
+                files = sorted(os.path.join(r, f) for r, _d, fs in os.walk(p)
+                               for f in fs if f.lower().endswith(".catalog.json"))
+            else:
+                files = [p]
+            for f in files:
+                b = os.path.basename(f).lower()
+                if b in seen:
+                    continue
+                seen.add(b)
+                _merge_unique(merged, load_library(f), f)
+        return merged
     if os.path.isdir(path):
         return load_libraries(sorted(
             os.path.join(r, f)
             for r, _d, files in os.walk(path)
             for f in files if f.lower().endswith(".catalog.json")))
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(_lp(path), "r", encoding="utf-8") as f:
             data = json.load(f)
     except (OSError, ValueError):
         return {}
     from . import paths as _paths                          # noqa: PLC0415
     out = {}
+    fixed = {}                                             # stored path -> usable path
     for row in data.get("shots", []) if isinstance(data, dict) else []:
         try:
             shot = Shot(**{k: row.get(k) for k in
@@ -493,18 +528,60 @@ def load_library(path: str) -> dict:
             continue
         # Remap the stored path onto whatever letter the SSD is mounted on now,
         # so a catalogue built on E: keeps working after it becomes F:/G:/...
-        if shot.file:
+        if shot.file and shot.file in fixed:            # every shot of one episode
+            shot.file = fixed[shot.file]                  # shares ONE video: check once
+        elif shot.file:
+            raw = shot.file
             shot.file = _paths.resolve(shot.file)
+            # Proxy-built catalogues (video-pass / frame) stored only the BARE
+            # filename, which no drive-swap can resolve — the cutter then fails to
+            # open it and every shot becomes a gap. The source video always sits
+            # BESIDE its catalogue, so pin a bare name to the catalogue's folder.
+            # The same rescue also covers a Google-Drive mount whose LETTER
+            # changed (I: -> K:) or a show folder that was moved: the stored
+            # absolute path is dead, but the video still sits next to its
+            # catalogue under the same file name.
+            if not os.path.exists(_lp(shot.file)):
+                beside = os.path.join(os.path.dirname(os.path.abspath(path)),
+                                      os.path.basename(shot.file))
+                if os.path.exists(_lp(beside)):
+                    shot.file = beside
+            fixed[raw] = shot.file
         out[row["id"]] = shot
     return out
 
 
+def _merge_unique(merged: dict, lib: dict, origin: str) -> None:
+    """Add `lib` into `merged` without letting one catalogue overwrite another.
+
+    Shot ids carry a per-file slug, but the slug is only the first ~24 chars of
+    the normalised file name — for a long title ('Malcolm in the Middle (2000) -
+    S01E01...' -> 'malcolminthemiddle2000s0') the episode number never makes it
+    in, so EVERY episode gets the same ids and a plain dict.update() keeps just
+    the last one (44,107 Malcolm shots collapsed to 368). On a collision, re-key
+    this catalogue's shots with a short hash of its path (and fix shot.id, which
+    the variety tracker uses)."""
+    if lib and any(k in merged for k in lib):
+        import hashlib                                          # noqa: PLC0415
+        tag = hashlib.md5(os.path.abspath(origin).lower().encode()).hexdigest()[:8]
+        rekeyed = {}
+        for k, s in lib.items():
+            nk = f"{k}~{tag}"
+            try:
+                s.id = nk
+            except Exception:
+                pass
+            rekeyed[nk] = s
+        lib = rekeyed
+    merged.update(lib)
+
+
 def load_libraries(paths: list) -> dict:
-    """Merge many catalogues into one {id: Shot}. Shot ids carry a per-file
-    slug, so episodes never collide."""
+    """Merge many catalogues into one {id: Shot}, collision-safe (see
+    `_merge_unique`)."""
     merged = {}
     for p in paths:
-        merged.update(load_library(p))
+        _merge_unique(merged, load_library(p), p)
     return merged
 
 

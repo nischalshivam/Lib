@@ -117,7 +117,96 @@ class Api:
             cleans.sort(key=lambda f: (0 if any(k in nm(f) for k in
                         ("clean", "narrat", "script")) else 1, len(nm(f))))
             out["clean"] = cleans[0]
+        # auto-detect the narration language so a single-folder drop also fills
+        # the language (the bulk parent-folder path already does this)
+        out["lang"] = self._detect_lang(out.get("clean"))
         return out
+
+    # ---- movie library: where is the footage, and is all of it there? ---- #
+    _lib_lock = threading.Lock()
+
+    def check_library(self, clue):
+        """Import-time check for one video: every show + episode its clue pins,
+        across ALL library locations. {ready, summary}. Serialised, so twenty
+        cards imported at once share one drive scan (cached ~2 min)."""
+        try:
+            from media_index import locator
+            with Api._lib_lock:
+                r = locator.locate(clue)
+            return {"ready": bool(r.get("ready")), "summary": r.get("summary", "")}
+        except Exception as exc:
+            return {"ready": False, "summary": f"library check failed: {exc}"}
+
+    def add_library_location(self):
+        """User points at a folder of shows (or one show) the tool didn't find."""
+        p = self.pick_folder()
+        if not p:
+            return {"roots": []}
+        try:
+            from media_index import locator
+            return {"roots": locator.add_root(p)}
+        except Exception as exc:
+            return {"roots": [], "error": str(exc)}
+
+    def scan_parent(self, folder):
+        """Every immediate subfolder that holds one video's inputs, scanned.
+        Returns [{name, folder, clean, clue, audio, text_file, lang}] so the UI
+        can drop a PARENT folder of topic folders and get one auto-filled video
+        card per topic — script, clue, audio, text and detected language all set.
+        """
+        out = []
+        try:
+            subs = [os.path.join(folder, n) for n in sorted(os.listdir(folder))
+                    if os.path.isdir(os.path.join(folder, n))]
+        except OSError:
+            return out
+        for sub in subs:
+            r = self.scan_folder(sub)
+            if r.get("clean") or r.get("clue"):        # a real topic folder
+                r["name"] = os.path.basename(sub)
+                r["folder"] = sub
+                r["lang"] = self._detect_lang(r.get("clean"))
+                out.append(r)
+        return out
+
+    @staticmethod
+    def _detect_lang(clean_path):
+        """Guess the narration language from the clean script — so the user never
+        has to set it. Stop-word + accent heuristic over fr/es/de/it/pt/en;
+        'auto' if unsure (the pipeline then detects at build time)."""
+        if not clean_path:
+            return "auto"
+        try:
+            t = open(clean_path, encoding="utf-8-sig", errors="ignore").read(4000).lower()
+        except OSError:
+            return "auto"
+        import re as _re
+        # Devanagari (Hindi written in its own script) — catch before word stats
+        if sum(1 for ch in t if "ऀ" <= ch <= "ॿ") > 15:
+            return "hi"
+        words = _re.findall(r"[a-zà-ÿœñ¿¡ß]+", t)
+        if not words:
+            return "auto"
+        stop = {
+            "fr": "le la les de des du un une et que qui pour dans est ne pas plus avec sur au aux ce cette elle nous vous mais",
+            "es": "el la los las de un una y que para con por en su se lo como mas pero este esta cuando porque no muy",
+            "de": "der die das und ist ein eine zu mit fur den dem des nicht auch aber auf sich von im war sind",
+            "it": "il la lo le di un una che per con non si come piu ma questo questa quando perche degli sono nel",
+            "pt": "o a os as de um uma que para com por em seu se como mais mas este esta quando porque nao muito",
+            "en": "the a an and of to in is for on with as at by this that it he she we you they not but are was",
+            # romanized Hindi / Hinglish — tokens that are distinctively Hindi
+            # and rare in English, so an English essay won't score on them
+            "hi": "hai nahi nahin kya ka ki ke ko mein aur yeh yah woh wah kyun kyunki tha thi the karta karti karte "
+                  "karna raha rahi rahe hota hoti hue liye jab tab phir bhi apne apna uska uske unka sirf lekin magar "
+                  "kaise kuch bahut theek matlab samajh baat wala wali",
+        }
+        score = {k: sum(1 for w in words if w in set(v.split()))
+                 for k, v in stop.items()}
+        score["fr"] += sum(t.count(c) for c in "àâçéèêëîïôûù") // 20
+        score["es"] += (t.count("ñ") + t.count("¿") + t.count("¡")) // 3
+        score["de"] += (t.count("ß") + t.count("ä") + t.count("ö") + t.count("ü")) // 10
+        best = max(score, key=score.get)
+        return best if score[best] > 0 else "auto"
 
     # ---- native file drag-and-drop ------------------------------------- #
     # pywebview 6 only puts the dropped file's real path on the event that
@@ -174,6 +263,33 @@ class Api:
             pass
         return True
 
+    def prepare_clues(self):
+        """Pick a folder of clean scripts -> grounded clue for each (agy Claude),
+        in the background. Later builds of those scripts reuse the clue."""
+        folder = self.pick_folder()
+        if not folder or self._running:
+            return False
+        self._running, self._stop = True, False
+
+        def go():
+            try:
+                self._log(f"\n=== Prepare clues: {folder}")
+                proc = subprocess.Popen([sys.executable, "-u", "-m", "editv2", "clues", folder],
+                                        cwd=os.path.dirname(os.path.abspath(__file__)),
+                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                                        encoding="utf-8", errors="replace",
+                                        env={**os.environ, "PYTHONIOENCODING": "utf-8"})
+                self._proc = proc
+                for line in proc.stdout:
+                    if line.strip() and "warn" not in line.lower():
+                        self._log(line.rstrip())
+                proc.wait()
+                self._status("clues ready" if proc.returncode == 0 else "clues: error", "#3ecf8e")
+            finally:
+                self._proc, self._running = None, False
+        threading.Thread(target=go, daemon=True).start()
+        return True
+
     def stop(self):
         # Set the flag AND actually kill the running child. The flag alone only
         # lands BETWEEN stages (studio polls should_stop there), so a 40-80 min
@@ -182,6 +298,10 @@ class Api:
         # spawned underneath die with it. The half-done build folder is kept, so
         # the next Run resumes (makevideo reuses cut clips, prostudio the shots).
         self._stop = True
+        try:                      # a voiceover killed mid-way must not keep the indexing workers off the GPU
+            os.remove(r"D:\Lib\libjobs\gpu\reserved")
+        except OSError:
+            pass
         proc = self._proc
         if proc is not None and proc.poll() is None:
             try:
@@ -225,6 +345,15 @@ class Api:
         except Exception:
             pass
 
+    def _video_status(self, index, status):
+        """Push one video's state (pending|building|done|failed) to its card so
+        the UI can badge it and keep a live done/total count."""
+        try:
+            self.window.evaluate_js(
+                f"setVideoStatus({int(index)},{json.dumps(status)})")
+        except Exception:
+            pass
+
     def _run(self, jobs_json):
         try:
             specs = json.loads(jobs_json)
@@ -245,19 +374,25 @@ class Api:
                     kinetic_text=bool(s.get("kinetic_text")),
                     text_file=s.get("text_file", ""),
                     auto_voice=bool(s.get("auto_voice")),
-                    voice_ref=s.get("voice_ref", ""), index=i))
+                    voice_ref=s.get("voice_ref", ""), index=i,
+                    engine=s.get("engine", "classic"), look=s.get("look", "auto")))
             ok = 0
+            for j in range(len(jobs)):           # everything starts as pending
+                self._video_status(j, "pending")
             for n, job in enumerate(jobs, 1):
                 if self._stop:
                     self._log("\n■ stopped by you.")
                     break
+                self._video_status(job.index, "building")
                 self._log(f"\n{'='*54}\nVIDEO {n}/{len(jobs)}\n{'='*54}")
                 studio.build(job, log=self._log, on_proc=self._set_proc,
                              should_stop=lambda: self._stop)
                 if job.status == "done":
                     ok += 1
+                    self._video_status(job.index, "done")
                     self._log(f"\n  ✓ {job.message}")
                 else:
+                    self._video_status(job.index, "failed")
                     self._log(f"\n  ! {job.status}: {job.message}")
             self._status(f"done — {ok}/{len(jobs)} ok" if not self._stop
                          else "stopped", "#3ecf8e")

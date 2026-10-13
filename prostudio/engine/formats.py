@@ -123,10 +123,57 @@ FORMATS = {
         vignette=False, letterbox=False, glitch=False, sepia=False,
         pushin=False, spotlight=False, pan=None, bare=True,
         soft=("fade", 0.0), scene=("fade", 0.0)),
+
+    # ---- NEW look packs (sample=True → shown as samples, kept OUT of auto-
+    # rotation until approved). Inspired by 6 reference channels. ----------------
+    "N1_Card": dict(               # REC3/REC4: rounded card on a soft background
+        desc="Rounded card on a soft patterned background, gentle push + shadow",
+        font=SANS, size=58, upper=False, spaced=False,
+        anim="fade", border=0, shake=0.0, drift=0.28, grain=0,
+        vignette=False, letterbox=False, glitch=False, sepia=False,
+        pushin=True, spotlight=False, pan=None, sample=True, want_frame=True,
+        soft=("dissolve", 0.45), scene=("fadeblack", 0.5)),
+    "N2_GlitchFrame": dict(        # REC1: tech-bordered inset + RGB glitch cuts
+        desc="Tech-bordered inset with chromatic RGB glitch transitions",
+        font=MONO, size=60, upper=True, spaced=False,
+        anim="type", border=3, shake=0.0, drift=0.4, grain=6,
+        vignette=True, letterbox=False, glitch=True, sepia=False,
+        pushin=False, spotlight=False, pan=None, sample=True, want_frame=True,
+        soft=("pixelize", 0.22), scene=("fadeblack", 0.4)),
+    "N3_Impact": dict(             # REC5: full-bleed + oversized punch typography
+        desc="Full-bleed with oversized integrated impact typography",
+        font=SANS, size=132, upper=True, spaced=False,
+        anim="bounce", border=4, shake=0.0, drift=0.55, grain=5,
+        vignette=True, letterbox=False, glitch=False, sepia=False,
+        pushin=False, spotlight=False, pan=None, sample=True, force_text=True,
+        soft=("fade", 0.10), scene=("fade", 0.14)),
+    "N4_Clean": dict(              # REC2: minimal clean full-bleed, subtle motion
+        desc="Minimal clean full-bleed, subtle drift, near-invisible cuts",
+        font=SANS, size=50, upper=False, spaced=False,
+        anim="fade", border=0, shake=0.0, drift=0.22, grain=0,
+        vignette=False, letterbox=False, glitch=False, sepia=False,
+        pushin=True, spotlight=False, pan=None, sample=True,
+        soft=("fade", 0.30), scene=("fade", 0.35)),
+    "N5_Caption": dict(            # REC3: always-on bold word-by-word captions
+        desc="Always-on bold karaoke captions, clean full-bleed",
+        font=SANS, size=64, upper=True, spaced=False,
+        anim="pop", border=3, shake=0.0, drift=0.3, grain=0,
+        vignette=True, letterbox=False, glitch=False, sepia=False,
+        pushin=True, spotlight=False, pan=None, sample=True, force_text=True,
+        soft=("fade", 0.16), scene=("fade", 0.2)),
+    "N6_Callout": dict(            # REC6: highlight/commentary emphasis look
+        desc="Commentary highlight: darkened surround + center spotlight accents",
+        font=SERIF, size=62, upper=True, spaced=True,
+        anim="fade", border=0, shake=0.0, drift=0.3, grain=3,
+        vignette=True, letterbox=False, glitch=False, sepia=False,
+        pushin=True, spotlight=True, pan=None, sample=True,
+        soft=("fadewhite", 0.35), scene=("fadeblack", 0.5)),
 }
 
-# Auto-rotation never picks a `bare` format — it is a deliberate choice only.
-ROTATION = [k for k in FORMATS if not FORMATS[k].get("bare")]
+# Auto-rotation never picks a `bare` format or an in-review `sample` look — both
+# are deliberate choices only.
+ROTATION = [k for k in FORMATS
+            if not FORMATS[k].get("bare") and not FORMATS[k].get("sample")]
 
 
 def resolve_format(choice: str, job_index: int, rng) -> str:

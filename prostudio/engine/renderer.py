@@ -23,9 +23,10 @@ from .formats import FORMATS, grade_for, theme_color as _theme_color
 from .textlayout import chunk_filters
 
 
-def _run(cmd, log, timeout=None):
+def _run(cmd, log, timeout=None, cwd=None):
     try:
-        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout,
+                           cwd=cwd)
     except subprocess.TimeoutExpired:
         log(f"ffmpeg timed out after {timeout}s (stuck process, likely waiting "
             "on stdin) -> aborting this shot")
@@ -62,7 +63,7 @@ def _fc_file_flag():
     return _FC_FILE_FLAG
 
 
-def _run_progress(cmd, log, total, work, lo=88, hi=99, stall_secs=900):
+def _run_progress(cmd, log, total, work, lo=88, hi=99, stall_secs=900, cwd=None):
     """Run a long ffmpeg with LIVE progress so the final compose step never
     looks frozen. Maps encoded time -> [lo..hi]%. Aborts only if there is NO
     progress at all for `stall_secs` (a genuine hang), not just because it's
@@ -71,7 +72,8 @@ def _run_progress(cmd, log, total, work, lo=88, hi=99, stall_secs=900):
     errpath = os.path.join(work, "compose_err.log")
     with open(errpath, "w", encoding="utf-8") as errf:
         p = subprocess.Popen(cmd + ["-progress", "pipe:1", "-nostats"],
-                             stdout=subprocess.PIPE, stderr=errf, text=True)
+                             stdout=subprocess.PIPE, stderr=errf, text=True,
+                             cwd=cwd)
         last_pct, last_beat = lo, time.time()
         try:
             for line in p.stdout:
@@ -195,6 +197,148 @@ def _render_inset(shot, out, style, niche, W, H, secs, log, inset=0.90,
     _ensure_duration(out, secs, log)
 
 
+_IMG_EXT = (".jpg", ".jpeg", ".png", ".webp", ".avif", ".bmp", ".gif")
+_VID_EXT = (".mp4", ".mov", ".mkv", ".webm", ".m4v", ".avi")
+
+
+import threading as _threading
+_ASSET_LOCK = _threading.Lock()
+
+
+def _moving_card_assets(work, cw, ch, rad):
+    """Rounded-card alpha mask (cw×ch) + a soft drop-shadow PNG on a slightly
+    larger transparent canvas, both cached by size. The shadow gives the card a
+    'floating over a shade' look."""
+    from PIL import Image, ImageDraw, ImageFilter
+    m = os.path.join(work, f"mcmask_{cw}x{ch}.png")
+    s = os.path.join(work, f"mcshadow_{cw}x{ch}.png")
+    # shots render in PARALLEL: build each asset once, under a lock, and write it
+    # to a temp name first so no thread can read a half-written PNG.
+    with _ASSET_LOCK:
+        if not os.path.isfile(m):
+            mk = Image.new("L", (cw, ch), 0)
+            ImageDraw.Draw(mk).rounded_rectangle([0, 0, cw - 1, ch - 1],
+                                                 radius=rad, fill=255)
+            mk.save(m + ".tmp.png")
+            os.replace(m + ".tmp.png", m)
+        if not os.path.isfile(s):
+            P = 60
+            sh = Image.new("RGBA", (cw + 2 * P, ch + 2 * P), (0, 0, 0, 0))
+            ImageDraw.Draw(sh).rounded_rectangle([P, P + 10, cw + P, ch + P + 10],
+                                                 radius=rad, fill=(0, 0, 0, 150))
+            sh.filter(ImageFilter.GaussianBlur(28)).save(s + ".tmp.png")
+            os.replace(s + ".tmp.png", s)
+    return m, s
+
+
+def _render_moving_card(shot, out, style, niche, W, H, secs, bg_path, log,
+                        timeout=200):
+    """The competitor look: the footage rides in a ROUNDED CARD whose SIZE and
+    ENTRANCE change shot to shot — it slides in from a different edge (left /
+    right / top / bottom), or pops in place, at a scale from ~0.6 to ~0.92 — over
+    a background that can be a still image OR a moving video. Per-shot variety is
+    seeded from the shot so it is stable but never repetitive."""
+    import random as _r
+    rng = _r.Random(getattr(shot, "drift_seed", 0) or 1)
+    grade = grade_for(niche, shot.mood, style["sepia"])
+    # card size (even numbers) — varied per shot, but never tiny (min ~0.74)
+    scale = rng.choice([0.74, 0.78, 0.82, 0.86, 0.90, 0.94])
+    cw = max(2, int(W * scale) // 2 * 2)
+    ch = max(2, int(H * scale) // 2 * 2)
+    # resting position: usually centred, sometimes pushed toward a third
+    slack_x, slack_y = (W - cw), (H - ch)
+    rx = slack_x // 2 + int(rng.choice([-0.35, 0, 0, 0.35]) * slack_x / 2)
+    ry = slack_y // 2 + int(rng.choice([-0.30, 0, 0, 0.30]) * slack_y / 2)
+    rx = max(0, min(slack_x, rx)); ry = max(0, min(slack_y, ry))
+    ENT = 0.5                                        # entrance length (s)
+    frm = rng.choice(["left", "right", "top", "bottom", "left", "right",
+                      "pop", "static"])
+    ease = f"(1-pow(1-min(1,t/{ENT}),3))"            # ease-out cubic 0->1
+    if frm == "left":
+        xexpr, yexpr = f"({rx}+({-cw-rx})*(1-{ease}))", f"{ry}"
+    elif frm == "right":
+        xexpr, yexpr = f"({rx}+({W}-{rx})*(1-{ease}))", f"{ry}"
+    elif frm == "top":
+        xexpr, yexpr = f"{rx}", f"({ry}+({-ch-ry})*(1-{ease}))"
+    elif frm == "bottom":
+        xexpr, yexpr = f"{rx}", f"({ry}+({H}-{ry})*(1-{ease}))"
+    else:                                            # pop / static: hold in place
+        xexpr, yexpr = f"{rx}", f"{ry}"
+    frames = max(1, int(secs * FPS))
+    # background source: image (loop) or video (loop)
+    bg_is_vid = bg_path and bg_path.lower().endswith(_VID_EXT)
+    if bg_is_vid:
+        bg_in = ["-stream_loop", "-1", "-t", f"{secs:.3f}", "-i", bg_path]
+    else:
+        bg_in = ["-loop", "1", "-framerate", str(FPS),
+                 "-t", f"{secs + 0.3:.3f}", "-i", bg_path]
+    # foreground shot: image (loop) or video (seek)
+    if shot.kind == "image":
+        fg_in = ["-loop", "1", "-framerate", str(FPS),
+                 "-t", f"{secs + 0.3:.3f}", "-i", shot.path]
+    else:
+        ss = max(0.0, getattr(shot, "src_in", 0.0) or 0.0)
+        fg_in = (["-ss", f"{ss:.3f}"] if ss > 0 else []) + \
+            ["-t", f"{secs + 0.3:.3f}", "-i", shot.path]
+    rad = max(18, int(0.02 * W))
+    mask, shadow = _moving_card_assets(os.path.dirname(out), cw, ch, rad)
+    # border look, varied per shot: a crisp WHITE edge, a soft BLACK edge, or no
+    # border (the card just floats on its shade). Matches the reference channels.
+    bstyle = rng.choice(["white", "black", "none", "none", "white"])
+    if bstyle == "white":
+        bw, bcol = max(4, int(0.006 * W)), "white"
+    elif bstyle == "black":
+        bw, bcol = max(4, int(0.006 * W)), "0x14181f"
+    else:
+        bw, bcol = 0, "black"
+    iw, ih = cw - 2 * bw, ch - 2 * bw
+    post = ""
+    if style.get("grain"):
+        post += f",noise=alls={style['grain']}:allf=t+u"
+    if style.get("vignette"):
+        post += ",vignette=PI/5"
+    # a gentle push/pull INSIDE the card so it is never dead-still — direction
+    # (zoom-in vs zoom-out) varies per shot for more life. Stills are built up
+    # from one frame (d=frames); a video advances one output frame per input
+    # frame (d=1) so the zoom rides along its own motion.
+    zdir = rng.choice(["in", "out", "in", "out", "none"])
+    if shot.kind == "image":
+        # subpixel-smooth Ken Burns on the card image (no zoompan shake)
+        mv = {"in": "in", "out": "out", "none": "hold"}[zdir]
+        card_src = _kb_perspective(iw, ih, frames, mv)
+    else:
+        # a video already carries its own motion: a light zoompan (d=1) rides
+        # along it and the truncation is masked by that motion, so keep it.
+        base = (f"scale={iw}:{ih}:force_original_aspect_ratio=increase,"
+                f"crop={iw}:{ih}")
+        if zdir == "none":
+            card_src = base + ",setsar=1"
+        else:
+            zexpr = ("min(1.0+0.0006*on,1.12)" if zdir == "in"
+                     else "max(1.12-0.0006*on,1.0)")
+            card_src = (base + f",zoompan=z='{zexpr}':d=1:x='iw/2-(iw/zoom/2)':"
+                        f"y='ih/2-(ih/zoom/2)':s={iw}x{ih}:fps={FPS},setsar=1")
+    pad = (f",pad={cw}:{ch}:{bw}:{bw}:color={bcol}" if bw > 0 else "")
+    # shadow rides just behind the card (same slide, small down-right offset)
+    P = 60
+    sxexpr, syexpr = f"({xexpr})-{P}+8", f"({yexpr})-{P}+10"
+    fc = (
+        f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
+        f"boxblur=22:1,eq=brightness=-0.06:saturation=0.9,setsar=1[bg];"
+        f"[1:v]{card_src},{grade}{pad}[fgc];"
+        f"[fgc][2:v]alphamerge[card];"
+        f"[bg][3:v]overlay=x='{sxexpr}':y='{syexpr}':format=auto[bgs];"
+        f"[bgs][card]overlay=x='{xexpr}':y='{yexpr}':format=auto{post}[v]"
+    )
+    cmd = ["ffmpeg", "-nostdin", "-y", "-v", "error",
+           *bg_in, *fg_in, "-loop", "1", "-i", mask, "-loop", "1", "-i", shadow,
+           "-filter_complex", fc, "-map", "[v]", "-t", f"{secs:.3f}",
+           "-an", "-r", str(FPS), *_vc(preset="veryfast"), "-pix_fmt", "yuv420p",
+           out]
+    _run(cmd, log, timeout=timeout)
+    _ensure_duration(out, secs, log)
+
+
 def _render_blurfill(shot, out, style, niche, W, H, secs, log, timeout=180):
     _render_inset(shot, out, style, niche, W, H, secs, log, inset=0.90,
                   timeout=timeout)
@@ -225,50 +369,61 @@ def _glow_png(path, size=1000):
     img.save(path)
 
 
+def _kb_perspective(ow, oh, frames, move, zoom_per_sec=0.010):
+    """Subpixel-smooth Ken Burns for a STILL image — the shake-free replacement
+    for zoompan. zoompan keeps its crop origin on a WHOLE pixel and truncates the
+    fractional x/y every frame; at ~3.6 px/frame of intended motion that rounding
+    stumbles ~6 times a second and reads as a fine shake (worst on the vertical
+    axis of a zoom). Instead: supersample to a 16-aligned canvas, then let the
+    `perspective` filter (cubic, FLOAT source corners) pull a slowly shrinking /
+    sliding rectangle — no truncation — and downscale with lanczos.
+    `move`: in|out|hold|panl|panr|panu|pand. Corners evaluate per output frame
+    index `on`. Feed the image with `-framerate FPS` or frames get duplicated.
+    (Method + measurements: KEN-BURNS-FIX.md, sd 0.446 px -> 0.000 px.)"""
+    dur = frames / float(FPS)
+    z = min(0.20, max(0.012, zoom_per_sec * dur))       # total zoom over the shot
+    CW = int(round(ow * (1 + z) / 16) * 16)             # canvas: 16-aligned so CH
+    CH = int(round(CW * oh / ow))                       # lands cleanly on 16:9
+    N1 = max(1, frames - 1)
+    f = lambda v: f"{v:.4f}"
+    if move in ("panl", "panr", "panu", "pand"):        # fixed-size rect, slide it
+        if move in ("panl", "panr"):
+            sx = (CW - ow) / N1
+            ty = (CH - oh) / 2.0
+            p = f"({N1}-on)" if move == "panl" else "on"
+            L, R = f"{f(sx)}*{p}", f"{f(sx)}*{p}+{ow}"
+            T, B = f"{f(ty)}", f"{f(ty + oh)}"
+        else:
+            sy = (CH - oh) / N1
+            tx = (CW - ow) / 2.0
+            p = f"({N1}-on)" if move == "panu" else "on"
+            T, B = f"{f(sy)}*{p}", f"{f(sy)}*{p}+{oh}"
+            L, R = f"{f(tx)}", f"{f(tx + ow)}"
+    else:                                               # zoom in / out / hold
+        ax = (CW - ow) / 2.0 / N1
+        ay = (CH - oh) / 2.0 / N1
+        p = {"out": f"({N1}-on)", "hold": "0"}.get(move, "on")
+        L, T = f"{f(ax)}*{p}", f"{f(ay)}*{p}"
+        R, B = f"{CW}-{f(ax)}*{p}", f"{CH}-{f(ay)}*{p}"
+    persp = (f"perspective=eval=frame:sense=source:interpolation=cubic:"
+             f"x0='{L}':y0='{T}':x1='{R}':y1='{T}':"
+             f"x2='{L}':y2='{B}':x3='{R}':y3='{B}'")
+    # Stills are single frames of (often upscaled-SD, compressed) episodes:
+    # a light denoise + unsharp BEFORE the zoom takes the block noise off and
+    # restores edges. PS_IMG_ENHANCE=0 turns it off.
+    enh = ("hqdn3d=1.5:1.2:0:0,unsharp=5:5:0.7:5:5:0,"
+           if os.environ.get("PS_IMG_ENHANCE", "1") != "0" else "")
+    return (f"{enh}scale={CW}:{CH}:force_original_aspect_ratio=increase:flags=lanczos,"
+            f"crop={CW}:{CH},{persp},scale={ow}:{oh}:flags=lanczos,setsar=1")
+
+
 def _zoompan_image(shot, W, H, secs, style):
     frames = max(1, int(secs * FPS))
-    big = 2 if H <= 1080 else 1.5
-    bw, bh = int(W * big), int(H * big)
-    rate = 0.0010
-    zmax = 1.16 if not style.get("strong_push") else 1.30
-    drift = style["drift"]
-    a = drift * 5 * (H / 1080)
-    ph = shot.drift_seed % 7
-    punch = ""
-    if shot.punch_in:
-        n = int(frames * 0.55)
-        punch = f"+if(gte(on\\,{n})\\,min(0.05\\,(on-{n})*0.012)\\,0)"
     move = getattr(shot, "move", "") or ("in" if shot.zoom_in else "out")
     if style.get("pan") == "lr":                 # F8 keeps its horizontal pan
         move = "panr" if shot.drift_seed % 2 == 0 else "panl"
-    cx = f"iw/2-(iw/zoom/2)+{a:.1f}*sin(on/37+{ph})"
-    cy = f"ih/2-(ih/zoom/2)+{a * 0.7:.1f}*cos(on/43+{ph})"
-    x, y = cx, cy
-    if move == "out":
-        z = f"max({zmax}-{rate}*on{punch},1.0)"
-    elif move == "hold":
-        z = "1.04"
-    elif move in ("panl", "panr", "panu", "pand"):
-        z = "1.12"
-        d2 = a * 0.5
-        if move == "panr":
-            x = f"(iw-iw/zoom)*on/{frames}"
-            y = f"ih/2-(ih/zoom/2)+{d2:.1f}*cos(on/50+{ph})"
-        elif move == "panl":
-            x = f"(iw-iw/zoom)*(1-on/{frames})"
-            y = f"ih/2-(ih/zoom/2)+{d2:.1f}*cos(on/50+{ph})"
-        elif move == "pand":
-            y = f"(ih-ih/zoom)*on/{frames}"
-            x = f"iw/2-(iw/zoom/2)+{d2:.1f}*sin(on/50+{ph})"
-        else:                                     # panu
-            y = f"(ih-ih/zoom)*(1-on/{frames})"
-            x = f"iw/2-(iw/zoom/2)+{d2:.1f}*sin(on/50+{ph})"
-    else:                                         # "in"
-        z = f"min(1.0+{rate}*on{punch},{zmax})"
-    return (f"scale={bw}:{bh}:force_original_aspect_ratio=increase:"
-            f"flags=lanczos,crop={bw}:{bh},"
-            f"zoompan=z='{z}':d={frames}:x='{x}':y='{y}':s={W}x{H}:fps={FPS},"
-            f"setsar=1")
+    zps = 0.020 if style.get("strong_push") else 0.010
+    return _kb_perspective(W, H, frames, move, zoom_per_sec=zps)
 
 
 def _video_vf(shot, W, H, style):
@@ -306,7 +461,8 @@ def _render_full(shot, out, style, niche, W, H, secs, glow, log, timeout):
     """The full styled render (Ken Burns / drift / grade / grain / glitch)."""
     if shot.kind == "image":
         vf = _zoompan_image(shot, W, H, secs, style)
-        ins = ["-loop", "1", "-t", f"{secs + 0.4:.3f}", "-i", shot.path]
+        ins = ["-loop", "1", "-framerate", str(FPS),
+               "-t", f"{secs + 0.4:.3f}", "-i", shot.path]
     else:
         vf = _video_vf(shot, W, H, style)
         ss = max(0.0, getattr(shot, "src_in", 0.0) or 0.0)   # user in-point
@@ -348,7 +504,8 @@ def _safe_still(path, kind, W, H, work, log, timeout=60, src_in=0.0):
     This is the escape hatch for a pathological input (huge / corrupt /
     exotic-codec video): one decode instead of per-frame heavy filtering.
     Returns the still path or None."""
-    still = os.path.join(work, "safe_" + str(abs(hash(path)) % 10**8) + ".png")
+    still = os.path.join(work, "safe_" + str(abs(hash((path, _threading.get_ident())))
+                                             % 10**8) + ".png")
     seek = []
     if kind == "video":
         d = duration(path)
@@ -371,21 +528,15 @@ def _render_still_simple(still, out, shot, W, H, secs, style, niche, log,
                          timeout=90):
     """A gentle, robust render from a NORMALIZED still (input already WxH,
     so this is always fast). Slow zoom + grade only — no grain/glitch."""
-    z = 1.10
-    x = "iw/2-(iw/zoom/2)"
-    y = "ih/2-(ih/zoom/2)"
     frames = max(1, int(secs * FPS))
-    if shot.zoom_in:
-        zexpr = f"min(1.0+0.0009*on,{z})"
-    else:
-        zexpr = f"max({z}-0.0009*on,1.0)"
-    vf = (f"scale={int(W*1.2)}:{int(H*1.2)}:flags=bilinear,"
-          f"zoompan=z='{zexpr}':d={frames}:x='{x}':y='{y}':s={W}x{H}:fps={FPS},"
-          f"setsar=1," + grade_for(niche, shot.mood, style["sepia"]))
+    move = "in" if shot.zoom_in else "out"
+    vf = (_kb_perspective(W, H, frames, move) + ","
+          + grade_for(niche, shot.mood, style["sepia"]))
     if style["letterbox"]:
         vh = int(W * 9 / 21)
         vf += f",crop={W}:{vh},pad={W}:{H}:0:(oh-ih)/2:black"
     cmd = ["ffmpeg", "-nostdin", "-y", "-v", "error", "-loop", "1",
+           "-framerate", str(FPS),
            "-t", f"{secs + 0.4:.3f}", "-i", still, "-vf", vf,
            "-t", f"{secs:.3f}", "-an", "-r", str(FPS), *_vc(preset="veryfast"),
            "-pix_fmt", "yuv420p", out]
@@ -422,7 +573,8 @@ def _render_bare(shot, out, W, H, secs, log, timeout=120):
     _ensure_duration(out, secs, log)
 
 
-def render_shot(shot, out, style, niche, W, H, pad, glow, log, work=None):
+def render_shot(shot, out, style, niche, W, H, pad, glow, log, work=None,
+                bg=None):
     """Render one shot, GUARANTEED to produce a valid segment.
 
     Tier 1: full styled render (bounded timeout).
@@ -431,6 +583,15 @@ def render_shot(shot, out, style, niche, W, H, pad, glow, log, work=None):
     A single bad/huge/corrupt file can never stall or fail the whole job."""
     secs = shot.secs + pad
     work = work or os.path.dirname(out)
+    # Moving-card formats: the footage rides a varied-size card that slides in
+    # from an edge over the (image OR video) background. Its own compositing path.
+    if bg and getattr(shot, "framing", "") == "movingcard":
+        try:
+            _render_moving_card(shot, out, style, niche, W, H, secs, bg, log)
+            return "full"
+        except Exception as exc:
+            log(f"  moving-card slow/failed ({exc}); safe mode ...")
+            # fall through to the safe tiers
     if style.get("bare"):                      # No-Filter format: clip only
         try:
             _render_bare(shot, out, W, H, secs, log)
@@ -589,10 +750,16 @@ def _compose_chain(clips, nets, joins, out, W, H, crf, preset, work, log,
     else:                                   # single clip, no filters -> copy
         cmd = ["ffmpeg", "-nostdin", "-y", "-v", "error", "-i", clips[0],
                "-c", "copy", "-t", f"{total:.3f}", out]
+    # drawtext references fonts by BARE filename (a Windows drive colon breaks the
+    # filtergraph), so the compose must run from the fonts directory.
+    fdir = None
+    if text_events and job is not None:
+        from .textlayout import FONTS_DIR
+        fdir = FONTS_DIR
     if progress:
-        _run_progress(cmd, log, total=total, work=work)
+        _run_progress(cmd, log, total=total, work=work, cwd=fdir)
     else:
-        _run(cmd, log, timeout=None)
+        _run(cmd, log, timeout=None, cwd=fdir)
     return out, comp_total
 
 
@@ -647,6 +814,86 @@ def _neutralize(style):
     return style
 
 
+_BGM_DIR = os.environ.get("PS_BGM_DIR", r"C:\Users\Dell\Desktop\ProStudio\BGM")
+_BGM_EXT = (".mp3", ".wav", ".m4a", ".aac", ".flac", ".ogg", ".opus", ".wma")
+
+
+def _bgm_tracks():
+    if not os.path.isdir(_BGM_DIR):
+        return []
+    return sorted(os.path.join(_BGM_DIR, f) for f in os.listdir(_BGM_DIR)
+                  if f.lower().endswith(_BGM_EXT)
+                  and os.path.isfile(os.path.join(_BGM_DIR, f)))
+
+
+def mix_bgm(vo_path, work, log, seed=0):
+    """Return an audio track = narration with a background-music bed mixed UNDER
+    it. Music is auto-picked from the BGM folder (drop any number of tracks in
+    C:\\Users\\Dell\\Desktop\\ProStudio\\BGM), looped to the narration length, kept
+    low, and SIDECHAIN-DUCKED so it drops automatically whenever the voice speaks
+    — the narration is always clearly on top. No folder / no tracks / PS_BGM=0 →
+    the plain narration is used unchanged."""
+    if os.environ.get("PS_BGM", "1").strip().lower() in ("0", "", "false", "no"):
+        return vo_path
+    tracks = _bgm_tracks()
+    if not tracks or not (vo_path and os.path.isfile(vo_path)):
+        return vo_path
+    import random as _r
+    rng = _r.Random(seed or 0)
+    # Audible-but-gentle bed. The narration is almost continuous, so HARD
+    # sidechain ducking (what we had) pinned the music near-silent the whole time
+    # = "no music at all". A clearly-audible bed sits ~18-20% under the voice, so
+    # the base is ~0.20 and the duck is LIGHT (it only dips the bed ~30% while the
+    # voice speaks, then it breathes back up in the gaps).
+    vol = os.environ.get("PS_BGM_VOL", "0.05")           # base bed level (~ -26 dB, faint)
+    out = os.path.join(work, "vo_bgm.m4a")
+    if os.path.isfile(out):
+        return out
+    # Long video, short tracks: with ONE track we loop it seamlessly to cover the
+    # whole narration; with SEVERAL we cycle through all of them (shuffled, then
+    # looped) so a 20-30 min video doesn't repeat the same 4-5 min bed over and
+    # over. Either way the bed is trimmed to the narration length by amix.
+    src_inputs = []
+    if len(tracks) == 1:
+        src_inputs = ["-stream_loop", "-1", "-i", tracks[0]]
+    else:
+        # `-stream_loop -1` on the concat demuxer is rejected on this ffmpeg
+        # ("Operation not permitted"), so instead repeat the shuffled playlist
+        # enough times to outlast any video (amix trims to the narration length).
+        # Forward slashes only — backslashes in a concat list break the parse.
+        order = tracks[:]
+        rng.shuffle(order)
+        listfile = os.path.join(work, "bgm_list.txt")
+        with open(listfile, "w", encoding="utf-8") as lf:
+            for _ in range(40):
+                for tk in order:
+                    safe = tk.replace("\\", "/").replace("'", "'\\''")
+                    lf.write("file '" + safe + "'\n")
+        src_inputs = ["-f", "concat", "-safe", "0", "-i", listfile]
+    fc = (f"[1:a]volume={vol},aresample=48000[bg];"
+          f"[bg][0:a]sidechaincompress=threshold=0.08:ratio=3:attack=40:"
+          f"release=600:makeup=1[duck];"
+          f"[0:a][duck]amix=inputs=2:duration=first:normalize=0,"
+          f"alimiter=limit=0.95[a]")
+    cmd = ["ffmpeg", "-nostdin", "-y", "-v", "error",
+           "-i", vo_path, *src_inputs,
+           "-filter_complex", fc, "-map", "[a]",
+           "-c:a", "aac", "-b:a", "192k", out]
+    label = (os.path.basename(tracks[0]) if len(tracks) == 1
+             else f"{len(tracks)} tracks (cycled)")
+    try:
+        r = subprocess.run(cmd, capture_output=True, timeout=900)
+        if r.returncode == 0 and os.path.isfile(out):
+            log(f"  background music ON: {label} "
+                f"(auto-ducked under narration, bed vol {vol})")
+            return out
+        log("  BGM mix failed — using plain narration: "
+            + r.stderr.decode("utf-8", "replace")[:140])
+    except Exception as exc:
+        log(f"  BGM mix error ({type(exc).__name__}) — using plain narration")
+    return vo_path
+
+
 def render_job(job, shots, text_events, log=print, proxy=False, resume=False):
     style = _neutralize(dict(FORMATS[job.format_key]))
     W, H = RESOLUTIONS[job.resolution]
@@ -674,6 +921,11 @@ def render_job(job, shots, text_events, log=print, proxy=False, resume=False):
         if not resume:
             shutil.rmtree(work, ignore_errors=True)   # fresh start
         os.makedirs(work, exist_ok=True)
+    # Mix a background-music bed under the narration (auto-picked + auto-ducked).
+    # Proxies skip it for speed. Done once here so both the concat and the
+    # crossfade compose paths pick up the music via job.audio.
+    if not proxy and getattr(job, "audio", None):
+        job.audio = mix_bgm(job.audio, work, log, seed=getattr(job, "seed", 0))
     try:
         glow = os.path.join(work, "glow.png")
         if style.get("spotlight"):
@@ -696,31 +948,96 @@ def render_job(job, shots, text_events, log=print, proxy=False, resume=False):
             tdur = min(tdur, shots[i].secs * 0.5, shots[i + 1].secs * 0.5)
             joins.append((ttype, max(0.05, tdur)))
 
+        # Moving-card mode: a `want_frame` format WITH a background (image or
+        # video) puts each shot in a varied-size card that slides in per shot,
+        # instead of the one fixed whole-video frame. Each shot is tagged so
+        # render_shot takes the moving-card path, and the final compose then skips
+        # the static frame (the card IS the frame now).
+        # Moving-card is the standard premium look now: ANY framed video with a
+        # background (image or video) gets the per-shot varied card, not just the
+        # N-formats. Bare/letterbox/spotlight keep their own dedicated looks.
+        _fb = getattr(job, "frame_bg", None)
+        mc_bg = _fb if (_fb and os.path.isfile(_fb)
+                        and not style.get("bare")
+                        and not style.get("letterbox")
+                        and not style.get("spotlight")) else None
+        if mc_bg:
+            orig_bg = mc_bg
+            # A still image is normalised to a WxH PNG ONCE (ffmpeg can't -loop an
+            # AVIF/WEBP directly); a video background is used as-is.
+            if not mc_bg.lower().endswith(_VID_EXT):
+                bgp = os.path.join(work, "mc_bg.png")
+                if not os.path.isfile(bgp):
+                    _run(["ffmpeg", "-nostdin", "-y", "-v", "error", "-i", mc_bg,
+                          "-frames:v", "1", "-vf",
+                          f"scale={W}:{H}:force_original_aspect_ratio=increase,"
+                          f"crop={W}:{H}", bgp], log)
+                mc_bg = bgp
+            # Card vs full-screen mix: most shots ride the card, but ~30% (biased
+            # to VIDEO clips) play FULL-SCREEN to break the rhythm and keep the
+            # viewer engaged — the "sometimes a card, sometimes full video" look.
+            import random as _rr
+            fulls = 0
+            for i2, sh in enumerate(shots):
+                r = _rr.Random((getattr(sh, "drift_seed", 0) or 1) * 7 + i2)
+                # stills are the softest material (single, often upscaled-SD
+                # frames): keep them in the card, full-screen only rarely
+                p_full = 0.42 if sh.kind == "video" else 0.06
+                if i2 > 0 and r.random() < p_full:
+                    sh.framing = "full"; fulls += 1
+                else:
+                    sh.framing = "movingcard"
+            log(f"  moving-card frame ON — per-shot varied size/border/slide over "
+                f"{os.path.basename(orig_bg)}"
+                + (" (video bg)" if orig_bg.lower().endswith(_VID_EXT) else "")
+                + f"; {fulls}/{len(shots)} shots full-screen for variety")
         log(f"  rendering {n} shots at {W}x{H} ...")
         segs, degraded, cached = [], 0, 0
+        todo = []
         for i, sh in enumerate(shots):
             seg = os.path.join(work, f"s{i:03d}.mp4")
             pad = joins[i][1] if i < n - 1 else 0.0
             want = sh.secs + pad
+            segs.append(seg)
             # RESUME: reuse a segment only if it is fully rendered AND matches
             # the current resolution (a stale segment from a different-res run
             # would break the xfade compose).
             if (resume and os.path.isfile(seg)
                     and abs(duration(seg) - want) < 0.2
                     and _dims(seg) == (W, H)):
-                segs.append(seg)
                 cached += 1
-                pct = 25 + int(60 * (i + 1) / n)
-                log(f"[{pct:3d}%] shot {i + 1}/{n} (already done — skipped)")
                 continue
-            tier = render_shot(sh, seg, style, job.niche, W, H, pad, glow, log,
-                               work=work)
+            todo.append((i, sh, seg, pad))
+        # Shots are independent -> render several at once. They used to go one
+        # by one on a 24-core machine (~8 s each, ~20 min per video). Default 4
+        # workers (RTX 50: NVENC sessions are limited); PS_RENDER_WORKERS=1
+        # restores the old serial behaviour.
+        workers = max(1, int(os.environ.get("PS_RENDER_WORKERS", "4")))
+        done_n = cached
+
+        def _one(item):
+            i, sh, seg, pad = item
+            return render_shot(sh, seg, style, job.niche, W, H, pad, glow, log,
+                               work=work, bg=mc_bg)
+
+        if workers == 1:
+            results = ((it, _one(it)) for it in todo)
+        else:
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+            pool = ThreadPoolExecutor(max_workers=workers)
+            futs = {pool.submit(_one, it): it for it in todo}
+            results = ((futs[f], f.result()) for f in as_completed(futs))
+        log(f"  rendering with {workers} parallel worker(s)"
+            + (f", {cached} shot(s) reused" if cached else ""))
+        for (i, sh, seg, pad), tier in results:
             if tier != "full":
                 degraded += 1
-            segs.append(seg)
+            done_n += 1
             # shots span 25%..85% of the whole job
-            pct = 25 + int(60 * (i + 1) / n)
-            log(f"[{pct:3d}%] rendered shot {i + 1}/{n}")
+            pct = 25 + int(60 * done_n / n)
+            log(f"[{pct:3d}%] rendered shot {done_n}/{n}")
+        if workers > 1:
+            pool.shutdown(wait=True)
         if cached:
             log(f"  resumed: {cached}/{n} shot(s) reused from the last run")
         if degraded:
@@ -751,7 +1068,7 @@ def render_job(job, shots, text_events, log=print, proxy=False, resume=False):
             _compose_chain(segs, nets, joins, out, W, H, crf, preset, work, log,
                            job=job, text_events=text_events, audio=job.audio,
                            total=total, tag="final", progress=True,
-                           frame_bg=getattr(job, "frame_bg", None))
+                           frame_bg=(None if mc_bg else getattr(job, "frame_bg", None)))
         else:
             # MANY shots: cross-fade in bounded groups first (so ffmpeg never
             # opens ~150 decoders at once -> no 'Cannot allocate memory'), then
@@ -777,7 +1094,7 @@ def render_job(job, shots, text_events, log=print, proxy=False, resume=False):
             _compose_chain(gclips, gnets, gjoins, out, W, H, crf, preset, work,
                            log, job=job, text_events=text_events,
                            audio=job.audio, total=total, tag="final",
-                           progress=True, frame_bg=getattr(job, "frame_bg", None))
+                           progress=True, frame_bg=(None if mc_bg else getattr(job, "frame_bg", None)))
         log(f"[100%] done: {out} ({total:.1f}s, {os.path.getsize(out)/1e6:.1f} MB)")
         # success -> the checkpoint is no longer needed
         shutil.rmtree(work, ignore_errors=True)

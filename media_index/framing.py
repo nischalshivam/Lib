@@ -20,14 +20,29 @@ import tempfile
 CARD_W, CARD_H = 1620, 911
 CORNER = 40
 SHADE = "vignette=a=PI/5"     # soft darkening at the edges = 'shade behind frame'
-BG_EXT = (".png", ".jpg", ".jpeg", ".webp", ".avif", ".bmp")
+BG_EXT = (".png", ".jpg", ".jpeg", ".webp", ".avif", ".bmp",
+          # moving-card frames can ride a VIDEO background too — drop clips in the
+          # backgrounds folder for animated backdrops, more editing variety.
+          ".mp4", ".mov", ".mkv", ".webm", ".m4v")
 
 
 def list_backgrounds(folder: str) -> list:
+    """Every backdrop in the folder AND one level of subfolders — so images can
+    sit at the top and videos in a `Videos/` subfolder (the user's layout) and
+    both join the rotation."""
     if not folder or not os.path.isdir(folder):
         return []
-    return sorted(os.path.join(folder, f) for f in os.listdir(folder)
-                  if f.lower().endswith(BG_EXT))
+    out = []
+    for f in os.listdir(folder):
+        p = os.path.join(folder, f)
+        if os.path.isfile(p) and f.lower().endswith(BG_EXT):
+            out.append(p)
+        elif os.path.isdir(p):
+            for g in os.listdir(p):
+                gp = os.path.join(p, g)
+                if os.path.isfile(gp) and g.lower().endswith(BG_EXT):
+                    out.append(gp)
+    return sorted(out)
 
 
 def pick_background(folder: str, key: str = "") -> str:

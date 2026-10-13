@@ -36,13 +36,19 @@ from dataclasses import dataclass, field
 
 DEFAULT_MODEL = "base.en"
 DEFAULT_LANGUAGE = "en"
+_GPU_FAILED = False      # set once whisper's GPU path has failed in this process
 # A beat boundary further than this from the nearest anchor is interpolated
 # across a stretch long enough that the estimate could be wrong by a shot.
 FAR_FROM_ANCHOR_WORDS = 60
 # Unicode-aware: an accented word (ação, préférée, größer) is ONE token, not a
 # run of stripped one-letter fragments — otherwise a Portuguese/French/Spanish/
 # German transcript loses every anchor. English ("don't", "1990s") is unchanged.
-_WORD = re.compile(r"[^\W_]+(?:['’][^\W_]+)?", re.UNICODE)
+# Indic scripts (Devanagari...Sinhala, U+0900-0DFF) write vowel signs and the
+# virama as COMBINING marks, which \w does not match — 'पिछले' used to shred into
+# 'प','छल' and a Hindi voiceover had no real anchors at all. Marks may continue
+# a word (never start one).
+_WORD = re.compile(r"[^\W_](?:[^\W_]|[ऀ-ॣ०-෿̀-ͯ])*"
+                   r"(?:['’][^\W_]+)?", re.UNICODE)       # (। ॥ dandas excluded)
 
 
 def model_for(language: str = DEFAULT_LANGUAGE) -> tuple:
@@ -57,6 +63,11 @@ def model_for(language: str = DEFAULT_LANGUAGE) -> tuple:
         return DEFAULT_MODEL, "en"
     if lang in ("auto", "detect"):
         return "base", None
+    # Hindi: multilingual `base` writes Hindi speech in URDU (Perso-Arabic)
+    # script, so not one word matches a Devanagari script. `small` writes
+    # Devanagari (measured 2026-10-01 on OmniVoice Hindi samples).
+    if lang in ("hi", "hin", "hindi"):
+        return "small", "hi"
     return "base", lang
 
 
@@ -227,7 +238,10 @@ def heard(audio_path: str, model_name: str = DEFAULT_MODEL,
         # A fallback wrapped around the load alone never fired, and two
         # builds silently fell back on a word-count estimate instead.
         last = None
-        for device, compute in (("auto", "auto"), ("cpu", "int8")):
+        global _GPU_FAILED
+        tries = ((("cpu", "int8"),) if _GPU_FAILED
+                 else (("auto", "auto"), ("cpu", "int8")))
+        for device, compute in tries:
             try:
                 model = transcribe._load_model(model_name, device=device,
                                                compute_type=compute)
@@ -243,6 +257,9 @@ def heard(audio_path: str, model_name: str = DEFAULT_MODEL,
             except Exception as exc:              # any GPU/driver failure
                 last = exc
                 if device != "cpu":
+                    # a second CUDA attempt in the same process HANGS in encode
+                    # (seen 2026-10-01, cublas64_12 missing) — never retry it
+                    _GPU_FAILED = True
                     log(f"    the graphics card could not be used ({exc}); "
                         "listening on the processor instead")
         raise NarrationUnavailable(str(last or "the recording could not be read"))

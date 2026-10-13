@@ -34,6 +34,18 @@ button:active{transform:scale(.98);}
 .card{background:var(--panel);border:.5px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;}
 .card-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
 .card-t{font-size:14px;font-weight:600;}
+.vbadge{margin-left:10px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;letter-spacing:.3px;background:#2a2d34;color:#9aa0aa;vertical-align:2px;}
+.vbadge.pending{background:#33352b;color:#d6c67a;}
+.vbadge.building{background:#233042;color:#6fb2ff;}
+.vbadge.done{background:#1f3a2b;color:#3ecf8e;}
+.vbadge.failed{background:#3a2323;color:#f28080;}
+#count{margin-left:12px;font-size:12px;color:var(--muted);}
+#bulkbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--card);}
+.bulk{border-color:var(--accent-line)!important;color:var(--accent)!important;font-weight:600;}
+.ghost.mini{padding:5px 9px;font-size:12px;}
+.mini-sel{height:28px;padding:0 6px;font-size:12px;}
+.bulk i{vertical-align:-2px;margin-right:6px;}
+#bulkNote{flex:1;min-width:180px;}
 .row{display:flex;align-items:center;gap:11px;border:1px dashed var(--line2);border-radius:10px;padding:9px 11px;margin-bottom:8px;transition:border-color .18s,background .18s;}
 .row.dragover{border-color:var(--accent-line);background:var(--accent-bg);}
 .row .ic{font-size:18px;color:var(--muted);}
@@ -84,16 +96,23 @@ select{background:var(--panel2);color:var(--text);border:.5px solid var(--line2)
   <div style="display:flex;align-items:center;gap:8px;">
     <span class="dot" id="statusDot" style="background:var(--ok)"></span>
     <span class="sub" id="statusText">ready</span>
+    <span id="count"></span>
     <button class="iconbtn" id="themeBtn" title="Light / dark"><i class="ti ti-moon"></i></button>
   </div>
 </div>
 
 <div class="wrap">
+  <div id="bulksets"></div>
+  <div style="display:flex;gap:9px;margin-bottom:14px;flex-wrap:wrap;">
+    <button class="ghost" id="addSetBtn"><i class="ti ti-plus"></i>Add another movie (new set)</button>
+    <button class="ghost" id="clueBtn" title="Pro engine: make the grounded clue for every clean script in a folder (agy Claude), ready for later Runs"><i class="ti ti-wand"></i>Prepare clues (folder)</button>
+    <button class="ghost" id="collapseAllBtn"><i class="ti ti-arrows-minimize"></i>Collapse all</button>
+  </div>
   <div id="videos"></div>
   <button class="ghost" id="addBtn"><i class="ti ti-plus" style="vertical-align:-2px;margin-right:5px"></i>Add video</button>
 
   <div class="footer">
-    <div class="sub" id="hint">Browse each file, or Choose folder to auto-fill</div>
+    <div class="sub" id="hint">Easiest way: click <b>Choose folder</b> on a video and pick its folder — every file fills in automatically. (Adding files one by one still works too.)</div>
     <div style="display:flex;gap:9px;">
       <button class="stop" id="stopBtn"><i class="ti ti-player-stop"></i>Stop</button>
       <button class="run" id="runBtn"><i class="ti ti-player-play"></i>Run</button>
@@ -110,10 +129,11 @@ select{background:var(--panel2);color:var(--text);border:.5px solid var(--line2)
 </div>
 
 <script>
-var FILES=[["ti-file-text","Clean script (.txt)","clean"],["ti-code","Clue script (.json)","clue"],["ti-microphone","Voiceover audio (or use Auto voiceover)","audio"],["ti-user-check","Reference voice — for Auto voiceover (optional)","voice_ref"],["ti-typography","Kinetic-text file (optional)","text_file"],["ti-folder","Save finished video to","save_dir"]];
-var TOGGLES=[["ti-bolt","Cold-open","cold_open",true],["ti-volume","Intro punch-ins","intro_punch",true],["ti-frame","Frames","frame",true],["ti-typography","Text","kinetic_text",true],["ti-zoom-in","Ken Burns","ken_burns",true],["ti-microphone-2","Auto voiceover (OmniVoice)","auto_voice",false]];
+var FILES=[["ti-file-text","Clean script (.txt)","clean"],["ti-code","Clue script (.json)","clue"],["ti-microphone","Voiceover audio (or use Auto voiceover)","audio"],["ti-user-check","Voice sample — REQUIRED for Auto voiceover (6-60 s of the narrator)","voice_ref"],["ti-typography","Kinetic-text file (optional)","text_file"],["ti-folder","Save finished video to","save_dir"]];
+var TOGGLES=[["ti-bolt","Cold-open","cold_open",true],["ti-volume","Intro punch-ins","intro_punch",true],["ti-frame","Frames (moving-card + auto BGM/background)","frame",true],["ti-typography","Text","kinetic_text",false],["ti-zoom-in","Ken Burns","ken_burns",true],["ti-microphone-2","Auto voiceover (OmniVoice)","auto_voice",false]];
 var FORMATS=["auto","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","No Filter"];
-var LANGS=["en","pt","fr","es","de","it","auto"];
+var LANGS=["en","es","pt","fr","de","hi","it","auto"];
+var ENGINES=["v2","classic"], LOOKS=["auto","A","B","C"];
 var videos=[], vid=0, ROWS={};
 
 function el(tag,cls,html){var e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;}
@@ -149,32 +169,65 @@ function addVideo(){
   var id=++vid;
   var data={clean:"",clue:"",audio:"",text_file:"",save_dir:"",fmt:"auto",res:"1080p",lang:"en",
             cold_open:true,intro_punch:true,frame:true,kinetic_text:true,ken_burns:true,text:false,auto_voice:false,voice_ref:"",
-            verify:false,verify_min:0};
+            verify:true,verify_min:0,engine:"v2",look:"auto"};
   var card=el("div","card");
   var head=el("div","card-h");
-  head.appendChild(el("div","card-t","Video "+id));
-  var rm=el("button","ghost",'<i class="ti ti-x" style="vertical-align:-2px;margin-right:4px"></i>Remove');
-  rm.onclick=function(){card.remove();videos=videos.filter(function(v){return v.card!==card;});};
-  head.appendChild(rm); card.appendChild(head);
+  var left=el("div"); left.style.cssText="display:flex;align-items:center;min-width:0;";
+  var titleEl=el("div","card-t","Video "+id); left.appendChild(titleEl);
+  var badge=el("span","vbadge"); badge.textContent="not started"; card._badge=badge;
+  left.appendChild(badge); head.appendChild(left);
 
+  var right=el("div"); right.style.cssText="display:flex;align-items:center;gap:6px;flex-shrink:0;";
+  // which movie/set this video belongs to — fixes a mis-tagged import in one click
+  var setSel=el("select","mini-sel"); setSel.title="Which movie (set) this video belongs to";
+  setSel.onchange=function(){moveVideoToSet(vobj,parseInt(setSel.value,10));};
+  right.appendChild(setSel);
+  var dup=el("button","ghost mini",'<i class="ti ti-copy" style="vertical-align:-2px;margin-right:4px"></i>Duplicate');
+  dup.title="Make a copy of this video (great for format variations)";
+  dup.onclick=function(){duplicateVideo(vobj);};
+  right.appendChild(dup);
+  var col=el("button","ghost mini",'<i class="ti ti-chevron-up"></i>'); col.title="Collapse / expand";
+  col.onclick=function(){toggleCollapse(vobj);};
+  right.appendChild(col);
+  var rm=el("button","ghost mini",'<i class="ti ti-x" style="vertical-align:-2px;margin-right:4px"></i>Remove');
+  rm.onclick=function(){card.remove();videos=videos.filter(function(v){return v.card!==card;});relabelVideos();updateCount();};
+  right.appendChild(rm);
+  head.appendChild(right); card.appendChild(head);
+
+  var body=el("div","card-body"); card._body=body; card._collapsed=false;
   var dropIds=[], rowEls={};
   // --- auto-fill every input from ONE video folder -----------------------
   var ff=el("div","row");
-  ff.style.cssText="border-style:solid;border-color:var(--accent-line);background:var(--accent-bg);";
-  ff.innerHTML='<i class="ti ti-folder-plus ic" style="color:var(--accent)"></i>'+
-    '<div class="mid"><div class="lab" style="color:var(--accent)">Auto-fill from a video folder</div>'+
-    '<div class="val empty">click Choose folder &mdash; I place the script, clue, voiceover &amp; text</div></div>'+
-    '<button class="ghost fbtn">Choose folder</button>';
+  ff.style.cssText="border-style:solid;border-width:2px;border-color:var(--accent-line);background:var(--accent-bg);padding:20px 18px;cursor:pointer;";
+  ff.innerHTML='<i class="ti ti-folder-plus ic" style="color:var(--accent);font-size:30px"></i>'+
+    '<div class="mid"><div class="lab" style="color:var(--accent);font-size:15px;font-weight:600">📁 Choose this video\'s folder — auto-fills EVERYTHING</div>'+
+    '<div class="val empty">One click. I find the script, clue, voiceover &amp; text for you — no need to add files one by one.</div></div>'+
+    '<button class="ghost fbtn" style="padding:10px 18px;font-weight:600">Choose folder</button>';
   ff.id="folder-"+id;
   ROWS[ff.id]={folder:true,data:data,rowEls:rowEls};
-  ff.querySelector(".fbtn").onclick=function(){
+  // whole zone is clickable (not just the button) so it is impossible to miss.
+  function chooseFolder(){
     if(!window.pywebview){alert("File dialog needs the app (run Movie Editor).");return;}
     window.pywebview.api.pick_folder().then(function(p){if(p)autoFill(p,data,rowEls,ff);});
-  };
+  }
+  ff.onclick=chooseFolder;
+  ff.querySelector(".fbtn").onclick=function(e){e.stopPropagation();chooseFolder();};
+  // Block the webview from navigating to a dropped file, and nudge to the click
+  // flow (a dropped file can't hand us its real path in this webview).
   ff.addEventListener("dragover",function(e){e.preventDefault();ff.classList.add("dragover");});
   ff.addEventListener("dragleave",function(){ff.classList.remove("dragover");});
-  ff.addEventListener("drop",function(e){e.preventDefault();ff.classList.remove("dragover");});
-  card.appendChild(ff); dropIds.push(ff.id);
+  ff.addEventListener("drop",function(e){e.preventDefault();ff.classList.remove("dragover");
+    var v=ff.querySelector(".val");if(v){v.textContent="Click here to choose the folder — dropping can't read the file path.";}
+    chooseFolder();});
+  body.appendChild(ff); dropIds.push(ff.id);
+
+  // library check: does every show/episode this clue needs exist on the drives?
+  var libRow=el("div","row");libRow.style.cssText="cursor:default;display:none;";
+  libRow.innerHTML='<i class="ti ti-database ic"></i><div class="mid"><div class="lab">Movie library</div>'+
+    '<div class="val empty">checking…</div></div>'+
+    '<button class="ghost fbtn libfix" style="display:none">Set movie location</button>';
+  libRow.querySelector(".libfix").onclick=function(e){e.stopPropagation();setLibraryLocation();};
+  body.appendChild(libRow);
 
   FILES.forEach(function(f){
     var isDir=f[2]==="save_dir";
@@ -186,8 +239,10 @@ function addVideo(){
       '<button class="clr" title="Clear" style="display:none"><i class="ti ti-x"></i></button>'+
       '<i class="ti ti-circle-check ok" style="display:none;font-size:18px;color:var(--ok)"></i>';
     row.dataset.empty=empty;
-    row.querySelector(".fbtn").onclick=function(){pick(f[2],isDir,row,data);};
-    row.querySelector(".clr").onclick=function(){clearVal(f[2],row,data);};
+    row.style.cursor="pointer";
+    row.onclick=function(){pick(f[2],isDir,row,data);};   // click anywhere on the row to browse
+    row.querySelector(".fbtn").onclick=function(e){e.stopPropagation();pick(f[2],isDir,row,data);};
+    row.querySelector(".clr").onclick=function(e){e.stopPropagation();clearVal(f[2],row,data);};
     if(!isDir){
       row.id="drop-"+id+"-"+f[2];
       ROWS[row.id]={key:f[2],row:row,data:data};
@@ -198,37 +253,46 @@ function addVideo(){
       row.addEventListener("drop",function(e){e.preventDefault();row.classList.remove("dragover");});
       dropIds.push(row.id);
     }
-    card.appendChild(row);
+    body.appendChild(row);
   });
 
   var drops=el("div");drops.style.cssText="display:flex;gap:10px;margin:12px 0 4px;flex-wrap:wrap;";
-  drops.appendChild(sel("Format",FORMATS,function(v){data.fmt=v;}));
-  drops.appendChild(sel("Quality",["1080p","4K"],function(v){data.res=v;}));
-  drops.appendChild(sel("Language",LANGS,function(v){data.lang=v;}));
-  card.appendChild(drops);
+  var fmtWrap=sel("Format",FORMATS,function(v){data.fmt=v;}); drops.appendChild(fmtWrap);
+  var resWrap=sel("Quality",["1080p","4K"],function(v){data.res=v;}); drops.appendChild(resWrap);
+  var langWrap=sel("Language",LANGS,function(v){data.lang=v;});
+  drops.appendChild(langWrap);
+  var engWrap=sel("Engine (v2 = pro, clue auto)",ENGINES,function(v){data.engine=v;}); drops.appendChild(engWrap);
+  var lookWrap=sel("Look (v2: A pop / B framed / C cinematic)",LOOKS,function(v){data.look=v;}); drops.appendChild(lookWrap);
+  body.appendChild(drops);
 
-  var lbl=el("div","sub","effects — tap to toggle");lbl.style.margin="14px 0 8px";card.appendChild(lbl);
+  var lbl=el("div","sub","effects — tap to toggle");lbl.style.margin="14px 0 8px";body.appendChild(lbl);
   var opts=el("div","opts");
+  var toggleBtns={};
   TOGGLES.forEach(function(t){
     var b=el("button","tg"+(t[3]?" on":""));
     b.innerHTML='<i class="ti '+t[0]+' ic"></i><span class="nm">'+t[1]+'</span><span class="sw"><span class="knob"></span></span>';
     b.onclick=function(){data[t[2]]=!data[t[2]];b.classList.toggle("on",data[t[2]]);};
+    toggleBtns[t[2]]=b;
     opts.appendChild(b);
   });
-  card.appendChild(opts);
+  body.appendChild(opts);
 
   var vrow=el("div");vrow.style.cssText="display:flex;gap:8px;margin-top:8px;align-items:stretch;flex-wrap:wrap;";
-  var vb=el("button","tg");vb.style.flex="1";vb.style.minWidth="200px";
-  vb.innerHTML='<i class="ti ti-shield-check ic"></i><span class="nm">Verify clips (Gemini · costs API)</span><span class="sw"><span class="knob"></span></span>';
-  var vtime=el("div","vfy hidden");
-  vtime.innerHTML='<span class="lab">verify first</span><input type="number" min="0" max="60" value="0"><span class="lab">min (0 = all)</span>';
-  vb.onclick=function(){data.verify=!data.verify;vb.classList.toggle("on",data.verify);vtime.classList.toggle("hidden",!data.verify);};
-  vtime.querySelector("input").oninput=function(e){data.verify_min=parseInt(e.target.value||"0",10);};
-  vrow.appendChild(vb);card.appendChild(vrow);card.appendChild(vtime);
+  var vb=el("button","tg"+(data.verify?" on":""));vb.style.flex="1";vb.style.minWidth="200px";
+  vb.innerHTML='<i class="ti ti-shield-check ic"></i><span class="nm">Verify clips (free agy Gemini · ~1 min, before render)</span><span class="sw"><span class="knob"></span></span>';
+  var vtime=el("div","vfy hidden");            // legacy (unused): kept so duplicate() works
+  vb.onclick=function(){data.verify=!data.verify;vb.classList.toggle("on",data.verify);};
+  vrow.appendChild(vb);body.appendChild(vrow);
+  card.appendChild(body);
 
   document.getElementById("videos").appendChild(card);
-  videos.push({card:card,data:data});
-  dropIds.forEach(bindDrop);   // now that the rows are in the document
+  var vobj={card:card,data:data,rowEls:rowEls,toggleBtns:toggleBtns,
+            set:(sets[0]?sets[0].sid:0),titleEl:titleEl,setSel:setSel,col:col,
+            fmtSel:fmtWrap.querySelector("select"),resSel:resWrap.querySelector("select"),
+            langSel:langWrap.querySelector("select"),engSel:engWrap.querySelector("select"),lookSel:lookWrap.querySelector("select"),verifyBtn:vb,verifyTime:vtime,libRow:libRow,libOk:null};
+  videos.push(vobj);
+  refreshSetSelectors();relabelVideos();updateCount();
+  return vobj;
 }
 
 function sel(label,items,cb){
@@ -245,6 +309,36 @@ function setVal(key,path,row,data,warn){
   v.style.color=warn?"var(--danger)":"var(--text)";
   row.querySelector(".clr").style.display="";
   row.querySelector(".ok").style.display=warn?"none":"";
+  if(key==="clue"&&!warn){
+    var vv=videos.filter(function(x){return x.data===data;})[0];
+    if(vv)checkLibrary(vv);
+  }
+}
+// ---- movie-library check: is every show / episode of this clue on the drives?
+function checkLibrary(v){
+  if(!v||!v.libRow||!v.data.clue||!window.pywebview)return;
+  var r=v.libRow, val=r.querySelector(".val"), fix=r.querySelector(".libfix");
+  r.style.display="";val.className="val empty";val.style.color="";val.textContent="checking the movie library…";
+  fix.style.display="none";v.libOk=null;
+  window.pywebview.api.check_library(v.data.clue).then(function(res){
+    v.libOk=!!(res&&res.ready);
+    val.classList.remove("empty");
+    val.textContent=(v.libOk?"✓ ":"✗ ")+((res&&res.summary)||"");
+    val.style.color=v.libOk?"var(--ok)":"var(--danger)";
+    fix.style.display=v.libOk?"none":"";
+    r.style.borderColor=v.libOk?"":"var(--danger)";
+    updateCount();
+  });
+}
+function recheckAllLibraries(){videos.forEach(function(v){if(v.data.clue)checkLibrary(v);});}
+function setLibraryLocation(){
+  if(!window.pywebview)return;
+  window.pywebview.api.add_library_location().then(function(res){
+    if(res&&res.roots&&res.roots.length){
+      setStatus("library locations: "+res.roots.join("  ·  "),"#3ecf8e");
+      recheckAllLibraries();
+    }
+  });
 }
 function clearVal(key,row,data){
   data[key]="";
@@ -252,6 +346,10 @@ function clearVal(key,row,data){
   v.textContent=row.dataset.empty;v.classList.add("empty");v.style.color="";
   row.querySelector(".clr").style.display="none";
   row.querySelector(".ok").style.display="none";
+  if(key==="clue"){
+    var vv=videos.filter(function(x){return x.data===data;})[0];
+    if(vv&&vv.libRow){vv.libRow.style.display="none";vv.libOk=null;}
+  }
 }
 function pick(key,isDir,row,data){
   if(!window.pywebview){alert("File dialog needs the app (run Movie Editor).");return;}
@@ -261,6 +359,196 @@ function pick(key,isDir,row,data){
 var logEl=document.getElementById("log");
 function appendLog(line){logEl.textContent+= "\n"+line;logEl.scrollTop=logEl.scrollHeight;}
 function setStatus(t,color){document.getElementById("statusText").textContent=t;document.getElementById("statusDot").style.background=color;}
+var LABEL={pending:"pending",building:"building…",done:"✓ done",failed:"✗ failed","not started":"not started"};
+function setVideoStatus(index,status){
+  var v=videos[index]; if(!v||!v.card||!v.card._badge)return;
+  var b=v.card._badge; b.className="vbadge "+status; b.textContent=LABEL[status]||status;
+  updateCount();
+}
+function updateCount(){
+  var d=0,bl=0,p=0,f=0;
+  videos.forEach(function(v){var s=v.card&&v.card._badge?v.card._badge.className.replace("vbadge","").trim():"";
+    if(s==="done")d++;else if(s==="building")bl++;else if(s==="pending")p++;else if(s==="failed")f++;});
+  var parts=[d+"/"+videos.length+" done"];
+  if(bl)parts.push(bl+" building");
+  if(p)parts.push(p+" pending");
+  if(f)parts.push(f+" failed");
+  var lb=videos.filter(function(v){return v.libOk===false;}).length;
+  if(lb)parts.push(lb+" blocked (library)");
+  if(sets.length>1){
+    var br=sets.map(function(s,i){return "S"+(i+1)+":"+videos.filter(function(v){return v.set===s.sid;}).length;});
+    parts.push(br.join(" "));
+  }
+  document.getElementById("count").textContent=videos.length?("— "+parts.join(", ")):"";
+}
+
+// ---- bulk / batch workflow -------------------------------------------- #
+function fillCard(v,res){
+  ["clean","clue","audio","text_file"].forEach(function(k){
+    if(res[k]&&v.rowEls[k])setVal(k,res[k],v.rowEls[k],v.data,false);
+  });
+  if(res.lang&&v.langSel){v.data.lang=res.lang;v.langSel.value=res.lang;}
+  // text auto: the "Text" (kinetic-text) toggle ON only if a text file was
+  // found in the folder, else OFF — exactly as the user asked.
+  var hasText=!!res.text_file;
+  if(v.toggleBtns.kinetic_text){v.data.kinetic_text=hasText;v.toggleBtns.kinetic_text.classList.toggle("on",hasText);}
+  var ff=v.card.querySelector(".row"),fv=ff&&ff.querySelector(".val");
+  if(fv){fv.textContent="✓ "+(res.name||"folder")+"  (lang: "+(res.lang||"auto")+")";fv.style.color="var(--ok)";fv.classList.remove("empty");}
+}
+// ---- multi-set bulk import: each SET = one movie's topics folder, with its own
+// save-folder and one-voice, applied only to that set's videos. Overnight you can
+// queue several movies at once (Set 1, Set 2, …) and each set's data stays its own.
+// Each set has a STABLE id (sid). The label the user sees ("Set 1/2/3") is just
+// its current position, so removing a middle set renumbers cleanly without
+// re-tagging any video. Videos carry v.set = the sid they belong to.
+var sets=[];        // [{sid,row,lblEl,noteEl,countEl}]
+var nextSid=0;
+function setDisplayNum(sid){for(var i=0;i<sets.length;i++)if(sets[i].sid===sid)return i+1;return 1;}
+function setVids(sid){return videos.filter(function(v){return v.set===sid;});}
+function relabelVideos(){
+  videos.forEach(function(v,i){
+    if(v.titleEl)v.titleEl.textContent="Video "+(i+1)+"  ·  Set "+setDisplayNum(v.set);
+  });
+  refreshSetSelectors();
+  sets.forEach(function(s,i){
+    var n=videos.filter(function(v){return v.set===s.sid;}).length;
+    if(s.countEl)s.countEl.textContent=n?("· "+n+" video"+(n>1?"s":"")):"· empty";
+  });
+}
+function refreshSetSelectors(){
+  videos.forEach(function(v){
+    var sel=v.setSel; if(!sel)return;
+    sel.innerHTML="";
+    sets.forEach(function(s,i){
+      var o=el("option");o.value=String(s.sid);o.textContent="Set "+(i+1);
+      if(s.sid===v.set)o.selected=true; sel.appendChild(o);
+    });
+  });
+}
+function moveVideoToSet(v,sid){v.set=sid;relabelVideos();setStatus("moved to Set "+setDisplayNum(sid),"#6fb2ff");}
+
+function importTopics(sid){
+  if(!window.pywebview){alert("Needs the app (run Movie Editor).");return;}
+  window.pywebview.api.pick_folder().then(function(p){
+    if(!p)return;
+    window.pywebview.api.scan_parent(p).then(function(list){
+      if(!list||!list.length){alert("No topic sub-folders with a script/clue found in there.");return;}
+      // drop a single leftover empty starter card
+      if(videos.length===1&&!videos[0].data.clean&&!videos[0].data.clue){
+        videos[0].card.remove();videos=[];
+      }
+      list.forEach(function(res){var v=addVideo();v.set=sid;fillCard(v,res);});
+      relabelVideos();updateCount();
+      setStatus("Set "+setDisplayNum(sid)+": "+list.length+" topics loaded",getComputedStyle(document.body).getPropertyValue("--accent")||"#6fb2ff");
+    });
+  });
+}
+function saveAll(sid){
+  if(!window.pywebview){alert("Needs the app.");return;}
+  var vids=setVids(sid);
+  if(!vids.length){alert("Import Set "+setDisplayNum(sid)+" videos first.");return;}
+  window.pywebview.api.pick_folder().then(function(p){
+    if(!p)return;
+    vids.forEach(function(v){if(v.rowEls.save_dir)setVal("save_dir",p,v.rowEls.save_dir,v.data,false);});
+    setStatus("Set "+setDisplayNum(sid)+": all "+vids.length+" → one folder","#3ecf8e");
+  });
+}
+function voiceAll(sid){
+  if(!window.pywebview){alert("Needs the app.");return;}
+  var vids=setVids(sid);
+  if(!vids.length){alert("Import Set "+setDisplayNum(sid)+" videos first.");return;}
+  window.pywebview.api.pick_file("voice_ref").then(function(p){
+    if(!p)return;
+    vids.forEach(function(v){
+      if(v.rowEls.voice_ref)setVal("voice_ref",p,v.rowEls.voice_ref,v.data,false);
+      v.data.auto_voice=true;
+      if(v.toggleBtns.auto_voice)v.toggleBtns.auto_voice.classList.add("on");
+    });
+    setStatus("Set "+setDisplayNum(sid)+": one voice on "+vids.length+" videos","#3ecf8e");
+  });
+}
+function removeSet(sid){
+  if(sets.length<=1){alert("At least one set is needed.");return;}
+  var s=sets.filter(function(x){return x.sid===sid;})[0]; if(!s)return;
+  var mine=setVids(sid);
+  if(mine.length){
+    if(!confirm("Set "+setDisplayNum(sid)+" has "+mine.length+" video"+(mine.length>1?"s":"")+
+                ". Remove the set AND its videos?"))return;
+    mine.forEach(function(v){v.card.remove();});
+    videos=videos.filter(function(v){return v.set!==sid;});
+  }
+  s.row.remove();
+  sets=sets.filter(function(x){return x.sid!==sid;});
+  relabelSets();updateCount();
+  setStatus("set removed","#f28080");
+}
+function relabelSets(){
+  sets.forEach(function(s,i){
+    s.lblEl.textContent="Set "+(i+1);
+    s.noteEl.textContent=(i===0?"One movie's topics → its own folder + voice.":"Another movie's topics, kept separate.");
+  });
+  relabelVideos();
+}
+function mkbulkbtn(icon,txt,fn){var b=document.createElement("button");b.className="ghost bulk";b.innerHTML='<i class="ti '+icon+'"></i>'+txt;b.onclick=fn;return b;}
+function makeSetRow(){
+  var sid=nextSid++;
+  var bar=document.createElement("div");
+  bar.style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:10px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--card);";
+  var lblEl=document.createElement("span");lblEl.style="font-weight:700;color:var(--accent);margin-right:2px;";
+  bar.appendChild(lblEl);
+  bar.appendChild(mkbulkbtn("ti-folders","Import folder of topics",function(){importTopics(sid);}));
+  bar.appendChild(mkbulkbtn("ti-device-floppy","Save all to…",function(){saveAll(sid);}));
+  bar.appendChild(mkbulkbtn("ti-microphone-2","One voice for all",function(){voiceAll(sid);}));
+  var countEl=document.createElement("span");countEl.className="sub";countEl.style.color="var(--muted)";countEl.textContent="· empty";
+  bar.appendChild(countEl);
+  var noteEl=document.createElement("span");noteEl.className="sub";bar.appendChild(noteEl);
+  var xbtn=document.createElement("button");xbtn.className="ghost mini";xbtn.title="Remove this set";
+  xbtn.style.marginLeft="auto";xbtn.innerHTML='<i class="ti ti-trash"></i>';
+  xbtn.onclick=function(){removeSet(sid);};
+  bar.appendChild(xbtn);
+  document.getElementById("bulksets").appendChild(bar);
+  sets.push({sid:sid,row:bar,lblEl:lblEl,noteEl:noteEl,countEl:countEl});
+  relabelSets();
+  return sid;
+}
+function addSet(){var sid=makeSetRow();setStatus("Set "+setDisplayNum(sid)+" added","#6fb2ff");return sid;}
+
+// ---- pro helpers: collapse & duplicate --------------------------------------
+function toggleCollapse(v){
+  v.card._collapsed=!v.card._collapsed;
+  v.card._body.style.display=v.card._collapsed?"none":"";
+  var ic=v.col.querySelector("i");
+  if(ic)ic.className="ti "+(v.card._collapsed?"ti-chevron-down":"ti-chevron-up");
+}
+function collapseAll(state){
+  videos.forEach(function(v){
+    v.card._collapsed=state; v.card._body.style.display=state?"none":"";
+    var ic=v.col.querySelector("i"); if(ic)ic.className="ti "+(state?"ti-chevron-down":"ti-chevron-up");
+  });
+  var b=document.getElementById("collapseAllBtn");
+  if(b)b.innerHTML='<i class="ti '+(state?"ti-arrows-maximize":"ti-arrows-minimize")+'"></i>'+(state?"Expand all":"Collapse all");
+}
+var _allCollapsed=false;
+function toggleCollapseAll(){_allCollapsed=!_allCollapsed;collapseAll(_allCollapsed);}
+function duplicateVideo(v){
+  var nv=addVideo();
+  Object.keys(v.data).forEach(function(k){nv.data[k]=v.data[k];});
+  nv.set=v.set;
+  ["clean","clue","audio","text_file","save_dir","voice_ref"].forEach(function(k){
+    if(nv.data[k]&&nv.rowEls[k])setVal(k,nv.data[k],nv.rowEls[k],nv.data,false);
+  });
+  if(nv.fmtSel)nv.fmtSel.value=nv.data.fmt;
+  if(nv.resSel)nv.resSel.value=nv.data.res;
+  if(nv.langSel)nv.langSel.value=nv.data.lang;
+  if(nv.engSel)nv.engSel.value=nv.data.engine;
+  if(nv.lookSel)nv.lookSel.value=nv.data.look;
+  Object.keys(nv.toggleBtns).forEach(function(k){nv.toggleBtns[k].classList.toggle("on",!!nv.data[k]);});
+  if(nv.verifyBtn){nv.verifyBtn.classList.toggle("on",!!nv.data.verify);nv.verifyTime.classList.toggle("hidden",!nv.data.verify);}
+  var ff=nv.card.querySelector(".row"),fv=ff&&ff.querySelector(".val");
+  if(fv&&nv.data.clean){fv.textContent="✓ duplicated";fv.style.color="var(--ok)";fv.classList.remove("empty");}
+  relabelVideos();updateCount();
+  setStatus("duplicated → Video "+videos.length,"#6fb2ff");
+}
 window.appendLog=appendLog;window.setStatus=setStatus;
 
 function copyLog(){var txt=logEl.textContent;
@@ -279,12 +567,29 @@ document.getElementById("themeBtn").onclick=function(){
 document.getElementById("runBtn").onclick=function(){
   var jobs=videos.map(function(v){return v.data;});
   if(!jobs.length){appendLog("Add a video first.");return;}
+  var novoice=videos.map(function(v,i){return (!v.data.audio&&v.data.auto_voice&&!v.data.voice_ref)?(i+1):0;}).filter(Boolean);
+  if(novoice.length){alert("Video "+novoice.join(", ")+": Auto voiceover is ON but no Voice sample is chosen. "+
+    "Click the \"Voice sample\" row and pick the narrator file (e.g. Sheldon Cooper Audio.mp3). Leave the Voiceover audio row empty.");return;}
+  var noaudio=videos.map(function(v,i){return (!v.data.audio&&!v.data.auto_voice)?(i+1):0;}).filter(Boolean);
+  if(noaudio.length){alert("Video "+noaudio.join(", ")+": no voiceover. Either pick a finished voiceover in \"Voiceover audio\", "+
+    "or turn Auto voiceover ON and pick a Voice sample.");return;}
+  var blocked=videos.filter(function(v){return v.libOk===false;}).length;
+  var checking=videos.filter(function(v){return v.data.clue&&v.libOk===null;}).length;
+  if(checking&&!confirm(checking+" video(s) are still being checked against the movie library. Start anyway?"))return;
+  if(blocked&&!confirm(blocked+" video(s) have footage MISSING from the movie library (red ✗ line). "+
+     "They will be SKIPPED — the rest will build. Continue?"))return;
   logEl.textContent="Starting…";setStatus("running","var(--accent)");
   if(window.pywebview)window.pywebview.api.run(JSON.stringify(jobs));
 };
 document.getElementById("stopBtn").onclick=function(){if(window.pywebview)window.pywebview.api.stop();setStatus("stopping","var(--danger)");};
+document.getElementById("addSetBtn").onclick=addSet;
+document.getElementById("clueBtn").onclick=function(){
+  if(window.pywebview&&window.pywebview.api)window.pywebview.api.prepare_clues().then(function(ok){if(ok)setStatus("preparing clues…","#6fb2ff");});
+};
+var _cab=document.getElementById("collapseAllBtn");if(_cab)_cab.onclick=toggleCollapseAll;
+var _sid0=makeSetRow();
 
-addVideo();
+var first=addVideo();first.set=_sid0;relabelVideos();
 </script>
 </body>
 </html>

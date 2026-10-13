@@ -209,6 +209,32 @@ def episode_key(name: str) -> tuple | None:
 _ep_key = episode_key          # name kept for existing callers
 
 
+# Short names script writers use for a show -> the canonical key of its full name.
+SHOW_ALIASES = {
+    "himym": "howimetyourmother", "bb": "breakingbad", "bcs": "bettercallsaul",
+    "got": "gameofthrones", "hotd": "houseofthedragon", "tbbt": "bigbangtheory",
+    "bigbang": "bigbangtheory", "ys": "youngsheldon", "mitm": "malcolminthemiddle",
+    "malcolm": "malcolminthemiddle", "ehc": "everybodyhateschris",
+    "tahm": "twoandahalfmen", "gmfm": "georgieandmandysfirstmarriage",
+    "georgieandmandy": "georgieandmandysfirstmarriage", "office": "office",
+    "theofficeus": "office", "officeus": "office", "that70s": "that70sshow",
+    "thatseventiesshow": "that70sshow", "mf": "modernfamily", "lotr": "lordoftherings",
+}
+
+
+def show_key(name: str) -> str:
+    """ONE canonical key for a show name, used by every comparison (gate,
+    scoping, episode pins, locator): lowercase, '&' -> 'and', no bracketed
+    parts ('(2000)', '(US)'), no leading 'the', no punctuation, aliases resolved.
+    'The Office (US) (2005)' == 'The Office' == 'office'; 'Malcolm in the Middle
+    (2000)' == 'MITM'; "Georgie & Mandy's" == "Georgie and Mandy's"."""
+    x = (name or "").lower().replace("&", " and ")
+    x = re.sub(r"[\(\[][^\)\]]*[\)\]]", " ", x)
+    x = re.sub(r"^\s*the\s+", "", x.strip())
+    x = re.sub(r"[^a-z0-9]+", "", x)
+    return SHOW_ALIASES.get(x, x)
+
+
 def show_prefix(name: str) -> str:
     """The title/show part of a source, before its episode marker, normalised.
 
@@ -222,7 +248,11 @@ def show_prefix(name: str) -> str:
     for pat in _EP_RANGE_PATTERNS + _EP_PATTERNS:   # a combined file has a title too
         m = pat.search(stem)
         if m:
-            return re.sub(r"\s+", " ", stem[:m.start()]).strip().lower()
+            head = stem[:m.start()]
+            # 'Malcolm in the Middle (2000)' == 'Malcolm in the Middle': a release
+            # year in brackets must not make the SAME show look like another one.
+            head = re.sub(r"\(\s*(?:19|20)\d{2}\s*\)", " ", head)
+            return re.sub(r"\s+", " ", head).strip(" -").strip().lower()
     return ""
 
 
@@ -301,7 +331,16 @@ def _same_episode(want, path: str, stem: str) -> bool:
 
 
 def find_sidecar(video_path: str) -> str | None:
-    """Best subtitle file sitting next to the video (English preferred).
+    """Best subtitle file sitting next to the video (English preferred)."""
+    c = sidecar_candidates(video_path)
+    return c[0] if c else None
+
+
+def sidecar_candidates(video_path: str) -> list:
+    """ALL subtitle files that belong to this video, best first (English, not forced, .srt, largest).
+
+    Several rips of the same episode often sit side by side and are timed differently; the refiner
+    sync-checks every one against the audio instead of trusting the first.
 
     A shared `Subs/` folder in a season directory holds subs for *every*
     episode, so a bare glob there would hand episode 1's subtitles to every
@@ -382,7 +421,7 @@ def find_sidecar(video_path: str) -> str | None:
             seen.add(c)
             uniq.append(c)
     if not uniq:
-        return None
+        return []
 
     def rank(p):
         name = os.path.basename(p)
@@ -393,7 +432,7 @@ def find_sidecar(video_path: str) -> str | None:
             -os.path.getsize(p),                 # richer file wins ties
         )
 
-    return sorted(uniq, key=rank)[0]
+    return sorted(uniq, key=rank)
 
 
 def has_ffmpeg() -> bool:
@@ -424,6 +463,14 @@ def extract_embedded(video_path: str) -> tuple[str, list[Cue]] | None:
     """
     if not has_ffmpeg():
         return None
+    # Pulling a subtitle track makes ffmpeg read the WHOLE file — for a 1 GB
+    # episode on Google Drive that is minutes, and the cold-open / punch-in
+    # stage did it again for every video (18 min on one Malcolm build). Keep
+    # what was extracted in a local cache, so each episode is read ONCE, ever.
+    cached = _emb_cache_path(video_path)
+    if cached and os.path.isfile(cached):
+        cues = parse_file(cached) if os.path.getsize(cached) > 0 else []
+        return ("embedded", cues) if cues else None
     try:
         from .probe import probe as _probe          # has an ffprobe-free path
         info = _probe(video_path)
@@ -432,6 +479,7 @@ def extract_embedded(video_path: str) -> tuple[str, list[Cue]] | None:
 
     usable = [s for s in info.subs if s.codec.lower() not in BITMAP_CODECS]
     if not usable:
+        _emb_cache_store(cached, None)
         return None
     usable.sort(key=_rank_sub_stream)
 
@@ -448,13 +496,48 @@ def extract_embedded(video_path: str) -> tuple[str, list[Cue]] | None:
         cues = []
         if os.path.exists(out) and os.path.getsize(out) > 0:
             cues = parse_file(out)
+        if cues:
+            _emb_cache_store(cached, out)
         try:
             os.remove(out)
         except OSError:
             pass
         if cues:
             return ("embedded", cues)
+    _emb_cache_store(cached, None)
     return None
+
+
+_EMB_CACHE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                          ".subs_cache")
+
+
+def _emb_cache_path(video_path: str) -> str:
+    """Cache file for one video's extracted subtitles, keyed by path+size+mtime
+    (so a replaced file is re-extracted). '' if the video can't be stat'ed."""
+    import hashlib
+    try:
+        ap = os.path.abspath(video_path)
+        st = os.stat(ap if len(ap) < 250 else "\\\\?\\" + ap)
+    except OSError:
+        return ""
+    key = f"{os.path.normcase(os.path.abspath(video_path))}|{st.st_size}|{int(st.st_mtime)}"
+    return os.path.join(_EMB_CACHE, hashlib.sha1(key.encode("utf-8")).hexdigest() + ".srt")
+
+
+def _emb_cache_store(cached: str, srt_path) -> None:
+    """Copy the extracted .srt into the cache (an empty file = 'no text subs')."""
+    if not cached:
+        return
+    try:
+        os.makedirs(_EMB_CACHE, exist_ok=True)
+        if srt_path and os.path.isfile(srt_path):
+            import shutil
+            shutil.copyfile(srt_path, cached)
+        else:
+            open(cached, "wb").close()
+    except OSError:
+        pass
 
 
 def bitmap_only(video_path: str) -> bool:

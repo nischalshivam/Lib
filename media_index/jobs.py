@@ -390,6 +390,22 @@ def script_extras(path: str) -> tuple:
     return {}, note
 
 
+def read_build_beats(build_dir: str, clue_path: str) -> list:
+    """The beats a build was actually made from (build_beats.json, written by
+    makevideo — cross-show beats are split and renumbered there, so scene N is
+    beat N of THIS list), falling back to the clue file."""
+    p = os.path.join(build_dir or "", "build_beats.json")
+    if build_dir and os.path.isfile(p):
+        try:
+            with open(p, encoding="utf-8") as f:
+                b = json.load(f)
+            if isinstance(b, list) and b:
+                return b
+        except (OSError, ValueError):
+            pass
+    return read_beats(clue_path)
+
+
 def read_beats(path: str) -> list:
     with open(path, "r", encoding="utf-8-sig") as f:
         raw = f.read()

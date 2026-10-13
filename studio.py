@@ -53,6 +53,12 @@ sys.path.insert(0, HERE)
 from media_index import libcheck                      # noqa: E402
 from media_index import paths as _paths               # noqa: E402
 
+# Editorial / interview / combined-show beats (a clue label with no dedicated
+# footage, e.g. "… Steve Holland interview") fill from the shows already in scope
+# instead of hard-blocking the whole video. Real, indexable episodes still gate.
+# Override with MI_FILL_GAPS=0.
+os.environ.setdefault("MI_FILL_GAPS", "1")
+
 PROSTUDIO = os.path.join(HERE, "prostudio", "prostudio.py")
 VTEXT = os.path.join(HERE, "vtext_tool", "vtext.py")   # kinetic-text finisher
 # Ten formats rotate so a batch of videos never looks the same (variety.py).
@@ -103,6 +109,9 @@ class Job:
                                      # the local OmniVoice server (voice-cloned).
     voice_ref: str = ""              # a short sample of the narrator's voice to clone
     index: int = 0                   # position in the queue (drives format rotation)
+    engine: str = "classic"          # classic | v2 (editv2: grounded agy clue, Gemini
+                                     # re-anchor, HyperFrames looks, QA report)
+    look: str = "auto"               # v2 only: auto | A (pop) | B (framed) | C (cinematic)
     # results
     status: str = "queued"           # queued|blocked|running|done|error
     message: str = ""
@@ -134,15 +143,18 @@ def _cast_for(movies_root: str, clue: str) -> str:
         return ""
     if not need:
         return ""
-    have = [d for d in os.listdir(movies_root)
-            if os.path.isdir(os.path.join(movies_root, d))]
+    have = []                                     # (root, show folder) across roots
+    for root in _paths.split_roots(movies_root):
+        if os.path.isdir(root):
+            have += [(root, d) for d in os.listdir(root)
+                     if os.path.isdir(os.path.join(root, d))]
     norm = lambda s: re.sub(r"[^a-z0-9]+", "", s.lower())
     for show, _eps in sorted(need.items(), key=lambda kv: -len(kv[1])):
         w = norm(show)
-        for d in have:
+        for root, d in have:
             dd = norm(d)
             if dd == w or w in dd or dd in w:
-                cast = _find_cast(os.path.join(movies_root, d))
+                cast = _find_cast(os.path.join(root, d))
                 if cast:
                     return cast
     return ""
@@ -175,8 +187,11 @@ def preflight(job: Job, log=print) -> bool:
             log("  [X] " + job.message)
             return False
 
-    movies = job.movies_root or _paths.movies_root()
-    if not movies or not os.path.isdir(movies):
+    # every library root: the SSD's Movies folder + the Google-Drive shows
+    # (Malcolm, EHC, Modern Family, The Office...). A single root silently hid
+    # those shows from the build, which then filled them with other shows' clips.
+    movies = job.movies_root or _paths.library_roots()
+    if not movies or not any(os.path.isdir(r) for r in _paths.split_roots(movies)):
         job.status, job.message = "error", (
             "movies SSD not found - plug it in (found by volume label "
             f"'{_paths.MOVIES_LABEL}', so any drive letter is fine)")
@@ -231,6 +246,7 @@ def _child_env() -> dict:
     # UnicodeEncodeError right at the final "done" log — AFTER the render. Force
     # UTF-8 so any Unicode in a path or the script never crashes a subprocess.
     env["PYTHONUTF8"] = "1"
+    env["OPENCV_LOG_LEVEL"] = "ERROR"    # YuNet prints '[ WARN:0@..] setPreferableTarget' per face check, flooding the GUI log
     env["PYTHONIOENCODING"] = "utf-8"
     env.setdefault("HF_HUB_ETAG_TIMEOUT", "5")
     cache = os.path.join(os.path.expanduser("~"), ".cache", "huggingface", "hub")
@@ -301,14 +317,33 @@ def _mini_library(beats: list, movies_root: str) -> dict:
         return f"S{int(m.group(1)):02d}E{int(m.group(2)):02d}" if m else ""
 
     lib = {}
-    for c in glob.glob(os.path.join(movies_root, "**", "*.catalog.json"),
-                       recursive=True):
+    # Only the show folders this script names (not every show on every drive:
+    # the same SxxExx numbers exist in all of them, and each extra catalogue is
+    # a slow Google-Drive read).
+    from media_index import libcheck as _lc
+    folders = {}
+    for root in _paths.split_roots(movies_root):
+        try:
+            for d in os.listdir(root):
+                if os.path.isdir(os.path.join(root, d)):
+                    folders.setdefault(d.lower(), os.path.join(root, d))
+        except OSError:
+            continue
+    want = {str(s.get("source") or "").strip() for b in beats
+            for s in (b.get("shots") or []) if s.get("source")}
+    picked = {folders[m] for w in want
+              for m in [_lc._match_show(w, set(folders))] if m}
+    search = sorted(picked) if picked else _paths.split_roots(movies_root)
+    cats = [c for root in search
+            for c in glob.glob(os.path.join(root, "**", "*.catalog.json"),
+                               recursive=True)]
+    for c in cats:
         take = epof(c) in eps
         if not take and movie_titles:             # films: title-token match
             ctoks = plan._title_tokens(os.path.basename(c))
             take = any(plan._tokens_contain(ctoks, w) for w in movie_titles)
         if take:
-            lib.update(catalog.load_library(c))
+            catalog._merge_unique(lib, catalog.load_library(c), c)
     return lib
 
 
@@ -316,7 +351,7 @@ def _apply_intro_hooks(job: Job, final: str, log) -> None:
     """Put the cold-open and/or intro punch-ins onto the delivered final.mp4."""
     import json
     from media_index import jobs as mi_jobs, punchins
-    beats = mi_jobs.read_beats(job.clue)
+    beats = mi_jobs.read_build_beats(job.out, job.clue)
     library = _mini_library(beats, job.movies_root)
     if not library:
         log("  intro hooks: koi referenced-episode catalog nahi mila — skip")
@@ -333,22 +368,21 @@ def _apply_intro_hooks(job: Job, final: str, log) -> None:
                  if job.cold_open else {})
     exclude = ({punchins._line_key(cold_spec["video"], cold_spec["line_start"])}
                if cold_spec else set())
-    # punch-ins first (spliced within the intro), then the cold-open in front.
+    picks = []
     if job.intro_punch and scenes:
         picks = punchins.find_intro_punches(beats, scenes, library,
                                             exclude_lines=exclude, log=log)
-        if picks:
-            punchins.apply(final, picks, tmp, log=log)
-            os.replace(tmp, final)
-        else:
+        if not picks:
             log("  intro punch-ins: intro me koi resolvable hook line nahi — skip")
     elif job.intro_punch:
         log("  intro punch-ins: timeline scenes nahi mile — skip")
-    if cold_spec:
-        punchins.prepend_cold_open(final, cold_spec, tmp, log=log)
-        os.replace(tmp, final)
-    elif job.cold_open:
+    if job.cold_open and not cold_spec:
         log("  cold-open: koi opening hook line resolve nahi hui — skip")
+    # cold-open + punch-ins in ONE encode (the old stream-copy joins drifted the
+    # picture 2-3 s off the voice)
+    if cold_spec or picks:
+        punchins.apply_hooks(final, cold_spec, picks, tmp, log=log)
+        os.replace(tmp, final)
 
 
 def _apply_kinetic_text(job: Job, final: str, log, on_proc=None) -> None:
@@ -367,7 +401,7 @@ def _apply_kinetic_text(job: Job, final: str, log, on_proc=None) -> None:
             pass
         beats = []
         try:
-            beats = mi_jobs.read_beats(job.clue)
+            beats = mi_jobs.read_build_beats(job.out, job.clue)
         except Exception:
             pass
         inst = os.path.join(job.out, "auto_text.txt")
@@ -397,28 +431,162 @@ def _apply_kinetic_text(job: Job, final: str, log, on_proc=None) -> None:
         log(f"  kinetic text: vtext returncode {rc} — final kept as-is")
 
 
-def _generate_voiceover(job: "Job", out_wav: str, log=print) -> str:
-    """No voiceover was provided -> generate one with the local OmniVoice server
-    (voice-cloned from `job.voice_ref`, in `job.language`). OmniVoice runs in its
-    OWN Python-3.12 env; we only talk to it over HTTP here, so nothing in this
-    tool depends on torch/omnivoice. Start the server once by double-clicking
-    `omnivoice-wrapper\\run.bat` (it loads the ~3 GB voice model). Override the
-    address with the OMNIVOICE_API env var (default http://127.0.0.1:8001)."""
-    import time
+OMNIVOICE_DIR = os.environ.get("OMNIVOICE_DIR", r"D:\omnivoice-wrapper")
+GPU_SLOT_DIR, GPU_SLOTS = r"D:\Lib\libjobs\gpu", 3          # the indexing workers' whisper slots (catalog_refine.gpu_slot)
+
+
+class _GpuSlots:
+    """Hold EVERY indexing whisper slot while OmniVoice speaks. 2026-10-12: 10 indexing workers + OmniVoice filled the
+    12 GB card (0 MB free -> OmniVoice 'degraded', earlier a CUDA illegal-memory crash). Workers just wait ('waiting for
+    GPU') and their whisper models are released when they leave a slot, so the VRAM frees within minutes."""
+
+    def __init__(self, log):
+        self.log, self.fhs = log, []
+
+    def __enter__(self):
+        import msvcrt, threading
+        os.makedirs(GPU_SLOT_DIR, exist_ok=True)
+        # 'reserved' stops the workers from TAKING new slots (they kept winning the race: 0/3 for 24 min); the ones
+        # inside a slot finish their whisper pass and leave. Touched every minute so a crash leaves it stale (30 min).
+        self.reserve = os.path.join(GPU_SLOT_DIR, "reserved")
+        self.stop = threading.Event()
+
+        def touch():
+            while not self.stop.is_set():
+                try:
+                    with open(self.reserve, "w") as f:
+                        f.write(str(os.getpid()))
+                except OSError:
+                    pass
+                self.stop.wait(60)
+        threading.Thread(target=touch, daemon=True).start()
+        t0, last = time.time(), 0.0
+        while len(self.fhs) < GPU_SLOTS and time.time() - t0 < 1800:
+            for i in range(GPU_SLOTS):
+                if any(getattr(f, "_slot", -1) == i for f in self.fhs):
+                    continue
+                f = open(os.path.join(GPU_SLOT_DIR, f"slot{i}.lock"), "a+")
+                try:
+                    f.seek(0)
+                    msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+                    f._slot = i
+                    self.fhs.append(f)
+                except OSError:
+                    f.close()
+            if len(self.fhs) < GPU_SLOTS:
+                if time.time() - last > 60:
+                    self.log(f"  [voiceover] pausing the indexing whisper for the voice: {len(self.fhs)}/{GPU_SLOTS} GPU slots free ...")
+                    last = time.time()
+                time.sleep(2)
+        if len(self.fhs) < GPU_SLOTS:
+            self.log(f"  [voiceover] indexing still holds {GPU_SLOTS - len(self.fhs)} GPU slot(s) after 30 min - "
+                     "trying the voice anyway (OmniVoice waits for free VRAM itself)")
+        return self
+
+    def __exit__(self, *a):
+        import msvcrt
+        self.stop.set()
+        try:
+            os.remove(self.reserve)
+        except OSError:
+            pass
+        for f in self.fhs:
+            try:
+                f.seek(0)
+                msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+            except OSError:
+                pass
+            f.close()
+        self.fhs = []
+
+
+def _omnivoice_state(api):
+    """-> (state, detail): 'ready' | 'busy_vram' (VRAM full, server fine) | 'broken' (CUDA error / generation failing) |
+    'down' (nothing answering)."""
     import requests
-    api = (os.environ.get("OMNIVOICE_API") or "http://127.0.0.1:8001").rstrip("/")
     try:
-        ready = requests.get(api + "/api/ready", timeout=5).status_code == 200
+        r = requests.get(api + "/api/ready", timeout=8)
     except Exception:
-        ready = False
-    if not ready:
-        raise RuntimeError(
-            f"OmniVoice voice server is not running at {api}. Start it once "
-            "(omnivoice-wrapper\\run.bat), wait for 'ready', then Run again.")
+        return "down", "no answer"
+    if r.status_code == 200:
+        return "ready", ""
+    try:
+        j = r.json()
+    except ValueError:
+        return "broken", r.text[:200]
+    if j.get("consecutive_failures") or (j.get("last_error") and not j.get("generation_ok", True)):
+        return "broken", str(j.get("last_error") or j.get("reason"))[:200]
+    return "busy_vram", str(j.get("reason") or j.get("detail"))[:200]
+
+
+def _omnivoice_restart(log):
+    """kill every OmniVoice app.py (and its run.bat console) and start run.bat again in its own window."""
+    try:
+        import psutil
+        for p in psutil.process_iter(["cmdline"]):
+            c = " ".join(p.info["cmdline"] or []).lower()
+            if OMNIVOICE_DIR.lower() in c and ("app.py" in c or "run.bat" in c):
+                try:
+                    p.kill()
+                except Exception:
+                    pass
+        time.sleep(5)
+    except ImportError:
+        pass
+    bat = os.path.join(OMNIVOICE_DIR, "run.bat")
+    if not os.path.isfile(bat):
+        raise RuntimeError(f"OmniVoice not found ({bat})")
+    log("  [voiceover] starting the OmniVoice server (model load ~1-3 min) ...")
+    # 'start' hands the server to its own console and the cmd exits at once, so the server is NOT in the build's
+    # process tree: the GUI's Stop (taskkill /T) must not kill a voice server other videos keep using.
+    subprocess.Popen(f'cmd /c start "OmniVoice" /min cmd /c "{bat}"', cwd=OMNIVOICE_DIR,
+                     env={**os.environ, "OMNIVOICE_OPEN_BROWSER": "0"},
+                     creationflags=subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP)
+
+
+def _omnivoice_ensure(api, log):
+    """make the server answer 'ready': start it if down, restart it if broken, wait while the VRAM frees."""
+    st, why = _omnivoice_state(api)
+    if st in ("down", "broken"):
+        if st == "broken":
+            log(f"  [voiceover] OmniVoice server is in an error state ({why[:90]}) - restarting it")
+        _omnivoice_restart(log)
+    t0, last = time.time(), 0.0
+    while st != "ready" and time.time() - t0 < 900:
+        time.sleep(5)
+        st, why = _omnivoice_state(api)
+        if time.time() - last > 60 and st != "ready":
+            log(f"  [voiceover] waiting for OmniVoice ({st}: {why[:80]})")
+            last = time.time()
+    if st != "ready":
+        raise RuntimeError(f"OmniVoice voice server not ready after 15 min ({st}: {why}) - "
+                           "open omnivoice-wrapper/run.bat and check its window")
+    log(f"  [voiceover] OmniVoice ready")
+
+
+def _generate_voiceover(job: "Job", out_wav: str, log=print) -> str:
+    """No voiceover was provided -> generate one with the local OmniVoice server (voice-cloned from `job.voice_ref`,
+    in `job.language`). OmniVoice runs in its OWN Python-3.12 env; we only talk to it over HTTP here. The server is
+    started / restarted automatically (omnivoice-wrapper/run.bat) and the indexing workers' whisper is paused
+    while it speaks. Override the address with the OMNIVOICE_API env var (default http://127.0.0.1:8001)."""
+    api = (os.environ.get("OMNIVOICE_API") or "http://127.0.0.1:8001").rstrip("/")
     voice = (job.voice_ref or "").strip()
     if not voice or not os.path.isfile(voice):
-        raise RuntimeError("auto-voiceover is on but no reference voice was chosen "
-                           "— pick a short (6-10 s) sample of the narrator's voice.")
+        raise RuntimeError("auto-voiceover is on but no Voice sample was chosen"
+                           + (f" (file not found: {voice})" if voice else "")
+                           + " - pick the narrator sample in the 'Voice sample' row (keep 'Voiceover audio' empty).")
+    with _GpuSlots(log):
+        _omnivoice_ensure(api, log)
+        return _generate_voiceover_now(job, out_wav, log, api)
+
+
+def _generate_voiceover_now(job: "Job", out_wav: str, log, api) -> str:
+    import requests
+    voice = (job.voice_ref or "").strip()
+    if not voice or not os.path.isfile(voice):
+        raise RuntimeError("auto-voiceover is on but no Voice sample was chosen"
+                           + (f" (file not found: {voice})" if voice else "")
+                           + " - pick the narrator sample in the 'Voice sample' row (keep 'Voiceover audio' empty).")
     try:
         with open(job.clean, encoding="utf-8-sig") as f:
             text = f.read().strip()
@@ -426,6 +594,11 @@ def _generate_voiceover(job: "Job", out_wav: str, log=print) -> str:
         raise RuntimeError(f"cannot read the clean script: {exc}")
     if not text:
         raise RuntimeError("the clean script is empty — nothing to speak.")
+    if (job.language or "").lower() in ("hi", "hin", "hindi"):
+        # Hindi/Hinglish: numbers spelled out, 32 steps, ~15 s pieces each
+        # checked by OmniVoice's own transcriber and re-made if words drop.
+        from media_index import hindi_voice
+        return hindi_voice.generate(api, voice, text, out_wav, log=log)
     log(f"  [voiceover] OmniVoice: speaking {len(text.split())} words in "
         f"'{job.language}', voice-cloned from {os.path.basename(voice)} ...")
     t0 = time.time()
@@ -460,6 +633,60 @@ def _generate_voiceover(job: "Job", out_wav: str, log=print) -> str:
     return out_wav
 
 
+def _build_v2(job: "Job", log, on_proc, stop) -> "Job":
+    """Pro engine (editv2). Runs as a child process so Stop kills it; the build
+    folder is resumable stage by stage. The clue is generated inside (agy Claude)
+    — a clue file in the job is ignored."""
+    t0 = time.time()
+    name = os.path.splitext(os.path.basename(job.clean))[0]
+    job.out = job.out or os.path.join(os.path.dirname(os.path.abspath(job.clean)), name + "_v2build")
+    cmd = [sys.executable, "-u", "-m", "editv2", "build", job.clean, "--out", job.out,
+           "--lang", (job.language or "en"), "--look", job.look or "auto"]
+    if job.audio:
+        cmd += ["--audio", job.audio]
+    elif job.auto_voice:
+        cmd += ["--voice-ref", job.voice_ref]
+        if not os.path.exists(os.path.join(job.out, "audio.wav")):
+            # warm the voice server up while the clue (~2-3 min) is being built; the voice stage itself still checks,
+            # restarts a broken server and pauses the indexing whisper (_generate_voiceover)
+            api = (os.environ.get("OMNIVOICE_API") or "http://127.0.0.1:8001").rstrip("/")
+            try:
+                if _omnivoice_state(api)[0] == "down":
+                    _omnivoice_restart(log)
+            except Exception as exc:
+                log(f"  [voiceover] could not pre-start OmniVoice ({exc}) - the voice stage will retry")
+    if job.save_dir:
+        cmd += ["--save", job.save_dir]
+    log(f"  [v2] pro engine, look {job.look}, language {job.language}")
+    proc = subprocess.Popen(cmd, cwd=HERE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            text=True, encoding="utf-8", errors="replace",
+                            env={**_child_env(), "PYTHONIOENCODING": "utf-8"})   # HF offline when cached + UTF-8
+    if on_proc:
+        on_proc(proc)
+    if stop():                                     # Stop pressed while the child was being created: it missed the kill
+        subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], capture_output=True)
+    last = ""
+    for line in proc.stdout:
+        line = line.rstrip()
+        # drop only Python/library warning noise; the old `"warn" not in line` also hid QA 'WARN' verdicts and reasons
+        if line and not re.search(r"\b\w+Warning\b|warnings\.warn|^\s*warnings\.|^\[ ?WARN:\d|cv::dnn", line):
+            log(line)
+            last = line
+    proc.wait()
+    if on_proc:
+        on_proc(None)
+    if stop():
+        job.status, job.message = "stopped", "stopped — Run again to resume"
+    elif proc.returncode == 0 and last and os.path.isfile(last.strip()):
+        job.status, job.video = "done", last.strip()
+        qa = os.path.join(job.out, "QA.txt")
+        verdict = open(qa, encoding="utf-8").readline().strip() if os.path.isfile(qa) else ""
+        job.message = f"{os.path.basename(job.video)} in {(time.time() - t0) / 60:.0f} min — {verdict}"
+    else:
+        job.status, job.message = "error", f"v2 engine failed: {last[:300]}"
+    return job
+
+
 def build(job: Job, log=print, on_proc=None, should_stop=None) -> Job:
     """The whole pipeline for ONE video. Never raises — reports via job.status.
 
@@ -470,9 +697,25 @@ def build(job: Job, log=print, on_proc=None, should_stop=None) -> Job:
     _stop = should_stop or (lambda: False)
     t0 = time.time()
     job.status = "running"
+    if job.engine == "v2":
+        return _build_v2(job, log, on_proc, _stop)
     if _stop():
         job.status, job.message = "stopped", "stopped before it started"
         return job
+    # Library gate FIRST: a script whose footage is missing is blocked before a
+    # 2-3 min voiceover is generated for nothing.
+    if not job.audio and job.auto_voice and job.clue and os.path.isfile(job.clue):
+        try:
+            _roots = job.movies_root or _paths.library_roots()
+            _res = libcheck.check(job.clue, _roots)
+            if not _res.get("ready"):
+                job.status = "blocked"
+                job.message = "library not ready (before voiceover): " + \
+                    libcheck.format_report(_res).replace("\n", " | ")[:400]
+                log("  [X] " + job.message)
+                return job
+        except Exception:
+            pass                                   # the full preflight still runs later
     # auto-voiceover: no audio given -> generate it with OmniVoice, THEN preflight
     if not job.audio and job.auto_voice:
         job.out = job.out or _default_out(job)
@@ -515,21 +758,28 @@ def build(job: Job, log=print, on_proc=None, should_stop=None) -> Job:
     if job.ken_burns:
         mv += ["--ken-burns"]
         log("  Ken Burns ON — har still pe slow zoom/pan motion (static nahi)")
-    if job.verify or job.verify_intro_min > 0:
-        cast = _cast_for(job.movies_root, job.clue)
-        if cast:
-            mv += ["--cast", cast]
-        if job.verify_intro_min > 0 and not job.verify:
-            mv += ["--verify-until", str(job.verify_intro_min * 60)]
-            log(f"  verify ON for the first {job.verify_intro_min} min only "
-                "(the intro), then free — cheap accuracy for a long video")
-        else:
-            log("  verify ON (Gemini) for every clip"
-                + (f" · cast: {cast}" if cast else ""))
-    else:
-        mv += ["--no-verify"]
-        log("  verify OFF — placing clips straight from the (already-accurate) "
-            "library by character match: no Gemini, no API cost, fewer gaps")
+    # Clip selection never uses the paid Gemini API any more: clips are placed
+    # from the library, then (if Verify is on) checked for FREE by agy below,
+    # before the render.
+    mv += ["--no-verify"]
+    # Fresh build every time: stale scene folders / final.mp4 / prostudio's
+    # _work cache from an earlier run would otherwise be REUSED (prostudio
+    # --resume skips a video that has final_report.json), so a rebuilt video
+    # could come out identical to the old wrong one. Keep only the voiceover.
+    import shutil as _sh
+    for n in os.listdir(job.out):
+        p = os.path.join(job.out, n)
+        if n.startswith("scene_") or n in ("final.mp4", "final_report.json",
+                                            "final_work", "timeline.json",
+                                            "manifest.json", "verify_report.json",
+                                            "build_beats.json"):
+            if os.path.isdir(p):
+                _sh.rmtree(p, ignore_errors=True)
+            else:
+                try:
+                    os.remove(p)
+                except OSError:
+                    pass
     rc = _run(mv, log, on_proc=on_proc)
     if _stop():
         job.status, job.message = "stopped", "stopped during clip cutting (re-Run to resume)"
@@ -543,6 +793,25 @@ def build(job: Job, log=print, on_proc=None, should_stop=None) -> Job:
         job.status, job.message = "error", "makevideo produced no scene folders"
         return job
     log(f"  makevideo done - {len(scenes)} scene folders built")
+
+    # ---- stage 4b: FREE clip verification (agy Gemini rotation) ------------- #
+    # Every placed clip is checked against its scene's narration + the show the
+    # script expects BEFORE the render. Wrong-show / contradicting clips are set
+    # aside; a video whose clips are largely from the wrong show is NOT rendered.
+    if job.verify:
+        from media_index import agyverify
+        log("\n  [agy verify] checking every clip against the narration (free)...")
+        try:
+            agyverify.verify_build(job.out, job.clue, log=log)
+        except agyverify.VerifyFailed as exc:
+            job.status, job.message = "error", f"verify blocked this video: {exc}"
+            log("  [X] " + job.message)
+            return job
+        except Exception as exc:                    # verify must never kill a build
+            log(f"  agy verify skipped ({type(exc).__name__}: {exc})")
+        if _stop():
+            job.status, job.message = "stopped", "stopped after verify"
+            return job
 
     # ---- stage 5: pro effects + final render -------------------------------- #
     fmt = _format_for(job)

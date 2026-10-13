@@ -374,6 +374,75 @@ def build_cold_open(spec: dict, out: str, w: int, h: int, fps: int,
     return out
 
 
+def apply_hooks(video_in: str, cold_spec: dict, picks: list, out: str,
+                run=subprocess.run, log=lambda *a: None) -> str:
+    """Cold-open + punch-ins in ONE encode of the whole film.
+
+    The older path (apply() then prepend_cold_open()) joined a re-encoded head,
+    a stream-COPIED tail and the cold-open with the concat demuxer. Measured on
+    a 16-min video: the joined file's video ran 12 s longer than its audio and
+    the picture drifted 2-3 s off the voice — the voice talked about Sheldon
+    while Malcolm was still on screen. Here every piece goes through one
+    concat FILTER (exact sample/frame timestamps) and one NVENC encode
+    (~1-2 min at 1080p), so voice and picture cannot drift apart.
+    Returns `video_in` unchanged when there is nothing to add."""
+    picks = sorted([p for p in (picks or []) if p.get("insert_at") is not None],
+                   key=lambda p: p["insert_at"])
+    if not cold_spec and not picks:
+        return video_in
+    w, h, fps = _probe(video_in)
+    ar, ac = _probe_audio(video_in)
+    tmp = tempfile.mkdtemp(prefix="mi_hooks_")
+    inputs = ["-i", video_in]
+    extra = []                                    # (kind, input index, insert_at)
+    if cold_spec:
+        cold = build_cold_open(cold_spec, os.path.join(tmp, "cold.mp4"), w, h, fps,
+                               ar=ar, ac=ac, run=run)
+        inputs += ["-i", cold]
+        extra.append(("cold", len(inputs) // 2 - 1, None))
+    for i, p in enumerate(picks):
+        seg = build_segment(p["video"], p["line_start"], p["line_len"],
+                            os.path.join(tmp, f"punch_{i:02d}.mp4"), w, h, fps, run=run)
+        inputs += ["-i", seg]
+        extra.append(("punch", len(inputs) // 2 - 1, float(p["insert_at"])))
+    sfmt = f"aresample={ar},aformat=sample_rates={ar}:channel_layouts=" \
+           f"{'stereo' if ac == 2 else 'mono'}"
+    vnorm = f"fps={fps},format=yuv420p,setsar=1"
+    nb = len(picks) + 1                          # base pieces around the punches
+    fc = [f"[0:v]{vnorm},split={nb}" + "".join(f"[bv{i}]" for i in range(nb)),
+          f"[0:a]{sfmt},asplit={nb}" + "".join(f"[ba{i}]" for i in range(nb))]
+    order = []
+    for kind, idx, _t in extra:
+        if kind == "cold":
+            fc.append(f"[{idx}:v]{vnorm},setpts=PTS-STARTPTS[cv]")
+            fc.append(f"[{idx}:a]{sfmt},asetpts=PTS-STARTPTS[ca]")
+            order += ["[cv]", "[ca]"]
+    prev = 0.0
+    punches = [e for e in extra if e[0] == "punch"]
+    for i, (_k, idx, t) in enumerate(punches):
+        fc.append(f"[bv{i}]trim={prev:.3f}:{t:.3f},setpts=PTS-STARTPTS[pv{i}b]")
+        fc.append(f"[ba{i}]atrim={prev:.3f}:{t:.3f},asetpts=PTS-STARTPTS[pa{i}b]")
+        fc.append(f"[{idx}:v]{vnorm},setpts=PTS-STARTPTS[pv{i}]")
+        fc.append(f"[{idx}:a]{sfmt},asetpts=PTS-STARTPTS[pa{i}]")
+        order += [f"[pv{i}b]", f"[pa{i}b]", f"[pv{i}]", f"[pa{i}]"]
+        prev = t
+    fc.append(f"[bv{nb - 1}]trim=start={prev:.3f},setpts=PTS-STARTPTS[lvb]")
+    fc.append(f"[ba{nb - 1}]atrim=start={prev:.3f},asetpts=PTS-STARTPTS[lab]")
+    order += ["[lvb]", "[lab]"]
+    fc.append("".join(order) + f"concat=n={len(order) // 2}:v=1:a=1[v][a]")
+    run(["ffmpeg", "-y", "-v", "error"] + inputs +
+        ["-filter_complex", ";".join(fc), "-map", "[v]", "-map", "[a]",
+         *_vc(crf=18, preset="fast"), "-pix_fmt", "yuv420p", "-profile:v", "high",
+         "-c:a", "aac", "-b:a", "192k", "-ar", str(ar), "-ac", str(ac),
+         "-movflags", "+faststart", out], check=True)
+    if picks:
+        log(f"  intro punch-ins: {len(picks)} original-audio moment(s) spliced "
+            "into the first 3 minutes")
+    if cold_spec:
+        log("  cold-open: original-audio hook placed before the narration")
+    return out
+
+
 def prepend_cold_open(video_in: str, spec: dict, out: str,
                       run=subprocess.run, log=lambda *a: None) -> str:
     """Put the cold-open in front of the finished video. Narration is untouched

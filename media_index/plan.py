@@ -137,7 +137,8 @@ def scoped(library: dict, source: str) -> dict:
             if want_ep not in _norm_eps(s.source):
                 continue
             sh = subtitles.show_prefix(s.source)
-            if want_show and sh and sh != want_show:
+            if want_show and sh and \
+                    subtitles.show_key(sh) != subtitles.show_key(want_show):
                 continue                      # same number, different show
             out[k] = s
         return out

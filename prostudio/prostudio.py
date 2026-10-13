@@ -129,6 +129,32 @@ def plan_job(job: Job, job_index: int = 0, log=print) -> dict:
             log(f"  NOTE: script looks like {script}. The bundled fonts are "
                 "Latin-only — set PS_FONT_SANS/SERIF/MONO to a font for this "
                 "language, or turn on-screen text OFF. (Video still renders.)")
+    # makevideo's timeline.json: each scene's narration + its start/end ALIGNED
+    # against this voiceover (whisper, per beat). Without scene.txt files the
+    # scenes used to get the script's sentences split EVENLY (N sentences each)
+    # -> every scene boundary drifted and the voice talked about Sheldon over
+    # Malcolm footage. The timeline is the source of truth when it matches.
+    tl_windows = None
+    tl_path = os.path.join(job.scenes_dir, "timeline.json")
+    if os.path.isfile(tl_path):
+        try:
+            import json as _json
+            tl = _json.load(open(tl_path, encoding="utf-8"))
+            tsc = {int(x["scene"]): x for x in tl.get("scenes") or []}
+            import re as _re
+            nums = [int(_re.sub(r"\D", "", os.path.basename(s.dir)) or -1)
+                    for s in scenes]
+            if nums and all(n in tsc for n in nums):
+                for s, n in zip(scenes, nums):
+                    if not s.narration:
+                        s.narration = " ".join(str(tsc[n].get("narration") or "").split())
+                starts = [float(tsc[n]["start"]) for n in nums]
+                if starts == sorted(starts):
+                    tl_windows = starts
+                    log(f"  scene timing: makevideo's voice-aligned timeline "
+                        f"({len(nums)} scenes)")
+        except Exception as exc:
+            log(f"  timeline.json unreadable ({exc}) — estimating scene timing")
     # narration fallback from clean script (split by sentences across scenes)
     empty = [s for s in scenes if not s.narration]
     if empty and job.script and os.path.isfile(job.script):
@@ -146,6 +172,14 @@ def plan_job(job: Job, job_index: int = 0, log=print) -> dict:
     windows, words = scene_windows(scenes, job.audio,
                                    model_size=job.whisper_model,
                                    language=job.language, log=log)
+    if tl_windows:
+        from engine.audio_sync import duration as _adur
+        total = _adur(job.audio)
+        b = [max(0.0, min(t, total)) for t in tl_windows] + [total]
+        b[0] = 0.0
+        for i in range(1, len(b) - 1):
+            b[i] = max(b[i], b[i - 1] + 1.2)
+        windows = [(b[i], max(b[i] + 0.5, b[i + 1])) for i in range(len(scenes))]
 
     # 3) text plan (NLP chunks + crucial moments + cadence policy)
     if job.text:
