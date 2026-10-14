@@ -226,7 +226,7 @@ def _render_workers(seconds):
     """Chrome capture workers that FIT: each committed ~12.5 GB for a 23-min comp (2026-10-12 20:25 - 6 workers +
     10 indexing workers + OmniVoice put the commit charge at 165.6/168.9 GB, where allocations start failing)."""
     import psutil
-    per_ram = max(3.0, 0.27 * seconds / 60)              # measured ~6.2 GB per worker for a 24-min comp
+    per_ram = max(4.0, 0.45 * seconds / 60)              # measured 10-11 GB private per Chrome worker, 23-min comp
     n_ram = int((psutil.virtual_memory().available / 1e9 - 8) / per_ram)
     per = max(4.0, 0.45 * seconds / 60)                  # commit: keeps a crowded PC (indexing + OmniVoice) safe
     n_commit = int((_commit_free_gb() - 12) / per) + 1
