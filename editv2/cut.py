@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import concurrent.futures as cf, glob, io, json, os, re, subprocess, threading
 
-from .common import lp, vision, faces, is_person, frame_jpeg, mark_unusable
+from .common import lp, vision, faces, is_person, frame_jpeg, mark_unusable, FPS
 from .plan import Plan, norm
 from . import textzones
 
@@ -285,8 +285,8 @@ class Cutter:
             vstart = a_ if a_ > v0 + 0.02 else v0
             subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{vstart:.3f}", "-t", f"{d + 0.3:.3f}", "-i", lp(video),
                             "-vf", f"tpad=start_mode=clone:start_duration={vstart - v0:.3f},"
-                                   "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,fps=30,setsar=1,format=yuv420p",
-                            "-an", "-c:v", "libx264", "-preset", "fast", "-g", "30", "-crf", "18", o], check=True)
+                                   f"scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,fps={FPS},setsar=1,format=yuv420p",
+                            "-an", "-c:v", "libx264", "-preset", "fast", "-g", str(FPS), "-crf", "18", o], check=True)
             subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{s['src0'] - 0.15:.3f}", "-t", f"{d:.3f}", "-i", lp(video),
                             "-vn", "-ac", "2", "-ar", "48000", "-af", "afade=t=in:d=0.08,afade=t=out:st=%.3f:d=0.15" % max(0, d - 0.15),
                             os.path.join(self.A, f"c{k:03d}.wav")], check=True)
@@ -398,12 +398,12 @@ class Cutter:
             for j, (ss, ln, rate) in enumerate(pieces):
                 args += ["-ss", f"{ss:.3f}", "-t", f"{ln + 0.2:.3f}", "-i", lp(override or video)]
                 fc.append(f"[{j}:v]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,eq=contrast=1.04:saturation=1.03,"
-                          f"setpts=(PTS-STARTPTS)/{rate:.4f},fps=30,setsar=1,format=yuv420p,trim=duration={ln / rate:.3f}[p{j}]")
+                          f"setpts=(PTS-STARTPTS)/{rate:.4f},fps={FPS},setsar=1,format=yuv420p,trim=duration={ln / rate:.3f}[p{j}]")
             if have < need - 0.05:
                 fc[-1] = fc[-1].replace(f"[p{len(pieces) - 1}]", f",tpad=stop_mode=clone:stop_duration={need - have + 0.2:.3f}[p{len(pieces) - 1}]")
             fc.append("".join(f"[p{j}]" for j in range(len(pieces))) + f"concat=n={len(pieces)}:v=1:a=0[out]")
             subprocess.run(["ffmpeg", "-v", "error", "-y", *args, "-filter_complex", ";".join(fc), "-map", "[out]",
-                            "-an", "-c:v", "libx264", "-preset", "fast", "-g", "30", "-crf", "18", "-t", f"{need:.3f}", o], check=True)
+                            "-an", "-c:v", "libx264", "-preset", "fast", "-g", str(FPS), "-crf", "18", "-t", f"{need:.3f}", o], check=True)
             self.trim_edges(o, need)
             outs.append((tag, o))
         return k, outs
@@ -427,7 +427,7 @@ class Cutter:
         tmp = path + ".edge.mp4"
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", path, "-vf",
                         f"trim=start={a:.3f}:end={b:.3f},setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop_duration={need - (b - a) + 0.1:.3f}",
-                        "-an", "-c:v", "libx264", "-preset", "fast", "-g", "30", "-crf", "18", "-t", f"{need:.3f}", tmp], check=True)
+                        "-an", "-c:v", "libx264", "-preset", "fast", "-g", str(FPS), "-crf", "18", "-t", f"{need:.3f}", tmp], check=True)
         os.replace(tmp, path)
         return True
 

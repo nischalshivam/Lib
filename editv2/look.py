@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import colorsys, glob, hashlib, json, os, random, re, shutil, subprocess
 
-from .common import faces as _faces, is_person, lp
+from .common import faces as _faces, is_person, lp, FPS
 from .plan import Plan, norm
 from . import assets, fx
 
@@ -412,7 +412,7 @@ class Look:
                     fz = f"fz_{k}.mp4"
                     subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", "0.45", "-i", self.clip_of(k), "-vf",
                                     f"tpad=start_mode=clone:start_duration={hold0:.3f}", "-t", f"{d + 0.3:.3f}", "-an",
-                                    "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-g", "30", os.path.join(A, fz)], check=True)
+                                    "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-g", str(FPS), os.path.join(A, fz)], check=True)
                     src = fz
                 framed = b["framed"] > 0 and bgs and it["kind"] == "V" and k not in fxsrc and k not in ann_k and rnd.random() < b["framed"]
                 if framed:

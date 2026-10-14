@@ -3,6 +3,10 @@ from __future__ import annotations
 
 import base64, json, os, re, subprocess, time, urllib.request
 
+# output frame rate (2026-10-14: 30 -> 24, user ok): TV/film sources are 23.976 fps, so 24 shows them frame for
+# frame (30 repeated every 4th frame) and the render captures 20 % fewer frames. Text / animation timing is in seconds.
+FPS = int(os.environ.get("EDITV2_FPS", "24"))
+
 PROXY = os.environ.get("MODEL_ROUTER_URL", "http://127.0.0.1:8317") + "/v1/chat/completions"
 KEY = os.environ.get("MODEL_ROUTER_KEY") or open(os.path.expanduser("~/.model-router-proxy-key.txt")).read().strip()
 TEXT_MODEL = os.environ.get("CLUE_MODEL", "claude-opus-4-6-thinking")      # agy Claude (NOT this session)

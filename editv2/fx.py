@@ -4,6 +4,8 @@
 Masks: rembg person matting per frame, temporally smoothed (no edge flicker).
 Runs on GPU when the matte venv has CUDA, else CPU."""
 import glob, os, subprocess, sys, tempfile
+
+FPS = int(os.environ.get("EDITV2_FPS", "24"))     # = editv2.common.FPS
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
@@ -26,7 +28,7 @@ def _session():
     return new_session(MODEL, providers=prov) if prov else new_session(MODEL)
 
 
-def frames(clip, w=1920, fps=30):
+def frames(clip, w=1920, fps=FPS):
     tmp = tempfile.mkdtemp(prefix="fx_")
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", clip, "-vf", f"fps={fps},scale={w}:-2",
                     os.path.join(tmp, "%04d.png")], check=True)
@@ -48,10 +50,10 @@ def masks(paths, sess=None, small=640):
     return out
 
 
-def _encode(frames_rgb, out, fps=30):
+def _encode(frames_rgb, out, fps=FPS):
     h, w = frames_rgb[0].shape[:2]
     p = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}",
-                          "-r", str(fps), "-i", "-", "-c:v", "libx264", "-crf", "17", "-preset", "fast", "-g", "30",
+                          "-r", str(fps), "-i", "-", "-c:v", "libx264", "-crf", "17", "-preset", "fast", "-g", str(fps),
                           "-pix_fmt", "yuv420p", out], stdin=subprocess.PIPE)
     for f in frames_rgb:
         p.stdin.write(f.astype(np.uint8).tobytes())
@@ -63,7 +65,7 @@ def _ease(x):
     return 1 - (1 - x) ** 3
 
 
-def depth_text(clip, text, font, out, color=(255, 255, 255), stroke=None, fps=30,
+def depth_text(clip, text, font, out, color=(255, 255, 255), stroke=None, fps=FPS,
                y_frac=0.36, height_frac=0.42, appear=0.15, sess=None, darken=0.15):
     """Word BEHIND the person. The word scales 1.12->1.0 and fades in over 0.35 s."""
     tmp, paths = frames(clip, fps=fps)
@@ -106,7 +108,7 @@ def depth_text(clip, text, font, out, color=(255, 255, 255), stroke=None, fps=30
     return out
 
 
-def color_isolate(clip, out, tint=(150, 110, 200), fps=30, sess=None, ramp=0.4):
+def color_isolate(clip, out, tint=(150, 110, 200), fps=FPS, sess=None, ramp=0.4):
     """Background desaturates to a duotone tint over `ramp` s; the person stays in colour."""
     tmp, paths = frames(clip, fps=fps)
     M = masks(paths, sess)

@@ -8,7 +8,7 @@ import json, os, re, shutil, subprocess, sys, time
 from types import SimpleNamespace
 
 from . import ctx as _ctx, clue as _clue, qa as _qa, mix as _mix
-from .common import log_to
+from .common import log_to, FPS
 
 WHISPER = {"en": "small.en"}
 # Chrome capture workers. Measured 2026-10-14 on the 24-min Wire comp (RTX 5070 12 GB, 64 GB RAM): 2 = ~15 fps, 3 = ~16 fps,
@@ -113,7 +113,7 @@ def render(build, log=print):
             nw = max(2, min(nw - 2, _render_workers(want or 600)))
         log(f"  render: {nw} capture workers ({_commit_free_gb():.0f} GB memory free)")
         t_try = time.time()
-        r = _hf_render(f'"{hf}" render "{os.path.join(build, "comp")}" -o "{out}" -f 30 -q looks -w {nw} --quiet',
+        r = _hf_render(f'"{hf}" render "{os.path.join(build, "comp")}" -o "{out}" -f {FPS} -q looks -w {nw} --quiet',
                        t_try, log)
         msg = (r.stderr or "") + (r.stdout or "")
         with open(rlog, "a", encoding="utf-8", errors="replace") as f:
@@ -142,7 +142,7 @@ def render(build, log=print):
             src = os.path.join(build, "comp", "assets", f)
             tmp = src + ".tmp.mp4"
             subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src, "-c:v", "libx264", "-preset", "fast", "-crf", "18",
-                            "-g", "30", "-keyint_min", "30", "-pix_fmt", "yuv420p", "-an", "-movflags", "+faststart", tmp], check=True)
+                            "-g", str(FPS), "-keyint_min", str(FPS), "-pix_fmt", "yuv420p", "-an", "-movflags", "+faststart", tmp], check=True)
             os.remove(src)
             os.replace(tmp, src)
             log(f"  render: re-encoded {f} (unseekable), retrying")
