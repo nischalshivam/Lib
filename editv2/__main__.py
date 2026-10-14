@@ -17,6 +17,15 @@ ap.add_argument("--save", default="")
 ap.add_argument("--voice-ref", default="")
 ap.add_argument("--until", default="", help="online = stop after look (all internet work done)")
 a = ap.parse_args()
+if a.cmd == "build" and a.until == "online":
+    # 2026-10-14 pipelined batch: two internet phases (cut = 8 ffmpeg, words = whisper on 16 threads) beside a render
+    # held the CPU at 50-95 % and the render's capture fell to ~8 fps. Internet phases now yield the CPU to the render
+    # (their ffmpeg / whisper children inherit the class); they have slack, the render is the bottleneck.
+    try:
+        import psutil
+        psutil.Process().nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
+    except Exception:
+        pass
 if a.cmd == "build":
     try:
         print(pipeline.build(a.path, a.out, a.audio, a.lang, a.look, a.save, a.voice_ref, until=a.until or None))

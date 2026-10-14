@@ -173,8 +173,27 @@ def _hf_render(cmd, t_start, log):
         tempfile.TemporaryFile("w+", encoding="utf-8", errors="replace")
     p = subprocess.Popen(cmd, shell=True, stdout=so, stderr=se, text=True, encoding="utf-8", errors="replace")
     last_n, last_t, stalled, cur, seen = -1, time.time(), "", None, False
+    import psutil
+
+    def tree_cpu():
+        """CPU seconds of the render's whole process tree (node, Chrome, the final ffmpeg encode)."""
+        s = 0.0
+        try:
+            root = psutil.Process(p.pid)
+            for q in [root] + root.children(recursive=True):
+                try:
+                    c = q.cpu_times()
+                    s += c.user + c.system
+                except psutil.Error:
+                    pass
+        except psutil.Error:
+            pass
+        return s
+    last_cpu = tree_cpu()
     while p.poll() is None:
         time.sleep(30)
+        if p.poll() is not None:                 # finished during the wait: nothing to judge
+            break
         dirs = [d for d in glob.glob(os.path.join(tmp, "hf-render-*")) if os.path.getctime(d) >= t_start - 5]
         n = 0
         if dirs:
@@ -183,9 +202,13 @@ def _hf_render(cmd, t_start, log):
             for dp, dn, fn in os.walk(cur):
                 n += sum(1 for f in fn if f.endswith((".jpg", ".png")))
         seen = seen or n > 0
-        if n != last_n:
-            last_n, last_t = n, time.time()
+        cpu = tree_cpu()
+        # 2026-10-14: after the capture the frame count stands still for the merge + final encode (10-15 min on a busy
+        # PC) - that is work, not a hang: a tree still burning CPU (> 5 s per 30 s check; a hung one ~0) counts as progress
+        if n != last_n or cpu - last_cpu > 5:
+            last_n, last_t, last_cpu = n, time.time(), cpu
             continue
+        last_cpu = cpu
         idle = (time.time() - last_t) / 60
         # frames seen: stuck = no change for RENDER_STALL_MIN (the folder vanishing at the end is a change, so a
         # finishing render is never cut); never any frame: 45 min of setup is a hang
