@@ -137,7 +137,9 @@ def run(ctx, video, log=print):
     R["look"] = json.load(open(os.path.join(B, "look.json"), encoding="utf-8"))
     R["warnings"], R["result"] = warn, "WARN" if warn else "PASS"
     json.dump(R, open(os.path.join(B, "qa_report.json"), "w", encoding="utf-8"), indent=1, default=str)
-    lines = [f"QA {R['result']} — {os.path.basename(video)}",
+    # the topic, not the build's internal "final.mp4" (2026-10-14 long-path fix renamed it)
+    title = os.path.splitext(os.path.basename(ctx.get("clean") or ""))[0] or os.path.basename(video)
+    lines = [f"QA {R['result']} — {title}.mp4",
              f"loudness {li} LUFS, peak {pk} dBFS; {len(cuts)} cuts, {len(flashes)} flash, look {R['look'].get('look')}",
              f"clue: {R['clue']}", f"verify: {R['verify']}, burned text fixed in {R['text_fixed']} clips",
              f"pictures: {100 * R['still_share']:.0f}% stills; punch-ins at {R['punch_ins']}; repeats {len(R['repeats'])}"] + \
