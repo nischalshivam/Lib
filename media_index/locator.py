@@ -143,19 +143,40 @@ def _key(name: str) -> str:
 #  registry                                                                    #
 # --------------------------------------------------------------------------- #
 def _load() -> dict:
-    try:
-        with open(REGISTRY, encoding="utf-8") as f:
-            d = json.load(f)
-            return d if isinstance(d, dict) else {}
-    except (OSError, ValueError):
-        return {}
+    for i in range(20):                    # another build may be replacing it this very moment (Windows: WinError 32)
+        try:
+            with open(REGISTRY, encoding="utf-8") as f:
+                d = json.load(f)
+                return d if isinstance(d, dict) else {}
+        except PermissionError:
+            time.sleep(0.1 + 0.05 * i)
+        except (OSError, ValueError):
+            return {}
+    return {}
 
 
 def _save(d: dict) -> None:
-    tmp = REGISTRY + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(d, f, indent=1)
-    os.replace(tmp, REGISTRY)
+    """Own temp file + retried replace: three Movie Editor builds that start together each rediscover and save
+    (2026-10-14: the shared '.tmp' name + a reader holding the file crashed one build with WinError 32). The registry
+    is only a cache, so a save that still cannot land is skipped, never fatal."""
+    import threading
+    tmp = f"{REGISTRY}.{os.getpid()}.{threading.get_ident()}.tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(d, f, indent=1)
+        for i in range(20):
+            try:
+                os.replace(tmp, REGISTRY)
+                return
+            except PermissionError:
+                time.sleep(0.1 + 0.05 * i)
+    except OSError:
+        pass
+    finally:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
 
 
 def discover(log=lambda *a: None) -> list:
