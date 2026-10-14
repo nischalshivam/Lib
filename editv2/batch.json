@@ -1,0 +1,4 @@
+{
+  "_help": "Movie Editor batch (studio.build_batch). online_parallel = videos whose internet phase (clue, voice, plan, cut, look) runs at once while ONE render runs. 2026-10-14 test: 3 at once + a 3-worker render reached 63.6/64 GB RAM; the render (~2.2x video length) is the bottleneck, 2 keep it fed.",
+  "online_parallel": 2
+}

@@ -656,6 +656,12 @@ def _generate_voiceover_now(job: "Job", out_wav: str, log, api) -> str:
     return out_wav
 
 
+def _lp_long(p):
+    """Windows extended-length path for paths at/over 260 chars (long topic names: a finished video looked missing)."""
+    p = os.path.abspath(p)
+    return "\\\\?\\" + p if os.name == "nt" and len(p) >= 248 and not p.startswith("\\\\?\\") else p
+
+
 def _build_v2(job: "Job", log, on_proc, stop, until=None) -> "Job":
     """Pro engine (editv2). Runs as a child process so Stop kills it; the build
     folder is resumable stage by stage. The clue is generated inside (agy Claude)
@@ -708,7 +714,7 @@ def _build_v2(job: "Job", log, on_proc, stop, until=None) -> "Job":
         job.status, job.message = "stopped", "stopped — Run again to resume"
     elif proc.returncode == 0 and last.startswith("ONLINE-DONE"):
         job.status, job.message = "online_done", f"internet work done in {(time.time() - t0) / 60:.0f} min"
-    elif proc.returncode == 0 and last and os.path.isfile(last.strip()):
+    elif proc.returncode == 0 and last and os.path.isfile(_lp_long(last.strip())):
         job.status, job.video = "done", last.strip()
         qa = os.path.join(job.out, "QA.txt")
         verdict = open(qa, encoding="utf-8").readline().strip() if os.path.isfile(qa) else ""
@@ -744,12 +750,12 @@ BATCH_SETTINGS = os.path.join(HERE, "editv2", "batch.json")
 
 
 def batch_settings():
-    """editv2/batch.json: {"online_parallel": videos whose internet phase runs at once}. Missing / broken -> 3."""
+    """editv2/batch.json: {"online_parallel": videos whose internet phase runs at once}. Missing / broken -> 2."""
     try:
         s = json.load(open(BATCH_SETTINGS, encoding="utf-8"))
     except Exception:
         s = {}
-    return dict(online_parallel=max(1, min(8, int(s.get("online_parallel", 3)))))
+    return dict(online_parallel=max(1, min(8, int(s.get("online_parallel", 2)))))
 
 
 def build_batch(jobs, log=print, on_proc=None, should_stop=None, on_status=None, parallel=None, wait_hours=12):

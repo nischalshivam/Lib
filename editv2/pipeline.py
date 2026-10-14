@@ -358,7 +358,9 @@ def build(clean, out_dir="", audio="", language="en", look="auto", save_dir="", 
     with _render_gpu_guard(out_dir, log):
         silent = render(out_dir, log)
     stage("mix")
-    final = os.path.join(out_dir, f"{name}.mp4")
+    # short name inside the build: "<topic>_v2build\<topic>.mp4" passed Windows' 260-char limit for long topic names
+    # (The Wire 2026-10-14: the copy to Final Videos failed and the batch marked a finished video "failed")
+    final = os.path.join(out_dir, "final.mp4")
     _mix.run(ctx, silent, final, log)
     stage("QA")
     R = _qa.run(ctx, final, log)
@@ -510,6 +512,12 @@ def topic_name(clean):
     return re.sub(r'[<>:"/\\|?*]+', " ", base).strip() or "video"
 
 
+def _lp(p):
+    """Windows extended-length path for paths at/over the 260-char limit (long topic folder names)."""
+    p = os.path.abspath(p)
+    return "\\\\?\\" + p if os.name == "nt" and len(p) >= 248 and not p.startswith("\\\\?\\") else p
+
+
 def deliver(final, save_dir, name, qa_txt, result, log=print):
     """copy the finished video to save_dir as '<topic>.mp4' via a .part file (a half copy never looks finished); a
     locked target (open in a player) does not fail a 1-2 h build - the video stays in the build folder and that is said."""
@@ -517,16 +525,16 @@ def deliver(final, save_dir, name, qa_txt, result, log=print):
     dst = os.path.join(save_dir, name + ".mp4")
     qa_dst = os.path.join(save_dir, name + "_QA.txt")
     try:
-        shutil.copy(final, dst + ".part")
-        os.replace(dst + ".part", dst)
+        shutil.copy(_lp(final), _lp(dst + ".part"))         # long-path safe on both ends
+        os.replace(_lp(dst + ".part"), _lp(dst))
     except OSError as e:
         log(f"  ! could not save to {dst} ({type(e).__name__}: {e}) - the finished video is {final}")
         return final
     try:
         if result != "PASS":
-            shutil.copy(qa_txt, qa_dst)
-        elif os.path.exists(qa_dst):
-            os.remove(qa_dst)                     # an old report must not sit next to the new, passing video
+            shutil.copy(_lp(qa_txt), _lp(qa_dst))
+        elif os.path.exists(_lp(qa_dst)):
+            os.remove(_lp(qa_dst))                     # an old report must not sit next to the new, passing video
     except OSError:
         pass
     return dst
