@@ -34,7 +34,7 @@ def info(spec):
             out["qa"] = "PASS" if "PASS" in ln else ("WARN" if "WARN" in ln else "FAIL")
         if "attempt" in ln and "failed" in ln:
             out["attempts"] += 1
-        if BAD.search(ln):
+        if BAD.search(ln) and "[voiceover] GPU busy" not in ln:     # a voice waiting for the GPU is by design
             out["errors"].append(ln.strip()[:200])
     if lines and lines[-1].startswith("DONE "):
         out["stage"] = "DONE"
