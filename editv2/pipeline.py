@@ -111,8 +111,8 @@ def render(build, log=print):
             nw = max(2, min(nw - 2, _render_workers(want or 600)))
         log(f"  render: {nw} capture workers ({_commit_free_gb():.0f} GB memory free)")
         t_try = time.time()
-        r = subprocess.run(f'"{hf}" render "{os.path.join(build, "comp")}" -o "{out}" -f 30 -q looks -w {nw} --quiet',
-                           shell=True, capture_output=True, text=True, encoding="utf-8", errors="replace")
+        r = _hf_render(f'"{hf}" render "{os.path.join(build, "comp")}" -o "{out}" -f 30 -q looks -w {nw} --quiet',
+                       t_try, log)
         msg = (r.stderr or "") + (r.stdout or "")
         with open(rlog, "a", encoding="utf-8", errors="replace") as f:
             f.write(f"\n===== attempt {attempt + 1} {time.strftime('%Y-%m-%d %H:%M:%S')} rc={r.returncode}\n{msg}\n")
@@ -148,6 +148,60 @@ def render(build, log=print):
         raise RuntimeError(f"HyperFrames render failed after {tries} attempts: {last_err} (full log: {rlog})")
     log(f"  render: {time.time() - t:.0f}s, {_duration(out):.0f}s of video")
     return out
+
+
+RENDER_STALL_MIN = 20       # no new captured frame for this long (after the first frames came) = a hung render
+
+
+def _hf_render(cmd, t_start, log):
+    """HyperFrames render with a stall guard. It ran with no timeout: a hung Chrome capture would have kept a whole
+    night batch waiting forever (phase 2 renders one video after another). Progress = frames in its newest
+    %TEMP%\\hf-render-*\\captured-frames folder. No new frame for RENDER_STALL_MIN minutes (or none at all within 45 min)
+    -> the render's process tree is killed and render() retries it like any failed attempt."""
+    import glob, tempfile
+    from types import SimpleNamespace as NS
+    tmp = tempfile.gettempdir()
+    for d in glob.glob(os.path.join(tmp, "hf-render-*")):     # a killed / crashed render leaves its ~15 GB of frames
+        try:                                                   # behind (a finished one cleans up); renders take < 2 h
+            if time.time() - os.path.getmtime(d) > 6 * 3600:
+                shutil.rmtree(d, ignore_errors=True)
+        except OSError:
+            pass
+    so, se = tempfile.TemporaryFile("w+", encoding="utf-8", errors="replace"), \
+        tempfile.TemporaryFile("w+", encoding="utf-8", errors="replace")
+    p = subprocess.Popen(cmd, shell=True, stdout=so, stderr=se, text=True, encoding="utf-8", errors="replace")
+    last_n, last_t, stalled, cur = -1, time.time(), "", None
+    while p.poll() is None:
+        time.sleep(30)
+        dirs = [d for d in glob.glob(os.path.join(tmp, "hf-render-*")) if os.path.getctime(d) >= t_start - 5]
+        n = 0
+        if dirs:
+            cur = max(dirs, key=os.path.getctime)
+            fr = os.path.join(cur, "captured-frames")
+            try:
+                n = sum(1 for _ in os.scandir(fr))
+            except OSError:
+                n = 0
+        if n != last_n:
+            last_n, last_t = n, time.time()
+            continue
+        idle = (time.time() - last_t) / 60
+        if (n > 0 and idle >= RENDER_STALL_MIN) or (n == 0 and (time.time() - t_start) / 60 >= 45):
+            stalled = (f"render stalled: no new frame for {idle:.0f} min at {n} frames" if n
+                       else "render stalled: no frame captured in 45 min")
+            log(f"  {stalled} - stopping it")
+            subprocess.run(["taskkill", "/PID", str(p.pid), "/T", "/F"], capture_output=True)
+            p.wait()
+            if cur:
+                time.sleep(5)
+                shutil.rmtree(cur, ignore_errors=True)
+            break
+    so.seek(0)
+    se.seek(0)
+    r = NS(returncode=p.returncode, stdout=so.read(), stderr=se.read() + ("\n" + stalled if stalled else ""))
+    so.close()
+    se.close()
+    return r
 
 
 def _commit_free_gb():

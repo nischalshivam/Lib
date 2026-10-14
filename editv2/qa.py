@@ -26,6 +26,15 @@ def run(ctx, video, log=print):
                "select='gt(scene,0.25)',showinfo", "-an"])
     blacks = [(float(a), float(b)) for a, b in re.findall(r"black_start:([\d.]+) black_end:([\d.]+)", err)]
     freezes = [float(x) for x in re.findall(r"freeze_duration: ([\d.]+)", err)]
+    # a held title card ('BREATH' text, 'CUTOUT' intro) is meant to stand still - not a frozen picture
+    # (The Wire test 2026-10-14: the 2.6-s 'ACCESS, NOT TERRITORY' card was the only 'frozen picture')
+    try:
+        _cards = [(it["o0"], it["o1"]) for it in json.load(open(os.path.join(B, "state.json"), encoding="utf-8"))["items"]
+                  if it["kind"] in ("BREATH", "CUTOUT")]
+    except Exception:
+        _cards = []
+    _fst = [float(x) for x in re.findall(r"freeze_start: ([\d.]+)", err)]
+    freezes = [d for s, d in zip(_fst, freezes) if not any(a - 0.4 <= s and s + d <= b + 0.4 for a, b in _cards)]
     cuts = [float(x) for x in re.findall(r"pts_time:([\d.]+)", err)]
     html = open(os.path.join(B, "comp", "index.html"), encoding="utf-8").read()
     ann = [float(x) for x in re.findall(r'tl\.fromTo\("#af\d+".*?,([0-9.]+)\);', html)]   # intended white flash
@@ -74,6 +83,9 @@ def run(ctx, video, log=print):
         dd = (hs[i + 8:] != hs[i]).sum(1)
         j = np.where(dd <= 6)[0]
         for jj in j[:3]:
+            mid = (hs[i + 1:i + 8 + jj] != hs[i]).sum(1)
+            if len(mid) and mid.max() <= 14:      # never changed in between = one slow shot, not footage shown twice
+                continue                          # (The Wire 2026-10-14: 4 'repeats' were still faces 2.0 s apart)
             a_, b_ = i / 4, (i + 8 + jj) / 4
             ka, kb_ = item_at(a_), item_at(b_)
             if not (ka == kb_ and st0["items"][ka]["kind"] in ("STILL", "SU")) and not (hs[i + 8 + jj] == hs[min(len(hs) - 1, i + 10 + jj)]).all():
