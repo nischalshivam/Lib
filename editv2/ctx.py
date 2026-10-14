@@ -31,6 +31,122 @@ def _cast_dir(root):
     return ""
 
 
+CHANNELS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "channels.json")
+_STOP = {"the", "and", "mr", "mr.", "mrs", "mrs.", "ms", "dr", "dr.", "jr", "jr.", "sr", "officer", "detective",
+         "sergeant", "lieutenant", "captain", "major", "agent", "doctor", "uncle", "aunt", "little", "big", "old", "young",
+         "king", "queen", "lord", "lady", "sir", "father", "mother", "brother", "sister", "deputy", "sheriff", "judge"}
+
+
+def channel_of(clean):
+    """(channel folder, allowed show keys) for D:\\Movies\\English\\<channel>\\<topic>\\script.txt from channels.json:
+    a list, '*' (cross-franchise) or None (channel not listed)."""
+    try:
+        m = {k: v for k, v in json.load(open(CHANNELS, encoding="utf-8")).items() if not k.startswith("_")}
+    except Exception:
+        return None, None
+    low = {k.lower(): k for k in m}
+    for part in reversed(os.path.normpath(os.path.abspath(clean)).split(os.sep)[:-1]):
+        if part.lower() in low:
+            k = low[part.lower()]
+            return k, m[k]
+    return None, None
+
+
+def _cast_names(root):
+    """character names of a show: its Cast folder (also 'Cast\\<Show> Cast\\<names>'), else what the indexer uses
+    (Desktop\\Cast, the cached film cast) for one of its videos."""
+    cd = _cast_dir(root)
+    if cd:
+        subs = [x for x in os.listdir(cd) if os.path.isdir(os.path.join(cd, x)) and not x.startswith(("_", "."))]
+        if len(subs) == 1 or (subs and all(x.lower().endswith(" cast") for x in subs)):
+            inner = os.path.join(cd, subs[0])
+            deeper = [x for x in os.listdir(inner) if os.path.isdir(os.path.join(inner, x)) and not x.startswith(("_", "."))]
+            if len(deeper) >= 3:
+                subs = deeper
+        if len(subs) >= 3:
+            return sorted(subs)
+    try:
+        from libjobs import common as LC
+        for dp, dn, fn in os.walk(root):
+            v = next((f for f in fn if f.lower().endswith((".mkv", ".mp4", ".avi", ".m4v"))), None)
+            if v:
+                return LC.cast_of(os.path.join(dp, v), allow_llm=True)    # a film: cached forever after one ask
+    except Exception:
+        pass
+    return []
+
+
+def evidence(text, name, cast, also=()):
+    """What in the script itself names this show: its title (with or without a leading 'The', or its library folder
+    name) and/or its Cast characters (full name or a distinctive first/last name, case-sensitive, whole words)."""
+    def has(t):
+        return re.search(r"(?<![\w'])" + re.escape(t) + r"(?![\w])", text) is not None
+    flat = " " + re.sub(r"[^a-z0-9]+", " ", text.lower()) + " "
+
+    def has_title(n):
+        w = re.sub(r"[^A-Za-z0-9]+", " ", n).split()
+        if not w:
+            return False
+        if len(w) <= 2:                               # 'Saw', 'Get Out', 'Alien': case-sensitive, never the verb 'saw'
+            return re.search(r"(?<![\w'])" + r"[^A-Za-z0-9]+".join(map(re.escape, w)) + r"(?![\w])", text) is not None
+        return " " + " ".join(w).lower() + " " in flat
+    names = set()
+    for n in [name, *also]:
+        n = (n or "").strip()
+        if len(n) < 3:
+            continue
+        names.add(n)
+        w = re.sub(r"[^A-Za-z0-9]+", " ", n).split()
+        if w and w[0].lower() == "the" and len(w) >= 3:
+            names.add(" ".join(w[1:]))                # 'the Hunger Games' / 'Hunger Games'
+        core = [x for x in w if x.lower() not in ("the", "a", "an")]
+        if len(core) >= 4 and (len(core[0]) >= 5 or any(c.isdigit() for c in core[1])):
+            names.add(" ".join(core[:2]) + " ~")      # 'Terminator 2 Judgment Day' -> 'Terminator 2', 'Mad Max'
+    title = any(has_title(n[:-2]) if n.endswith(" ~") else has_title(n) for n in names)
+    chars = []
+    for c in cast:
+        toks = [c] + [t for t in re.split(r"[\s\-]+", c) if len(t) >= 3 and t[:1].isupper() and t.lower() not in _STOP]
+        if any(has(t) for t in toks):
+            chars.append(c)
+    return title, chars
+
+
+def guard_shows(clean, text, picked, folders, log=print):
+    """The script detector (an LLM) once put Breaking Bad + Sopranos clips into a Malcolm video. Two locks:
+    1) the channel's own shows only (channels.json), 2) cross-franchise / unlisted channels: a show stays only if the
+    script names it (its title or >= 2 of its characters). Nothing confirmed -> stop, never guess."""
+    ch, allow = channel_of(clean)
+    if isinstance(allow, list):
+        keep = [s for s in picked if s["key"] in allow]
+        drop = [s["name"] for s in picked if s["key"] not in allow]
+        if drop:
+            log(f"  ! channel '{ch}' may only use {allow} - dropped {drop} (picked by the script detector)")
+        if not keep:
+            keep = [dict(key=k, name=_clean_name(folders[k])) for k in allow if k in folders]
+            log(f"  channel '{ch}': using its own show(s) {[s['name'] for s in keep]}")
+        if not keep:
+            raise RuntimeError(f"channel '{ch}' lists {allow} in editv2/channels.json but none of them is in the library")
+        return keep
+    if ch is None:
+        log("  ! this script's channel folder is not in editv2/channels.json - shows are confirmed from the script only")
+    ok, weak = [], []
+    for s in picked:
+        title, chars = evidence(text, s["name"], _cast_names(folders[s["key"]]), also=(_clean_name(folders[s["key"]]),))
+        if title or len(chars) >= 2:
+            ok.append(s)
+            log(f"  confirmed {s['name']}: " + ("title named" if title else "") + (f"{', ' if title else ''}"
+                f"characters {chars[:5]}" if chars else ""))
+        else:
+            weak.append((s["name"], chars))
+    if weak:
+        log(f"  ! dropped - the script never names them: {weak}")
+    if not ok:
+        raise RuntimeError(f"could not confirm which shows/films this script is about (the detector picked "
+                           f"{[s['name'] for s in picked]}, the script names none of them) - check the script or "
+                           "add its channel to editv2/channels.json")
+    return ok
+
+
 def _has_catalogs(root):
     for dp, dn, fn in os.walk(root):
         if any(f.endswith(".catalog.json") for f in fn):
@@ -61,7 +177,7 @@ def build(clean: str, build_dir: str, language: str = "en", look: str = "auto", 
     if _ROOTS is None:                     # new Drive folders (Movies DATA 3 ...) appear over time: look again once per run
         _ROOTS = locator.roots(refresh=True)
     folders = locator.show_folders(_ROOTS)
-    picked = shows or detect_shows(text, folders, log)
+    picked = shows or guard_shows(clean, text, detect_shows(text, folders, log), folders, log)
     S = []
     for s in picked:
         root = folders[s["key"]]

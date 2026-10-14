@@ -11,7 +11,9 @@ from . import ctx as _ctx, clue as _clue, qa as _qa, mix as _mix
 from .common import log_to
 
 WHISPER = {"en": "small.en"}
-RENDER_WORKERS = int(os.environ.get("HF_RENDER_WORKERS", "6"))     # Chrome capture workers (~256 MB RAM each)
+# Chrome capture workers. Measured 2026-10-14 on the 24-min Wire comp (RTX 5070 12 GB, 64 GB RAM): 2 = ~15 fps, 3 = ~16 fps,
+# 4 = 19 fps but "Unable to capture screenshot" after 95 s (GPU), 6 = stuck. ~6 GB RAM per worker.
+RENDER_WORKERS = int(os.environ.get("HF_RENDER_WORKERS", "3"))
 
 
 def words(build, language, log=print):
@@ -156,7 +158,7 @@ RENDER_STALL_MIN = 20       # no new captured frame for this long (after the fir
 def _hf_render(cmd, t_start, log):
     """HyperFrames render with a stall guard. It ran with no timeout: a hung Chrome capture would have kept a whole
     night batch waiting forever (phase 2 renders one video after another). Progress = frames in its newest
-    %TEMP%\\hf-render-*\\captured-frames folder. No new frame for RENDER_STALL_MIN minutes (or none at all within 45 min)
+    %TEMP%\\hf-render-* folder (captured-frames or capture-attempt-*\\worker-*). No new frame for RENDER_STALL_MIN minutes (or none at all within 45 min)
     -> the render's process tree is killed and render() retries it like any failed attempt."""
     import glob, tempfile
     from types import SimpleNamespace as NS
@@ -170,24 +172,25 @@ def _hf_render(cmd, t_start, log):
     so, se = tempfile.TemporaryFile("w+", encoding="utf-8", errors="replace"), \
         tempfile.TemporaryFile("w+", encoding="utf-8", errors="replace")
     p = subprocess.Popen(cmd, shell=True, stdout=so, stderr=se, text=True, encoding="utf-8", errors="replace")
-    last_n, last_t, stalled, cur = -1, time.time(), "", None
+    last_n, last_t, stalled, cur, seen = -1, time.time(), "", None, False
     while p.poll() is None:
         time.sleep(30)
         dirs = [d for d in glob.glob(os.path.join(tmp, "hf-render-*")) if os.path.getctime(d) >= t_start - 5]
         n = 0
         if dirs:
             cur = max(dirs, key=os.path.getctime)
-            fr = os.path.join(cur, "captured-frames")
-            try:
-                n = sum(1 for _ in os.scandir(fr))
-            except OSError:
-                n = 0
+            # frames land in captured-frames\ or, with several workers, capture-attempt-<n>\worker-<k>\ - count them all
+            for dp, dn, fn in os.walk(cur):
+                n += sum(1 for f in fn if f.endswith((".jpg", ".png")))
+        seen = seen or n > 0
         if n != last_n:
             last_n, last_t = n, time.time()
             continue
         idle = (time.time() - last_t) / 60
-        if (n > 0 and idle >= RENDER_STALL_MIN) or (n == 0 and (time.time() - t_start) / 60 >= 45):
-            stalled = (f"render stalled: no new frame for {idle:.0f} min at {n} frames" if n
+        # frames seen: stuck = no change for RENDER_STALL_MIN (the folder vanishing at the end is a change, so a
+        # finishing render is never cut); never any frame: 45 min of setup is a hang
+        if (seen and idle >= RENDER_STALL_MIN) or (not seen and (time.time() - t_start) / 60 >= 45):
+            stalled = (f"render stalled: no new frame for {idle:.0f} min at {n} frames" if seen
                        else "render stalled: no frame captured in 45 min")
             log(f"  {stalled} - stopping it")
             subprocess.run(["taskkill", "/PID", str(p.pid), "/T", "/F"], capture_output=True)
@@ -222,9 +225,12 @@ def _commit_free_gb():
 def _render_workers(seconds):
     """Chrome capture workers that FIT: each committed ~12.5 GB for a 23-min comp (2026-10-12 20:25 - 6 workers +
     10 indexing workers + OmniVoice put the commit charge at 165.6/168.9 GB, where allocations start failing)."""
-    per = max(4.0, 0.6 * seconds / 60)
-    n = int((_commit_free_gb() - 12) / per)
-    return max(2, min(RENDER_WORKERS, n))
+    import psutil
+    per_ram = max(3.0, 0.27 * seconds / 60)              # measured ~6.2 GB per worker for a 24-min comp
+    n_ram = int((psutil.virtual_memory().available / 1e9 - 8) / per_ram)
+    per = max(4.0, 0.45 * seconds / 60)                  # commit: keeps a crowded PC (indexing + OmniVoice) safe
+    n_commit = int((_commit_free_gb() - 12) / per) + 1
+    return max(2, min(RENDER_WORKERS, n_ram, n_commit))
 
 
 def _duration(path):

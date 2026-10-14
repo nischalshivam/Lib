@@ -10,6 +10,10 @@ from .common import lp, vision, faces, is_person, frame_jpeg, mark_unusable
 from .plan import Plan, norm
 from . import textzones
 
+# per video (2026-10-14): clip cutting is ffmpeg/CPU, the burned-text check is one Gemini call per clip
+CUT_THREADS = int(os.environ.get("EDITV2_CUT_THREADS", "8"))
+TEXT_THREADS = int(os.environ.get("EDITV2_TEXT_THREADS", "16"))
+
 
 class Cutter:
     def __init__(self, ctx, log=print):
@@ -480,10 +484,10 @@ class Cutter:
             elif it["kind"] in ("SPLIT", "SU"):
                 jobs.append((k, it, 0.0))
         self.log(f"  cutting {len(jobs)} clips...")
-        with cf.ThreadPoolExecutor(6) as ex:
+        with cf.ThreadPoolExecutor(CUT_THREADS) as ex:
             CLIPS = dict(ex.map(lambda j: self.clip_job(*j), jobs))
         allp = [p for v in CLIPS.values() for _, p in v if p.endswith(".mp4")]
-        with cf.ThreadPoolExecutor(8) as ex:
+        with cf.ThreadPoolExecutor(TEXT_THREADS) as ex:
             TC = dict(zip(allp, ex.map(self.text_check, allp)))
         fixed = 0
         for p, (first, ts, what) in TC.items():

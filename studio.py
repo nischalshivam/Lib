@@ -740,10 +740,27 @@ def internet_up() -> bool:
     return False
 
 
-def build_batch(jobs, log=print, on_proc=None, should_stop=None, on_status=None, parallel=2, wait_hours=12):
-    """Run a queue of jobs. v2 jobs go through the two phases above; others run as before. Never raises."""
-    import threading
+BATCH_SETTINGS = os.path.join(HERE, "editv2", "batch.json")
+
+
+def batch_settings():
+    """editv2/batch.json: {"online_parallel": videos whose internet phase runs at once}. Missing / broken -> 3."""
+    try:
+        s = json.load(open(BATCH_SETTINGS, encoding="utf-8"))
+    except Exception:
+        s = {}
+    return dict(online_parallel=max(1, min(8, int(s.get("online_parallel", 3)))))
+
+
+def build_batch(jobs, log=print, on_proc=None, should_stop=None, on_status=None, parallel=None, wait_hours=12):
+    """Run a queue of jobs. v2 jobs go through the two phases above; others run as before. Never raises.
+    2026-10-14 pipelined: a video's render starts as soon as ITS internet phase is done (one render at a time - the
+    renderer's Chrome workers need the RAM/VRAM), while the other videos' internet phases go on. The green signal
+    still comes when every video's internet work is done; the rest of the renders then need no internet."""
+    import queue, threading
     from concurrent.futures import ThreadPoolExecutor
+    if parallel is None:
+        parallel = batch_settings()["online_parallel"]
     stop = should_stop or (lambda: False)
     status = on_status or (lambda job, st: None)
     lock = threading.Lock()
@@ -785,10 +802,30 @@ def build_batch(jobs, log=print, on_proc=None, should_stop=None, on_status=None,
             os.remove(GREEN_FILE)
     except OSError:
         pass
+    # ---- phase 2 runs alongside: one render after another, fed as soon as a video's internet phase is done ----
+    rq = queue.Queue()
+
+    def render_loop():
+        while True:
+            j = rq.get()
+            if j is None:
+                return
+            if stop():
+                status(j, "pending")
+                continue
+            status(j, "building")
+            log(f"  [V{j.index + 1}] render / mix / QA starting (offline part)")
+            _build_v2(j, tlog(f"[V{j.index + 1}] "), reg(j), stop)
+            status(j, "done" if j.status == "done" else ("pending" if j.status == "stopped" else "failed"))
+            log(f"  [V{j.index + 1}] {'✓' if j.status == 'done' else '✗'} {j.message}")
+    rt = threading.Thread(target=render_loop, daemon=True)
+    rt.start()
     # ---- phase 1: everything that needs the internet ----
     if v2:
-        log(f"\n=== PHASE 1 / 2 - internet work for {len(v2)} video(s) ({parallel} at a time): clue, plan, cut, look ===")
+        log(f"\n=== PHASE 1 / 2 - internet work for {len(v2)} video(s) ({parallel} at a time): clue, plan, cut, look "
+            "- each video's render starts as soon as its internet work is done ===")
     pending, tries, t_start = list(v2), {id(j): 0 for j in v2}, time.time()
+    ready_ids = set()
     while pending and not stop():
         if not internet_up():
             if time.time() - t_start > wait_hours * 3600:
@@ -804,14 +841,18 @@ def build_batch(jobs, log=print, on_proc=None, should_stop=None, on_status=None,
         def one(job):
             status(job, "building")
             _build_v2(job, tlog(f"[V{job.index + 1}] "), reg(job), stop, until="online")
+            if job.status == "online_done":
+                status(job, "online")
+                log(f"  [V{job.index + 1}] internet work done ✓ - queued for render")
+                ready_ids.add(id(job))
+                rq.put(job)
             return job
         with ThreadPoolExecutor(max(1, parallel)) as ex:
             ran = list(ex.map(one, pending))
         retry = []
         for j in ran:
-            if j.status == "online_done":
-                status(j, "online")
-                log(f"  [V{j.index + 1}] internet work done ✓")
+            if j.status == "online_done" or id(j) in ready_ids:
+                pass
             elif j.status == "stopped" or stop():
                 status(j, "pending")
             else:
@@ -832,7 +873,7 @@ def build_batch(jobs, log=print, on_proc=None, should_stop=None, on_status=None,
                 if stop():
                     break
                 time.sleep(5)
-    ready = [j for j in v2 if j.status == "online_done"]
+    ready = [j for j in v2 if id(j) in ready_ids]
     if v2 and not stop() and not pending:
         msg = (f"GREEN SIGNAL {time.strftime('%Y-%m-%d %H:%M')}: internet work is done for {len(ready)}/{len(v2)} "
                "video(s). From now on the rest (render, mix, QA) needs NO internet.")
@@ -843,16 +884,11 @@ def build_batch(jobs, log=print, on_proc=None, should_stop=None, on_status=None,
         except OSError:
             pass
         status(None, "green")
-    # ---- phase 2: offline ----
+    # ---- phase 2: the renders still queued finish offline ----
     if ready and not stop():
-        log(f"\n=== PHASE 2 / 2 - render, mix, QA for {len(ready)} video(s) (offline) ===")
-    for j in ready:
-        if stop():
-            break
-        status(j, "building")
-        _build_v2(j, tlog(f"[V{j.index + 1}] "), reg(j), stop)
-        status(j, "done" if j.status == "done" else ("pending" if j.status == "stopped" else "failed"))
-        log(f"  [V{j.index + 1}] {'✓' if j.status == 'done' else '✗'} {j.message}")
+        log(f"\n=== PHASE 2 / 2 - remaining renders, mix, QA (offline) ===")
+    rq.put(None)
+    rt.join()
     for j in other:                                    # classic engine: unchanged, one by one
         if stop():
             break

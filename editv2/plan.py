@@ -10,6 +10,8 @@ from . import assets
 from .common import lp, vision
 
 FONT_NUM = r"C:\Windows\Fonts\arialbd.ttf"
+# Gemini re-anchor calls at once per video (2026-10-14: 8 -> 16; one call ~16 s, the proxy took 128 at once while indexing)
+VERIFY_THREADS = int(os.environ.get("EDITV2_VERIFY_THREADS", "16"))
 
 
 def norm(s):
@@ -503,7 +505,7 @@ class Plan:
         def save_cache():                             # atomic: a crash mid-write must not lose the earlier verdicts
             json.dump(cache, open(cache_p + ".tmp", "w", encoding="utf-8"), ensure_ascii=False, indent=0)
             os.replace(cache_p + ".tmp", cache_p)
-        with cf.ThreadPoolExecutor(8) as ex:
+        with cf.ThreadPoolExecutor(VERIFY_THREADS) as ex:
             for n, (s, v) in enumerate(zip(todo, ex.map(lambda s: self.reanchor(s, line_of[s]), todo)), 1):
                 if "verify-error" not in str(v.get("why", "")):
                     cache[f"{s}|{line_of[s]}"] = v
