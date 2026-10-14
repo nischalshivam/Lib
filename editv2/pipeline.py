@@ -295,7 +295,8 @@ def build(clean, out_dir="", audio="", language="en", look="auto", save_dir="", 
             "render / mix / QA can run offline")
         return f"ONLINE-DONE {out_dir}"
     stage("render (HyperFrames)")
-    silent = render(out_dir, log)
+    with _render_gpu_guard(out_dir, log):
+        silent = render(out_dir, log)
     stage("mix")
     final = os.path.join(out_dir, f"{name}.mp4")
     _mix.run(ctx, silent, final, log)
@@ -305,6 +306,57 @@ def build(clean, out_dir="", audio="", language="en", look="auto", save_dir="", 
         final = deliver(final, save_dir, topic_name(clean), os.path.join(out_dir, "QA.txt"), R["result"], log)
     log(f"\nDONE {final}  ({(time.time() - T) / 60:.1f} min, QA {R['result']})")
     return final
+
+
+def _render_gpu_guard(out_dir, log):
+    """Chrome's GPU render next to the indexing workers' CUDA whisper crashed the PC (BSOD 0xD1 nvlddmkm, 2026-10-13).
+    While this render runs, the libjobs 'reserved' file keeps the workers from starting a whisper pass
+    (catalog_refine.gpu_slot honours it) and the render starts only once their running GPU children are gone.
+    Several renders can hold it together: it is touched every 20 s and never deleted here - 5 min after the last
+    render it is stale and indexing whisper resumes by itself. No indexing running = no wait."""
+    import contextlib, threading
+
+    @contextlib.contextmanager
+    def guard():
+        out = os.path.join(out_dir, "silent.mp4")
+        comp = os.path.join(out_dir, "comp", "index.html")
+        if os.path.exists(out) and os.path.exists(comp) and os.path.getmtime(out) > os.path.getmtime(comp):
+            yield                                     # render() will return the finished file: nothing to guard
+            return
+        res = r"D:\Lib\libjobs\gpu\reserved"
+        stop = threading.Event()
+
+        def touch():
+            while not stop.is_set():
+                try:
+                    os.makedirs(os.path.dirname(res), exist_ok=True)
+                    with open(res, "w") as f:
+                        f.write(str(os.getpid()))
+                except OSError:
+                    pass
+                stop.wait(20)
+        threading.Thread(target=touch, daemon=True).start()
+        t0, quiet, said = time.time(), 0, False
+        while time.time() - t0 < 600:
+            n = subprocess.run(["powershell", "-NoProfile", "-Command",
+                                "@(Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object "
+                                "{ $_.CommandLine -match 'gpu_pass' }).Count"],
+                               capture_output=True, text=True, creationflags=0x08000000).stdout.strip()
+            if n in ("", "0"):
+                quiet += 1
+                if quiet >= 2:
+                    break
+            else:
+                quiet = 0
+                if not said:
+                    log(f"  render: waiting for {n} indexing whisper pass(es) to finish before using the GPU")
+                    said = True
+            time.sleep(5)
+        try:
+            yield
+        finally:
+            stop.set()
+    return guard()
 
 
 def _lock_build(out_dir):
