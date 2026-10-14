@@ -414,6 +414,29 @@ def _render_gpu_guard(out_dir, log):
                     log(f"  render: waiting for {n} indexing whisper pass(es) to finish before using the GPU")
                     said = True
             time.sleep(5)
+        # 2026-10-14 pipelined batch: OmniVoice (another video's voice stage) needs ~3.7 GB of VRAM that a running
+        # render's Chrome workers take. A voice that found the GPU busy waits (studio: voice_waiting_<pid> marker,
+        # voice.lock held while it waits / speaks) - let it speak BEFORE this render takes the GPU (max 15 min).
+        import glob as _g, msvcrt
+        gdir = os.path.dirname(res)
+        t1, said = time.time(), False
+        while time.time() - t1 < 900:
+            waiting = [f for f in _g.glob(os.path.join(gdir, "voice_waiting_*")) if time.time() - os.path.getmtime(f) < 300]
+            busy = False
+            try:
+                with open(os.path.join(gdir, "voice.lock"), "a+") as vl:
+                    vl.seek(0)
+                    msvcrt.locking(vl.fileno(), msvcrt.LK_NBLCK, 1)       # free = nobody speaking / waiting to
+                    vl.seek(0)
+                    msvcrt.locking(vl.fileno(), msvcrt.LK_UNLCK, 1)
+            except OSError:
+                busy = True
+            if not waiting and not busy:
+                break
+            if not said:
+                log("  render: another video's voiceover needs the GPU first - waiting for it (max 15 min)")
+                said = True
+            time.sleep(10)
         try:
             yield
         finally:

@@ -592,9 +592,29 @@ def _generate_voiceover(job: "Job", out_wav: str, log=print) -> str:
                     last = time.time()
                 time.sleep(3)
         try:
-            with _GpuSlots(log):
-                _omnivoice_ensure(api, log)
-                return _generate_voiceover_now(job, out_wav, log, api)
+            # 2026-10-14 pipelined batch: a render's Chrome workers hold ~7-9 GB of the 12 GB GPU, so OmniVoice answered
+            # '__vram_blocked__ ... retry shortly' and the video FAILED at its voice stage. Wait for the GPU instead:
+            # a marker tells the next render to let waiting voices go first; retried every minute for up to 2 h.
+            mark = os.path.join(GPU_SLOT_DIR, f"voice_waiting_{os.getpid()}")
+            t_wait = time.time()
+            try:
+                while True:
+                    try:
+                        with _GpuSlots(log):
+                            _omnivoice_ensure(api, log)
+                            return _generate_voiceover_now(job, out_wav, log, api)
+                    except RuntimeError as e:
+                        if "vram_blocked" not in str(e) or time.time() - t_wait > 7200:
+                            raise
+                        open(mark, "w").write(str(time.time()))
+                        log(f"  [voiceover] GPU busy (a render is running): {str(e)[:110]} - waiting, retry in 60 s "
+                            f"({(time.time() - t_wait) / 60:.0f} min so far)")
+                        time.sleep(60)
+            finally:
+                try:
+                    os.remove(mark)
+                except OSError:
+                    pass
         finally:
             try:
                 vl.seek(0)
