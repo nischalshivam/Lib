@@ -11,6 +11,13 @@ PROXY = os.environ.get("MODEL_ROUTER_URL", "http://127.0.0.1:8317") + "/v1/chat/
 KEY = os.environ.get("MODEL_ROUTER_KEY") or open(os.path.expanduser("~/.model-router-proxy-key.txt")).read().strip()
 TEXT_MODEL = os.environ.get("CLUE_MODEL", "claude-opus-4-6-thinking")      # agy Claude (NOT this session)
 TEXT_FALLBACK = os.environ.get("CLUE_FALLBACK", "claude-sonnet-4-6")
+# 2026-10-16: agy's free plan drops third-party models (Claude, GPT-OSS) on 2026-11-02 ("Third-party model access will
+# no longer be available on your current plan"). llm() walks this chain: a model the proxy reports gone is skipped from
+# then on (cache/gone_models.json), so the clue / cast steps keep working on Gemini instead of every build failing.
+TEXT_CHAIN = [m.strip() for m in os.environ.get(
+    "CLUE_MODELS", f"{TEXT_MODEL},{TEXT_FALLBACK},gemini-3.8-flash-high,gemini-3-flash").split(",") if m.strip()]
+
+
 def json_read(path, default=None):
     """a JSON file several builds share (editv2/cache): a reader that hits the moment of a write gets an empty or
     half file (B99 + the cross-show test crashed in cut, 2026-10-13) -> retry briefly, else the default."""
@@ -65,8 +72,13 @@ _GONE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache", "
 def model_gone(code, text) -> bool:
     """True if the proxy says this MODEL no longer exists (not a quota / network / content problem)."""
     t = str(text or "").lower()
-    return (code in (400, 404) and ("unknown provider" in t or "model_not_found" in t or "is not found" in t)) or \
-        (code == 503 and "auth_unavailable" in t and "is not found for api version" in t)
+    return (code in (400, 404) and ("unknown provider" in t or "model_not_found" in t or "is not found" in t
+                                    or "entity was not found" in t)) or \
+        (code == 403 and ("third-party" in t or "not available on your" in t)) or \
+        (code == 503 and "auth_unavailable" in t and "is not found for api version" in t) or \
+        (code == 503 and "auth_unavailable" in t and "last upstream error" in t and           # the proxy wraps the
+         ("not_found" in t or "entity was not found" in t or "third-party" in t or "not available on your" in t))
+    # (a plain 503 auth_unavailable - the 2026-10-13 stuck-token outage - names no NOT_FOUND upstream: not 'gone')
 
 
 def drop_vision_model(model=None):
@@ -156,18 +168,45 @@ def _wait_proxy(log, limit):
     return False
 
 
+def text_models():
+    """the text chain without the models the proxy reported gone in the last 24 h (re-tried after that, so one wrong
+    'gone' never pins the editor to the weaker model for good). Never empty."""
+    def recent(stamp):
+        try:
+            return time.time() - time.mktime(time.strptime(stamp, "%Y-%m-%d %H:%M")) < 24 * 3600
+        except (TypeError, ValueError):
+            return True
+    gone = {m for m, st in _gone().items() if recent(st)}
+    return [m for m in dict.fromkeys(TEXT_CHAIN) if m not in gone] or TEXT_CHAIN[-1:]
+
+
+def text_model():
+    return text_models()[0]
+
+
 def llm(system: str, user: str, max_tokens: int = 16000, tries: int = 4, temperature: float = 0.2):
-    """agy Claude (text). Returns (parsed_json, model_used). A proxy/internet outage is waited out (wait_proxy),
-    not counted as a try."""
+    """agy text model (Claude first, see TEXT_CHAIN). Returns (parsed_json, model_used). A proxy/internet outage is
+    waited out (wait_proxy) and a retired model is skipped - neither is counted as a try."""
+    import urllib.error
     last, k, waited = None, 0, False
     while k < tries:
-        model = TEXT_MODEL if k < tries - 1 else TEXT_FALLBACK
+        ms = text_models()
+        model = ms[0] if k < tries - 1 else ms[min(1, len(ms) - 1)]
         try:
             txt = _post({"model": model, "temperature": temperature, "max_tokens": max_tokens,
                          "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}, 600)
             return parse_json(txt), model
         except Exception as e:
             last = e
+            if isinstance(e, urllib.error.HTTPError):
+                body = e.read().decode("utf-8", "replace") if hasattr(e, "read") else ""
+                if model_gone(e.code, body) and len(ms) > 1:
+                    try:
+                        json_update(_GONE_FILE, lambda d: d.__setitem__(model, time.strftime("%Y-%m-%d %H:%M")))
+                    except OSError:
+                        pass
+                    print(f"  text model {model} is gone ({e.code}) - switching to {text_models()[0]}", flush=True)
+                    continue
             if _proxy_down(e) and not waited:
                 waited = True
                 if wait_proxy():

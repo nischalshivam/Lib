@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import concurrent.futures as cf, glob, json, math, os, random, re, time
 
-from .common import llm, lp, TEXT_MODEL, mark_unusable
+from .common import llm, lp, text_model, mark_unusable
 
 SE = re.compile(r"S(\d{2})E(\d{2})|\b(\d{1,2})x(\d{2})\b", re.I)
 VEXT = (".mkv", ".mp4", ".avi", ".m4v")
@@ -163,7 +163,7 @@ def build(ctx: dict, log=print) -> str:
     log(f"  library: {len(lib.eps)} episodes/films, {len(lib.by_sid)} shots")
     lines = split_lines(open(ctx["clean"], encoding="utf-8-sig").read())
     B = [list(range(i, min(i + 12, len(lines)))) for i in range(0, len(lines), 12)]
-    log(f"  script: {len(lines)} lines in {len(B)} beats; model {TEXT_MODEL} (agy)")
+    log(f"  script: {len(lines)} lines in {len(B)} beats; model {text_model()} (agy)")
     shows_txt = ", ".join(f"{s['key']} = {s['name']}" for s in ctx["shows"])
     eplists = "\n".join(f"- {s['key']}: {lib.episode_list(s['key'])}" for s in ctx["shows"])
     sys_resolve = RESOLVE_SYS.format(shows=shows_txt, eplists=eplists[:60000])
@@ -172,6 +172,7 @@ def build(ctx: dict, log=print) -> str:
     text_all = " ".join(lines)
     common_names = sorted(names_all, key=lambda n: -text_all.count(n))[:3]
     results = [None] * len(B)
+    models_used = []                    # 2026-10-16: the chain may move to Gemini (agy drops Claude 11-02)
 
     def do_beat(bi):
         idx = B[bi]
@@ -213,6 +214,7 @@ def build(ctx: dict, log=print) -> str:
                        for s in sorted(cands.values(), key=lambda s: (s['ep'], s['start'])))
         plan, m2 = llm(sys_plan, f"SCRIPT LINES:\n{body}\n\nGROUNDED REFERENCES:\n{json.dumps(refs.get('refs', []), ensure_ascii=False)[:6000]}"
                                  f"\n\nCANDIDATE SHOTS ({len(cands)}):\n{cl or '(none)'}")
+        models_used.extend([m1, m2])
         return bi, refs, plan, len(cands)
 
     t0 = time.time()
@@ -265,7 +267,7 @@ def build(ctx: dict, log=print) -> str:
     refs_all = [r for p in out for r in p["refs"]]
     stats = dict(lines=len(out), refs=len(refs_all), grounded=sum(1 for r in refs_all if r.get("grounded")),
                  no_visual=sum(1 for p in out if not p["shots"] and not p.get("split")))
-    json.dump({"model": TEXT_MODEL, "stats": stats, "lines": out, "shots": shots},
+    json.dump({"model": ", ".join(sorted(set(models_used))) or text_model(), "stats": stats, "lines": out, "shots": shots},
               open(out_json, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     log(f"  clue done in {time.time() - t0:.0f}s: {stats}")
     return out_json
