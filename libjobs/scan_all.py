@@ -17,6 +17,7 @@ sys.path.insert(0, r"D:\Lib\agy_rotation"); sys.path.insert(0, r"D:\Lib")
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 from proxy_videopass import _lp
 from media_index import catalog
+from media_index.catalog_refine import episode_of
 
 VID = (".mkv", ".mp4", ".avi", ".m4v")
 # footage roots by VOLUME IDENTITY (label/serial/Google account), not drive letter - letters move (2026-10-12)
@@ -40,7 +41,9 @@ for root in ROOTS:
                 if not f.lower().endswith(VID) or "sample" in f.lower() or "trailer" in f.lower():
                     continue
                 p = os.path.join(dp, f)
-                ep = bool(EP.search(f))
+                # 2026-10-15: 'Breaking Bad Season 3 Episode 10.mp4' has no SxxEyy -> 36 BB episodes (<700 MB) were
+                # never scanned; the workers' episode_of() already reads that naming
+                ep = bool(EP.search(f)) or episode_of(p) is not None
                 try:
                     big = os.path.getsize(_lp(p)) > 700_000_000
                 except OSError:
