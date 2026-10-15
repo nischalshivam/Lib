@@ -16,6 +16,10 @@ WHISPER = {"en": "small.en"}
 # 2026-10-15: 3 workers (~9 GB VRAM) + an OmniVoice voice -> GPU timeout (nvlddmkm 153, TDR), OmniVoice CUDA crash, the
 # render hung. 2 workers leave the voice room; the 3rd only added ~20 % speed.
 RENDER_WORKERS = int(os.environ.get("HF_RENDER_WORKERS", "2"))
+# 2026-10-15: two GPU driver timeouts (nvlddmkm 153) in the Wire batch while renders ran on the GPU; software capture
+# (--no-browser-gpu) measured 13.8 fps at 2 workers (as fast as GPU mode), CPU 19 %, frames identical (SSIM
+# 0.995-0.997 vs the GPU render of the same comp) - and the GPU stays free for OmniVoice. EDITV2_RENDER_GPU=1 = old way.
+RENDER_GPU_FLAG = "" if os.environ.get("EDITV2_RENDER_GPU") == "1" else " --no-browser-gpu"
 
 
 def words(build, language, log=print):
@@ -115,7 +119,7 @@ def render(build, log=print):
             nw = max(2, min(nw - 2, _render_workers(want or 600)))
         log(f"  render: {nw} capture workers ({_commit_free_gb():.0f} GB memory free)")
         t_try = time.time()
-        r = _hf_render(f'"{hf}" render "{os.path.join(build, "comp")}" -o "{out}" -f {FPS} -q looks -w {nw} --quiet',
+        r = _hf_render(f'"{hf}" render "{os.path.join(build, "comp")}" -o "{out}" -f {FPS} -q looks -w {nw} --quiet{RENDER_GPU_FLAG}',
                        t_try, log)
         msg = (r.stderr or "") + (r.stdout or "")
         with open(rlog, "a", encoding="utf-8", errors="replace") as f:

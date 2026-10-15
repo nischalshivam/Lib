@@ -565,7 +565,10 @@ def _omnivoice_ensure(api, log):
 
 
 def _render_capturing() -> bool:
-    """a HyperFrames render is capturing frames right now (its Chrome workers hold most of the GPU)."""
+    """a HyperFrames render is capturing frames right now (its Chrome workers hold most of the GPU). Since 2026-10-15
+    renders capture in software (editv2 RENDER_GPU_FLAG) and leave the GPU alone - then a voice never has to wait."""
+    if os.environ.get("EDITV2_RENDER_GPU") != "1":
+        return False
     try:
         import psutil
         return any((p.info["name"] or "").lower().startswith("chrome-headless-shell") for p in psutil.process_iter(["name"]))
