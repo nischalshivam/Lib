@@ -50,7 +50,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.path.join(HERE, "cache", "text_zones.json")
 PROXY = "http://127.0.0.1:8317/v1/chat/completions"
 KEY = open(os.path.expanduser("~/.model-router-proxy-key.txt")).read().strip()
-MODEL = "gemini-3.6-flash-high"
+# 2026-10-16: was a fixed "gemini-3.6-flash-high" - retired 2026-10-13, so every call failed, _ask() returned [] and
+# zones() CACHED "no credits" for every episode seen since (164 of 302, all 60 The Wire). Now the shared vision chain.
+try:
+    from . import common as _E
+except ImportError:
+    _E = None
+MODEL = "gemini-3.8-flash-high"
 
 
 def lp(p):
@@ -88,17 +94,23 @@ def _ask(video, t0):
     g = _grid(video, t0)
     if g is None:
         return []
-    body = {"model": MODEL, "temperature": 0, "messages": [{"role": "user", "content": [
-        {"type": "text", "text": q}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + g}}]}]}
+    import urllib.error
     for _ in range(3):
+        model = _E.VISION_MODEL if _E else MODEL
+        body = {"model": model, "temperature": 0, "messages": [{"role": "user", "content": [
+            {"type": "text", "text": q}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + g}}]}]}
         try:
             req = urllib.request.Request(PROXY, json.dumps(body).encode(), {"Authorization": "Bearer " + KEY, "Content-Type": "application/json"})
             txt = json.load(urllib.request.urlopen(req, timeout=120))["choices"][0]["message"]["content"]
             v = json.JSONDecoder().raw_decode(txt[txt.find("{"):])[0]
             return [t0 + int(k) - 1 for k in v.get("text_frames", []) if 1 <= int(k) <= 16]
+        except urllib.error.HTTPError as e:
+            body_txt = e.read().decode("utf-8", "replace") if hasattr(e, "read") else ""
+            if _E and _E.model_gone(e.code, body_txt):
+                _E.drop_vision_model(model)
         except Exception:
             continue
-    return []
+    return None                           # the call FAILED - not "no text here"
 
 
 def zones(video, log=print):
@@ -109,7 +121,9 @@ def zones(video, log=print):
     dur = _dur(video)
     starts = list(range(0, min(300, int(dur)), 16)) + list(range(max(0, int(dur) - 90), max(1, int(dur) - 17), 16))
     with ThreadPoolExecutor(8) as ex:
-        hits = sorted(t for lst in ex.map(lambda s: _ask(video, s), starts) for t in lst)
+        res = list(ex.map(lambda s: _ask(video, s), starts))
+    failed = sum(1 for r in res if r is None)
+    hits = sorted(t for lst in res if lst for t in lst)
     # merge 1-fps hits into intervals (pad 0.6 s each side, join gaps < 2.5 s)
     iv = []
     for t in hits:
@@ -118,6 +132,9 @@ def zones(video, log=print):
             iv[-1][1] = b
         else:
             iv.append([a, b])
+    if failed:                            # never cache a partly blind scan: the next build asks again
+        log(f"  text zones {key[:50]}: {failed}/{len(starts)} checks failed - not cached")
+        return iv
     json_update(CACHE, lambda d: d.__setitem__(key, iv))
     log(f"  text zones {key[:50]}: {[(round(a), round(b)) for a, b in iv]}")
     return iv
