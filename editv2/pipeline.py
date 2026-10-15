@@ -19,7 +19,10 @@ RENDER_WORKERS = int(os.environ.get("HF_RENDER_WORKERS", "2"))
 # 2026-10-15: two GPU driver timeouts (nvlddmkm 153) in the Wire batch while renders ran on the GPU; software capture
 # (--no-browser-gpu) measured 13.8 fps at 2 workers (as fast as GPU mode), CPU 19 %, frames identical (SSIM
 # 0.995-0.997 vs the GPU render of the same comp) - and the GPU stays free for OmniVoice. EDITV2_RENDER_GPU=1 = old way.
-RENDER_GPU_FLAG = "" if os.environ.get("EDITV2_RENDER_GPU") == "1" else " --no-browser-gpu"
+# REVERTED the same day: on a FRESH comp the software capture hangs on its first frames (Runtime.callFunctionOn
+# timed out after 5 min, V17 twice; the 13.8 fps test had a warm extract cache). GPU capture (2 workers, voices
+# waiting while it captures) is what rendered 13 videos overnight. EDITV2_RENDER_GPU=0 = software.
+RENDER_GPU_FLAG = " --no-browser-gpu" if os.environ.get("EDITV2_RENDER_GPU") == "0" else ""
 
 
 def words(build, language, log=print):
