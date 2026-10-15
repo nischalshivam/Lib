@@ -102,7 +102,8 @@ def _find_hyperframes():
 
 def render(build, log=print):
     out = os.path.join(build, "silent.mp4")
-    if os.path.exists(out) and os.path.getmtime(out) > os.path.getmtime(os.path.join(build, "comp", "index.html")):
+    comp = os.path.join(build, "comp")
+    if os.path.exists(out) and os.path.getmtime(out) > os.path.getmtime(os.path.join(comp, "index.html")):
         return out
     hf, tried = _find_hyperframes()
     if not hf:
@@ -113,25 +114,57 @@ def render(build, log=print):
     want = _duration(os.path.join(build, "audio.wav"))
     rlog = os.path.join(build, "render.log")
     t = time.time()
+    # 2026-10-15: a comp with 260-313 clips hangs Chrome (see parts.py) -> long comps render in ~5-min parts
+    from . import parts as _parts
+    plist = _parts.write(comp, FPS, log)
+    if not plist:
+        _render_target(hf, build, None, out, want, None, rlog, log)
+    else:
+        pdir = os.path.join(build, "parts")
+        os.makedirs(pdir, exist_ok=True)
+        idx_time = os.path.getmtime(os.path.join(comp, "index.html"))
+        for k, (name, f0, f1) in enumerate(plist):
+            pout = os.path.join(pdir, f"part_{k:02d}.mp4")
+            tag = f"part {k + 1}/{len(plist)}"
+            # a part rendered from this same comp is kept: a retry only renders what is still missing
+            if os.path.exists(pout) and os.path.getmtime(pout) > idx_time and _frames(pout) == f1 - f0:
+                log(f"  render {tag}: already rendered")
+                continue
+            log(f"  render {tag}: {f0 / FPS / 60:.1f}-{f1 / FPS / 60:.1f} min")
+            _render_target(hf, build, name, pout, (f1 - f0) / FPS, f1 - f0, rlog, log, tag)
+        _concat([os.path.join(pdir, f"part_{k:02d}.mp4") for k in range(len(plist))], out)
+        if _frames(out) != plist[-1][2]:
+            raise RuntimeError(f"joined render has {_frames(out)} frames, the comp {plist[-1][2]} (full log: {rlog})")
+        shutil.rmtree(pdir, ignore_errors=True)    # ~2.4 GB for a 29-min video; silent.mp4 is the render now
+    if not (os.path.exists(out) and _duration(out) >= (want - 1.0 if want else 1.0)):
+        raise RuntimeError(f"HyperFrames render is {_duration(out):.0f}s, the voiceover {want:.0f}s (full log: {rlog})")
+    log(f"  render: {time.time() - t:.0f}s, {_duration(out):.0f}s of video")
+    return out
+
+
+def _render_target(hf, build, part, out, want, want_frames, rlog, log, tag="render"):
+    """one HyperFrames render (the whole comp, or comp/<part> with -c) into `out`, retried up to 4 times."""
     tries, last_err = 4, ""
     nw = _render_workers(want or 600)
+    comp = os.path.join(build, "comp")
     for attempt in range(tries):
         # explicit workers: 'auto' looks at the CPU load and, with the indexing workers running, picked ONE worker
         # (2026-10-12: ~1 frame/s -> ~12 h for a 23-min video); too many run the commit charge out -> sized to memory
         if attempt:
             nw = max(2, min(nw - 2, _render_workers(want or 600)))
-        log(f"  render: {nw} capture workers ({_commit_free_gb():.0f} GB memory free)")
+        log(f"  {tag}: {nw} capture workers ({_commit_free_gb():.0f} GB memory free)")
         t_try = time.time()
-        r = _hf_render(f'"{hf}" render "{os.path.join(build, "comp")}" -o "{out}" -f {FPS} -q looks -w {nw} --quiet{RENDER_GPU_FLAG}',
-                       t_try, log)
+        r = _hf_render(f'"{hf}" render "{comp}"' + (f' -c {part}' if part else "") +
+                       f' -o "{out}" -f {FPS} -q looks -w {nw} --quiet{RENDER_GPU_FLAG}', t_try, log)
         msg = (r.stderr or "") + (r.stdout or "")
         with open(rlog, "a", encoding="utf-8", errors="replace") as f:
-            f.write(f"\n===== attempt {attempt + 1} {time.strftime('%Y-%m-%d %H:%M:%S')} rc={r.returncode}\n{msg}\n")
+            f.write(f"\n===== {tag} attempt {attempt + 1} {time.strftime('%Y-%m-%d %H:%M:%S')} rc={r.returncode}\n{msg}\n")
         got = _duration(out) if os.path.exists(out) and os.path.getmtime(out) >= t_try else 0.0
-        if got and (not want or got >= want - 1.0):
-            break
+        # a part must have its exact frame count (the parts are joined back to back under one voiceover)
+        if got and (_frames(out) == want_frames if want_frames else (not want or got >= want - 1.0)):
+            return
         if got:                                   # a render that stopped early is not a render
-            last_err = f"output is {got:.0f}s but the voiceover is {want:.0f}s"
+            last_err = f"output is {got:.1f}s but should be {want:.1f}s"
             os.remove(out)
         else:
             # the real reason, not the last 800 chars of init chatter (2026-10-12 20:03: tail showed only 'fonts ready')
@@ -144,21 +177,41 @@ def render(build, log=print):
                 break
             # transient: frame extraction of valid clips under load (10:11 - 111 clips, fine 10 min later), a Chrome
             # worker dying, ... -> wait and render again
-            log(f"  render: attempt {attempt + 1} failed ({last_err[:160]}) - retrying in 60 s (full log: render.log)")
+            log(f"  {tag}: attempt {attempt + 1} failed ({last_err[:160]}) - retrying in 60 s (full log: render.log)")
             time.sleep(60)
             continue
         for f in bad:                              # a source Chrome can't seek -> re-encode with 1-s keyframes, retry
-            src = os.path.join(build, "comp", "assets", f)
+            src = os.path.join(comp, "assets", f)
             tmp = src + ".tmp.mp4"
             subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src, "-c:v", "libx264", "-preset", "fast", "-crf", "18",
                             "-g", str(FPS), "-keyint_min", str(FPS), "-pix_fmt", "yuv420p", "-an", "-movflags", "+faststart", tmp], check=True)
             os.remove(src)
             os.replace(tmp, src)
-            log(f"  render: re-encoded {f} (unseekable), retrying")
-    if not (os.path.exists(out) and _duration(out) >= (want - 1.0 if want else 1.0)):
-        raise RuntimeError(f"HyperFrames render failed after {tries} attempts: {last_err} (full log: {rlog})")
-    log(f"  render: {time.time() - t:.0f}s, {_duration(out):.0f}s of video")
-    return out
+            log(f"  {tag}: re-encoded {f} (unseekable), retrying")
+    raise RuntimeError(f"HyperFrames {tag} failed after {tries} attempts: {last_err} (full log: {rlog})")
+
+
+def _frames(path):
+    """exact video frame count (packets) - parts must join to exactly the comp's frames."""
+    try:
+        return int(subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-count_packets", "-show_entries",
+                                   "stream=nb_read_packets", "-of", "csv=p=0", path],
+                                  capture_output=True, text=True, timeout=300).stdout.strip())
+    except (ValueError, OSError, subprocess.TimeoutExpired):
+        return -1
+
+
+def _concat(files, out):
+    """parts -> one video, no re-encode (same encoder settings). Relative names: the build paths are long and some
+    topics contain quotes."""
+    d = os.path.dirname(files[0])
+    lst = os.path.join(d, "parts.txt")
+    with open(lst, "w", encoding="utf-8") as f:
+        f.writelines(f"file '{os.path.basename(p)}'\n" for p in files)
+    tmp = os.path.join(d, "joined.mp4")
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", "parts.txt", "-c", "copy",
+                    "-movflags", "+faststart", "joined.mp4"], cwd=d, check=True, capture_output=True)
+    os.replace(tmp, out)
 
 
 RENDER_STALL_MIN = 20       # no new captured frame for this long (after the first frames came) = a hung render
