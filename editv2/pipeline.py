@@ -13,7 +13,9 @@ from .common import log_to, FPS
 WHISPER = {"en": "small.en"}
 # Chrome capture workers. Measured 2026-10-14 on the 24-min Wire comp (RTX 5070 12 GB, 64 GB RAM): 2 = ~15 fps, 3 = ~16 fps,
 # 4 = 19 fps but "Unable to capture screenshot" after 95 s (GPU), 6 = stuck. ~6 GB RAM per worker.
-RENDER_WORKERS = int(os.environ.get("HF_RENDER_WORKERS", "3"))
+# 2026-10-15: 3 workers (~9 GB VRAM) + an OmniVoice voice -> GPU timeout (nvlddmkm 153, TDR), OmniVoice CUDA crash, the
+# render hung. 2 workers leave the voice room; the 3rd only added ~20 % speed.
+RENDER_WORKERS = int(os.environ.get("HF_RENDER_WORKERS", "2"))
 
 
 def words(build, language, log=print):
