@@ -564,6 +564,15 @@ def _omnivoice_ensure(api, log):
     log(f"  [voiceover] OmniVoice ready")
 
 
+def _render_capturing() -> bool:
+    """a HyperFrames render is capturing frames right now (its Chrome workers hold most of the GPU)."""
+    try:
+        import psutil
+        return any((p.info["name"] or "").lower().startswith("chrome-headless-shell") for p in psutil.process_iter(["name"]))
+    except Exception:
+        return False
+
+
 def _generate_voiceover(job: "Job", out_wav: str, log=print) -> str:
     """No voiceover was provided -> generate one with the local OmniVoice server (voice-cloned from `job.voice_ref`,
     in `job.language`). OmniVoice runs in its OWN Python-3.12 env; we only talk to it over HTTP here. The server is
@@ -596,15 +605,29 @@ def _generate_voiceover(job: "Job", out_wav: str, log=print) -> str:
             # '__vram_blocked__ ... retry shortly' and the video FAILED at its voice stage. Wait for the GPU instead:
             # a marker tells the next render to let waiting voices go first; retried every minute for up to 2 h.
             mark = os.path.join(GPU_SLOT_DIR, f"voice_waiting_{os.getpid()}")
-            t_wait = time.time()
+            t_wait, said = time.time(), 0.0
             try:
                 while True:
+                    # 2026-10-15: OmniVoice passed its own free-VRAM check during a render, then crashed with 'CUDA
+                    # error: an illegal memory access' (Chrome's VRAM use swings) - V23 failed, the server went into
+                    # an error state. Never speak while a render is capturing frames; the render lets a waiting voice
+                    # go first (editv2 render guard), so this cannot deadlock.
+                    if _render_capturing() and time.time() - t_wait < 7200:
+                        open(mark, "w").write(str(time.time()))
+                        if time.time() - said > 300:
+                            log(f"  [voiceover] a render is capturing frames - the voice waits for the GPU "
+                                f"({(time.time() - t_wait) / 60:.0f} min so far)")
+                            said = time.time()
+                        time.sleep(30)
+                        continue
                     try:
                         with _GpuSlots(log):
                             _omnivoice_ensure(api, log)
                             return _generate_voiceover_now(job, out_wav, log, api)
                     except RuntimeError as e:
-                        if "vram_blocked" not in str(e) or time.time() - t_wait > 7200:
+                        retry = any(k in str(e) for k in ("vram_blocked", "illegal memory access", "CUDA error",
+                                                          "AcceleratorError", "out of memory"))
+                        if not retry or time.time() - t_wait > 7200:
                             raise
                         open(mark, "w").write(str(time.time()))
                         log(f"  [voiceover] GPU busy (a render is running): {str(e)[:110]} - waiting, retry in 60 s "
