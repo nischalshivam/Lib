@@ -1,12 +1,29 @@
 {
   "_help": "Channel folder under D:\\Movies\\English -> the library keys (editv2 show keys) its videos may use. '*' = cross-franchise: any show, but every show must be named by the script itself. A channel not listed here behaves like '*' with a warning in the log. Add a line when you start a new channel.",
-  "The Wire": ["wire"],
-  "TAHM": ["twoandahalfmen"],
-  "B99": ["brooklynninenine"],
-  "House": ["house"],
-  "TWD": ["walkingdead"],
-  "Reacher": ["reacher"],
-  "Andor": ["andor"],
-  "Harry Potter": ["harrypotter"],
+  "The Wire": [
+    "wire"
+  ],
+  "TAHM": [
+    "twoandahalfmen"
+  ],
+  "B99": [
+    "brooklynninenine"
+  ],
+  "House": [
+    "house"
+  ],
+  "TWD": [
+    "walkingdead"
+  ],
+  "Reacher": [
+    "reacher",
+    "jackreacher"
+  ],
+  "Andor": [
+    "andor"
+  ],
+  "Harry Potter": [
+    "harrypotter"
+  ],
   "Holly New": "*"
 }

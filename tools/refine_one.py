@@ -26,6 +26,14 @@ try:
     from media_index import catalog_refine, dialogue_fill
     st = C.state(v)
     log(f"[{st}] {v}")
+    if st == "index":                                   # never catalogued: first pass (the worker's proxy video-pass)
+        import proxy_videopass
+        cast = C.cast_of(v)
+        if len(cast) < 3:
+            raise RuntimeError(f"no cast ({len(cast)} names) - add Desktop\\Cast\\<title>")
+        proxy_videopass.build(v, os.path.splitext(v)[0] + ".catalog.json", cast, log=lambda *a: None)
+        st = C.state(v)
+        log(f"   indexed -> {st}")
     if st == "refine":
         r = catalog_refine.refine(v, C.cast_of(v), C.show_name(v), progress=lambda s: None)
         log(f"   refined: {r}")
