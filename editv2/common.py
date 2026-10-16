@@ -74,12 +74,15 @@ def model_gone(code, text) -> bool:
     t = str(text or "").lower()
     return (code in (400, 404) and ("unknown provider" in t or "model_not_found" in t or "is not found" in t
                                     or "entity was not found" in t)) or \
-        (code == 403 and ("third-party" in t or "not available on your" in t or "disabled in this account" in t)) or \
+        (code == 403 and ("third-party" in t or "not available on your" in t)) or \
         (code == 503 and "auth_unavailable" in t and "is not found for api version" in t) or \
         (code == 503 and "auth_unavailable" in t and "last upstream error" in t and           # the proxy wraps the
          ("not_found" in t or "entity was not found" in t or "third-party" in t or "not available on your" in t
-          or "disabled in this account" in t))
+          or ("disabled in this account" in t and "no auth available" in t)))
     # (a plain 503 auth_unavailable - the 2026-10-13 stuck-token outage - names no NOT_FOUND upstream: not 'gone')
+    # 2026-10-17: a bare 403 "disabled in this account" is ONE account (the proxy rotates) - never 'gone'. It marked all
+    # three vision models gone within 8 min (03:32-03:40) and stalled 22 workers. Only "no auth available" = every
+    # account refuses this model.
 
 
 def drop_vision_model(model=None):
