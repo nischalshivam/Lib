@@ -544,13 +544,51 @@ def _omnivoice_restart(log):
                      creationflags=subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP)
 
 
+def _omnivoice_starting(max_age=600):
+    """an OmniVoice app.py started in the last max_age s exists (another build is starting it - its model is loading)."""
+    try:
+        import psutil
+        now = time.time()
+        return any(OMNIVOICE_DIR.lower() in " ".join(p.info["cmdline"] or []).lower()
+                   and "app.py" in " ".join(p.info["cmdline"] or []).lower() and now - p.info["create_time"] < max_age
+                   for p in psutil.process_iter(["cmdline", "create_time"]))
+    except Exception:
+        return False
+
+
 def _omnivoice_ensure(api, log):
-    """make the server answer 'ready': start it if down, restart it if broken, wait while the VRAM frees."""
+    """make the server answer 'ready': start it if down, restart it if broken, wait while the VRAM frees.
+    2026-10-16: two batch builds found it down in the same second and BOTH started one (two models in VRAM, the
+    second on the wrong port) - the start decision is now taken under a cross-process lock, and a server another
+    build has just started (model still loading = 'down') is waited for, never started a second time."""
     st, why = _omnivoice_state(api)
     if st in ("down", "broken"):
-        if st == "broken":
-            log(f"  [voiceover] OmniVoice server is in an error state ({why[:90]}) - restarting it")
-        _omnivoice_restart(log)
+        import msvcrt
+        lk = open(os.path.join(HERE, "editv2", "cache", "omnivoice_start.lock"), "a+")
+        try:
+            for _ in range(1200):                            # up to ~2 min for the other build's decision
+                try:
+                    lk.seek(0)
+                    msvcrt.locking(lk.fileno(), msvcrt.LK_NBLCK, 1)
+                    break
+                except OSError:
+                    time.sleep(0.1)
+            st, why = _omnivoice_state(api)                  # look again: the lock holder may have started it
+            if st == "broken":
+                log(f"  [voiceover] OmniVoice server is in an error state ({why[:90]}) - restarting it")
+                _omnivoice_restart(log)
+            elif st == "down" and _omnivoice_starting():
+                log("  [voiceover] OmniVoice is being started by another video - waiting for it")
+            elif st == "down":
+                _omnivoice_restart(log)
+                time.sleep(20)                               # its app.py exists before the lock is released
+        finally:
+            try:
+                lk.seek(0)
+                msvcrt.locking(lk.fileno(), msvcrt.LK_UNLCK, 1)
+            except OSError:
+                pass
+            lk.close()
     t0, last = time.time(), 0.0
     while st != "ready" and time.time() - t0 < 900:
         time.sleep(5)
