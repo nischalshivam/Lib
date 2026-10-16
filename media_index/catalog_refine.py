@@ -1658,7 +1658,12 @@ def refine(video: str, cast: list, show: str = "", log=print, keep_backup=True, 
         lit = [s for s in new if s["luma"] >= 25]
         # compared with the VIDEO's end: some files carry audio past the last picture (Young Sheldon S05E03: video
         # 1190 s, container 1230 s) and the old catalogue ran to the container end
-        if new[-1]["end"] < 0.97 * min(shots[-1]["end"], dur) - 3 or len(new) < 0.35 * len(shots) or \
+        # 2026-10-16: a legacy WINDOWED catalogue (fixed 2-s windows, not shots: Godfather II 6009 windows -> 1540 real
+        # shots) failed 'collapse' 3 times. For those the floor is one shot per minute of video, not 35 % of the windows.
+        _d = sorted(s["end"] - s["start"] for s in shots)
+        windowed = len(_d) > 20 and _d[int(0.9 * len(_d))] - _d[int(0.1 * len(_d))] < 0.3 and abs(_d[len(_d) // 2] - 2.0) < 0.3
+        collapsed = len(new) < (min(shots[-1]["end"], dur) / 60 if windowed else 0.35 * len(shots))
+        if new[-1]["end"] < 0.97 * min(shots[-1]["end"], dur) - 3 or collapsed or \
                 sum(1 for s in lit if len((s.get("description") or "").split()) < 3) > 0.03 * max(1, len(lit)):
             raise RuntimeError(f"sanity check failed (shots {len(shots)}->{len(new)}, end {shots[-1]['end']:.0f}->{new[-1]['end']:.0f})"
                                " - original kept")
