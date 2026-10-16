@@ -138,7 +138,11 @@ def run(ctx, video, log=print):
     R["warnings"], R["result"] = warn, "WARN" if warn else "PASS"
     json.dump(R, open(os.path.join(B, "qa_report.json"), "w", encoding="utf-8"), indent=1, default=str)
     # the topic, not the build's internal "final.mp4" (2026-10-14 long-path fix renamed it)
-    title = os.path.splitext(os.path.basename(ctx.get("clean") or ""))[0] or os.path.basename(video)
+    try:                                   # the delivered name (Reacher: Script.txt -> the topic folder name)
+        from .pipeline import topic_name
+        title = topic_name(ctx.get("clean") or video)
+    except Exception:
+        title = os.path.splitext(os.path.basename(ctx.get("clean") or ""))[0] or os.path.basename(video)
     lines = [f"QA {R['result']} — {title}.mp4",
              f"loudness {li} LUFS, peak {pk} dBFS; {len(cuts)} cuts, {len(flashes)} flash, look {R['look'].get('look')}",
              f"clue: {R['clue']}", f"verify: {R['verify']}, burned text fixed in {R['text_fixed']} clips",
