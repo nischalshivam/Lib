@@ -48,6 +48,27 @@ if os.path.exists(ONLY):
     keep = [k.lower() for k in json.load(open(ONLY, encoding="utf-8"))]
     items = [it for it in items if any(k in it[1].lower() for k in keep)]
 items.sort()
+# 2026-10-16 (user): new footage on SSD 2 is indexed in place before its Drive upload - extra_roots.json lists those
+# folders. They are interleaved 1:1 with the rest (local SSD reads + network Drive reads keep both resources busy).
+EXTRA = os.path.join(HERE, "extra_roots.json")
+extra = []
+if os.path.exists(EXTRA):
+    for top in json.load(open(EXTRA, encoding="utf-8")).get("folders", []):
+        for dp, dn, fn in os.walk(top):
+            dn[:] = [d for d in dn if d.lower() != "cast" and "featurette" not in d.lower() and "extras" not in d.lower()]
+            for f in sorted(fn):
+                if f.lower().endswith((".mkv", ".mp4", ".avi", ".m4v")) and "sample" not in f.lower() and "trailer" not in f.lower():
+                    extra.append(os.path.join(dp, f))
+    extra.sort()
+if extra:
+    base = [p for _, p in items]
+    mixed = []
+    for i in range(max(len(base), len(extra))):
+        if i < len(extra):
+            mixed.append(extra[i])
+        if i < len(base):
+            mixed.append(base[i])
+    items = [(None, p) for p in mixed]
 json.dump([p for _, p in items], open(os.path.join(HERE, "queue.json.tmp"), "w", encoding="utf-8"), ensure_ascii=False)
 os.replace(os.path.join(HERE, "queue.json.tmp"), os.path.join(HERE, "queue.json"))
 print(f"queue: {len(items)} videos")
