@@ -332,6 +332,10 @@ def preflight(clean, out_dir, audio, voice_ref, save_dir):
     -> list of problems (empty = go)."""
     import glob, urllib.request
     bad = []
+    # 2026-10-16: a channel's "Final Videos\<topic>_QA.txt" report was queued as a video's script (Reacher batch V18)
+    if os.path.basename(clean).lower().endswith("_qa.txt") or \
+            os.path.basename(os.path.dirname(os.path.abspath(clean))).strip().lower() in ("final videos", "final video"):
+        bad.append(f"not a script - a QA report / finished-videos folder: {clean}")
     try:
         if not open(clean, encoding="utf-8", errors="replace").read().strip():
             bad.append(f"the script is empty: {clean}")

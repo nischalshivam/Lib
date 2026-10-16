@@ -112,8 +112,9 @@ class Api:
             clue_txt = [f for f in txts if "clue" in nm(f) and f not in tf]
             if clue_txt:
                 out["clue"] = clue_txt[0]
+        # never a QA report as the script (2026-10-16: Reacher\Final Videos\..._QA.txt was queued as video 18)
         cleans = [f for f in txts if f not in tf and f != out["clue"]
-                  and "clue" not in nm(f)]
+                  and "clue" not in nm(f) and not nm(f).endswith("_qa.txt")]
         if cleans:
             cleans.sort(key=lambda f: (0 if any(k in nm(f) for k in
                         ("clean", "narrat", "script")) else 1, len(nm(f))))
@@ -157,8 +158,10 @@ class Api:
         """
         out = []
         try:
+            # the channel's own output folder is never a topic (it holds finished videos + _QA.txt reports)
             subs = [os.path.join(folder, n) for n in sorted(os.listdir(folder))
-                    if os.path.isdir(os.path.join(folder, n))]
+                    if os.path.isdir(os.path.join(folder, n))
+                    and n.strip().lower() not in ("final videos", "final video") and not n.startswith("_")]
         except OSError:
             return out
         for sub in subs:
