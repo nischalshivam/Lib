@@ -27,6 +27,36 @@ for _s in (sys.stdout, sys.stderr):      # UTF-8 console: never crash on a "→"
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 UI = os.path.join(HERE, "movie_editor_ui.html")
+OUTPUT_DIRS = ("final videos", "final video")
+
+
+def _is_output_folder(path):
+    """the channel's finished-videos folder ('Final Videos'), or one inside it."""
+    p = os.path.abspath(path or "")
+    return any(part.strip().lower() in OUTPUT_DIRS for part in p.split(os.sep))
+
+
+def _made_video(clean, save_dir=""):
+    """-> the finished video this script already has, or ''. Looks in save_dir (when known) and in the channel's own
+    'Final Videos' folder next to the topic folders - the name the pipeline delivers under (topic_name)."""
+    if not clean:
+        return ""
+    try:
+        from editv2.pipeline import topic_name
+        name = topic_name(clean) + ".mp4"
+    except Exception:
+        return ""
+    topic = os.path.dirname(os.path.abspath(clean))
+    dirs = [save_dir] if save_dir else []
+    for base in (os.path.dirname(topic), topic):
+        try:
+            dirs += [os.path.join(base, n) for n in os.listdir(base) if n.strip().lower() in OUTPUT_DIRS]
+        except OSError:
+            pass
+    for d in dirs:
+        if d and os.path.isfile(os.path.join(d, name)):
+            return os.path.join(d, name)
+    return ""
 
 
 class Api:
@@ -122,6 +152,11 @@ class Api:
         # auto-detect the narration language so a single-folder drop also fills
         # the language (the bulk parent-folder path already does this)
         out["lang"] = self._detect_lang(out.get("clean"))
+        # 2026-10-16 (user): never pick the finished-videos folder, nor a topic whose video is already made
+        if _is_output_folder(folder):
+            return {"clean": "", "clue": "", "audio": "", "text_file": "", "lang": "auto",
+                    "error": "this is the finished-videos (save) folder, not a topic folder"}
+        out["made"] = _made_video(out.get("clean"))
         return out
 
     # ---- movie library: where is the footage, and is all of it there? ---- #
@@ -152,26 +187,46 @@ class Api:
 
     def scan_parent(self, folder):
         """Every immediate subfolder that holds one video's inputs, scanned.
-        Returns [{name, folder, clean, clue, audio, text_file, lang}] so the UI
+        Returns {topics: [{name, folder, clean, clue, audio, text_file, lang}], skipped: [why...]} so the UI
         can drop a PARENT folder of topic folders and get one auto-filled video
         card per topic — script, clue, audio, text and detected language all set.
         """
-        out = []
+        out, skipped = [], []
         try:
             # the channel's own output folder is never a topic (it holds finished videos + _QA.txt reports)
             subs = [os.path.join(folder, n) for n in sorted(os.listdir(folder))
                     if os.path.isdir(os.path.join(folder, n))
-                    and n.strip().lower() not in ("final videos", "final video") and not n.startswith("_")]
+                    and n.strip().lower() not in OUTPUT_DIRS and not n.startswith("_")]
         except OSError:
-            return out
+            return {"topics": out, "skipped": skipped}
         for sub in subs:
             r = self.scan_folder(sub)
+            if r.get("made"):                          # its video is already in Final Videos: not queued again
+                skipped.append(f"{os.path.basename(sub)}  (video already made: {os.path.basename(r['made'])})")
+                continue
             if r.get("clean") or r.get("clue"):        # a real topic folder
                 r["name"] = os.path.basename(sub)
                 r["folder"] = sub
                 r["lang"] = self._detect_lang(r.get("clean"))
                 out.append(r)
-        return out
+        return {"topics": out, "skipped": skipped}
+
+    def check_jobs(self, jobs_json):
+        """Run-button check: a script that is not a script (QA report / finished-videos folder) or whose video already
+        sits in its save folder -> one line each; empty list = go."""
+        bad = []
+        for i, j in enumerate(json.loads(jobs_json or "[]")):
+            clean = (j or {}).get("clean") or ""
+            if not clean:
+                continue
+            if os.path.basename(clean).lower().endswith("_qa.txt") or _is_output_folder(os.path.dirname(clean)):
+                bad.append(f"Video {i + 1}: '{os.path.basename(clean)}' is a QA report / file in the finished-videos "
+                           "folder, not a script - remove this card")
+                continue
+            made = _made_video(clean, (j or {}).get("save_dir") or "")
+            if made:
+                bad.append(f"Video {i + 1}: already made - {made}  (delete or move that video first to make it again)")
+        return bad
 
     @staticmethod
     def _detect_lang(clean_path):

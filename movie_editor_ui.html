@@ -158,6 +158,11 @@ function autoFill(folder,data,rowEls,ff){
   if(!(window.pywebview&&window.pywebview.api&&window.pywebview.api.scan_folder))return;
   window.pywebview.api.scan_folder(folder).then(function(res){
     var keys=["clean","clue","audio","text_file"],got=[];
+    if(res&&(res.error||res.made)){            // the save folder itself, or a topic whose video is already made
+      var v0=ff.querySelector(".val");
+      v0.textContent=res.error?("✗ "+res.error):("✗ video already made: "+res.made.split(/[\\/]/).pop()+" — not filled");
+      v0.style.color="var(--danger)";v0.classList.remove("empty");return;
+    }
     keys.forEach(function(k){
       if(res&&res[k]&&rowEls[k]){setVal(k,res[k],rowEls[k],data,false);got.push(k);}
     });
@@ -444,8 +449,10 @@ function importTopics(sid){
   if(!window.pywebview){alert("Needs the app (run Movie Editor).");return;}
   window.pywebview.api.pick_folder().then(function(p){
     if(!p)return;
-    window.pywebview.api.scan_parent(p).then(function(list){
-      if(!list||!list.length){alert("No topic sub-folders with a script/clue found in there.");return;}
+    window.pywebview.api.scan_parent(p).then(function(res){
+      var list=Array.isArray(res)?res:((res&&res.topics)||[]),skipped=(res&&res.skipped)||[];
+      if(skipped.length)alert("Not added — "+skipped.length+" topic(s) already have their video:\n\n"+skipped.join("\n"));
+      if(!list||!list.length){if(!skipped.length)alert("No topic sub-folders with a script/clue found in there.");return;}
       // drop a single leftover empty starter card
       if(videos.length===1&&!videos[0].data.clean&&!videos[0].data.clue){
         videos[0].card.remove();videos=[];
@@ -591,8 +598,13 @@ document.getElementById("runBtn").onclick=function(){
   if(checking&&!confirm(checking+" video(s) are still being checked against the movie library. Start anyway?"))return;
   if(blocked&&!confirm(blocked+" video(s) have footage MISSING from the movie library (red ✗ line). "+
      "They will be SKIPPED — the rest will build. Continue?"))return;
-  logEl.textContent="Starting…";setStatus("running","var(--accent)");
-  if(window.pywebview)window.pywebview.api.run(JSON.stringify(jobs));
+  if(!window.pywebview)return;
+  // a QA report / finished-videos file as the script, or a video that already exists -> stop with the list
+  window.pywebview.api.check_jobs(JSON.stringify(jobs)).then(function(bad){
+    if(bad&&bad.length){alert("Not started:\n\n"+bad.join("\n"));setStatus("fix the cards above","var(--danger)");return;}
+    logEl.textContent="Starting…";setStatus("running","var(--accent)");
+    window.pywebview.api.run(JSON.stringify(jobs));
+  });
 };
 document.getElementById("stopBtn").onclick=function(){if(window.pywebview)window.pywebview.api.stop();setStatus("stopping","var(--danger)");};
 document.getElementById("resumeBtn").onclick=function(){
