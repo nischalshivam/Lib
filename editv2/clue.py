@@ -112,7 +112,7 @@ class Grounder:
                     sm = difflib.SequenceMatcher(None, q, win, autojunk=False)
                     sc = max((b.size for b in sm.get_matching_blocks()), default=0) / len(q)
                     if sc >= 0.85 and (best is None or sc > best[2]):
-                        best = (k, sh[i]["start"], sc)
+                        best = (k, sh[i]["start"], sc, "exact")
             if best:
                 return best
         return None
@@ -155,7 +155,7 @@ class Grounder:
                         best = (k, sh[i]["start"], sc)
             if best and best[2] >= 0.5:
                 break
-        return best if best and best[2] >= 0.38 else None
+        return (best[0], best[1], best[2], "words") if best and best[2] >= 0.38 else None
 
 
 def split_lines(text):
@@ -307,7 +307,7 @@ def build(ctx: dict, log=print) -> str:
     if ext is not None and not ext:
         log("  refs file(s) found but no ref matched this script - the model resolves the scenes itself")
         ext = None
-    log(f"  script: {len(lines)} lines in {len(B)} beats; model {text_model()} (agy)"
+    log(f"  script: {len(lines)} lines in {len(B)} beats; model {text_model()}" + (" (paid API)" if __import__("editv2.common", fromlist=["x"]).provider() else " (agy proxy)")
         + (" - refs from the script writer, model only plans shots" if ext is not None else ""))
     shows_txt = ", ".join(f"{s['key']} = {s['name']}" for s in ctx["shows"])
     eplists = "\n".join(f"- {s['key']}: {lib.episode_list(s['key'])}" for s in ctx["shows"])
@@ -330,7 +330,8 @@ def build(ctx: dict, log=print) -> str:
         anchors = []
         for r in refs.get("refs", []):
             g = G.ground(r.get("show"), r.get("ep"), r.get("quote"), r.get("keywords"))
-            r["grounded"] = None if not g else {"show": g[0][0], "ep": g[0][1], "t": round(g[1], 1), "score": round(g[2], 2)}
+            r["grounded"] = None if not g else {"show": g[0][0], "ep": g[0][1], "t": round(g[1], 1), "score": round(g[2], 2),
+                                                "how": g[3] if len(g) > 3 else ""}
             if g:
                 anchors.append((g[0], g[1]))
         cands = {}
@@ -418,4 +419,34 @@ def build(ctx: dict, log=print) -> str:
     json.dump({"model": ", ".join(sorted(set(models_used))) or text_model(), "stats": stats, "lines": out, "shots": shots},
               open(out_json, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     log(f"  clue done in {time.time() - t0:.0f}s: {stats}")
+    if ext is not None:
+        refs_report(refs_all, len(out), ctx, log)
     return out_json
+
+
+def refs_report(refs, n_lines, ctx, log=print):
+    """2026-10-17: how good was the script writer's refs.json? (quote = the only exact evidence: with it the scene is
+    found to the second, keywords alone land ~1 in 4 on the wrong scene). Logged + <build>/refs_report.txt."""
+    n = len(refs) or 1
+    quoted = sum(1 for r in refs if _toks(r.get("quote")))
+    exact = sum(1 for r in refs if (r.get("grounded") or {}).get("how") == "exact")
+    ground = sum(1 for r in refs if r.get("grounded"))
+    lines = len({r.get("line") for r in refs})
+    eps = sorted({str(r.get("ep")) for r in refs if r.get("ep")})
+    rep = (f"refs {len(refs)} on {lines} of {n_lines} lines | with a quote {quoted} ({100 * quoted // n}%) | quote found "
+           f"word-for-word in our subtitles {exact} ({100 * exact // n}%) | placed in the footage {ground} ({100 * ground // n}%)"
+           f" | episodes {len(eps)}")
+    warn = []
+    if quoted < 0.6 * n:
+        warn.append("fewer than 60% of the refs have a quote - ask ChatGPT for the FOLLOW-UP (fill the quotes)")
+    if quoted and exact < 0.6 * quoted:
+        warn.append("many quotes are not found word for word - ChatGPT may be paraphrasing")
+    if ground < 0.85 * n:
+        warn.append("many refs could not be placed in the footage - wrong show / episode?")
+    log("  refs check: " + rep)
+    for w in warn:
+        log("  refs WARNING: " + w)
+    try:
+        open(os.path.join(ctx["build"], "refs_report.txt"), "w", encoding="utf-8").write(rep + "\n" + "\n".join(warn) + "\n")
+    except OSError:
+        pass
