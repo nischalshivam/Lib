@@ -122,7 +122,31 @@ def parse_json(txt: str):
     return json.JSONDecoder().raw_decode(txt[min(starts):])[0]
 
 
+CODEX = os.environ.get("CODEX_EXE") or next(iter(sorted(__import__("glob").glob(
+    os.path.expanduser(r"~\AppData\Local\OpenAI\Codex\bin\*\codex.exe")), key=os.path.getmtime, reverse=True)), "")
+
+
+def _codex(body: dict, timeout: int) -> str:
+    """'codex:<model>' -> the user's own Codex CLI (ChatGPT plan), non-interactive, read-only sandbox, no session kept.
+    2026-10-17: agy's Claude went 403 and its Gemini is throttled; Codex exec is OpenAI's supported automation path."""
+    import subprocess, tempfile
+    model = body["model"].split(":", 1)[1]
+    prompt = "\n\n".join((m["content"] if isinstance(m["content"], str) else "") for m in body["messages"])
+    with tempfile.TemporaryDirectory(prefix="codex_llm_") as d:
+        out = os.path.join(d, "answer.txt")
+        cmd = [CODEX, "exec", "--skip-git-repo-check", "--ephemeral", "-s", "read-only", "-C", d, "-o", out]
+        if model:
+            cmd += ["-m", model]
+        r = subprocess.run(cmd + ["-"], input=prompt, capture_output=True, text=True, encoding="utf-8",
+                           errors="replace", timeout=max(timeout, 900), creationflags=0x08000000)
+        if os.path.exists(out):
+            return open(out, encoding="utf-8", errors="replace").read()
+        raise RuntimeError(f"codex exec rc={r.returncode}: {(r.stderr or r.stdout)[-300:]}")
+
+
 def _post(body: dict, timeout: int):
+    if str(body.get("model", "")).startswith("codex:"):
+        return _codex(body, timeout)
     req = urllib.request.Request(PROXY, json.dumps(body).encode(),
                                  {"Authorization": "Bearer " + KEY, "Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=timeout) as r:

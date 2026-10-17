@@ -1,0 +1,31 @@
+REFS PROMPT v3 (for the Movie Editor - paste AFTER the final script is written, in the same chat)
+
+## Goal
+For the final script above, list every sentence that points to a SPECIFIC on-screen moment of the show/film, with the
+exact episode and the dialogue that is actually spoken there. My editing tool uses this to find that exact scene in
+the real footage, so precision matters more than coverage.
+
+## Rules
+- Go sentence by sentence through the FINAL script (the exact text I will record).
+- Give a ref only for sentences that describe a concrete scene, event, action or line of dialogue. Skip pure
+  opinion/analysis sentences. A sentence that continues the same scene repeats that scene's ref.
+- "line": copy the first 10-12 words of that script sentence EXACTLY as written in the script (same words, same
+  spelling, same language). Do not paraphrase - the tool matches this text to the script.
+- "show": the show or film title (e.g. "The Wire", "Reacher", "Jack Reacher: Never Go Back").
+- "ep": the episode code SxxEyy (e.g. "S04E09"). For a film, write the film title instead.
+- "quote": what a character actually SAYS on screen in that scene, word for word, in the ORIGINAL language of the
+  show/film (not the script's language). Use web search (episode transcripts, subtitles, wikis) to check the episode
+  number and the exact wording. A short real line is better than a long invented one.
+- "keywords": 3-6 distinctive words that are spoken (or clearly seen) in that scene, original language.
+- "what": one short line of what is on screen.
+- "confidence": "high" if you verified episode + quote, "medium" if fairly sure, "low" if unsure. If you cannot find
+  the real dialogue, leave "quote" empty and set "low" - NEVER invent dialogue.
+
+## Output
+A downloadable file named refs.json (if a file is not possible, one JSON code block) in exactly this shape, nothing
+else:
+{"refs":[
+ {"line":"Burrell is politically protected.","show":"The Wire","ep":"S04E09","quote":"If you want me to go, you're gonna have to shitcan me.","keywords":["resign","shitcan","mayor"],"what":"Burrell refuses to resign in a diner booth with Carcetti","confidence":"high"}
+]}
+
+Save it as refs.json in the topic folder, next to Script.txt.

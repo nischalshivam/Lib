@@ -153,6 +153,83 @@ Reply ONLY JSON: {{"lines":[{{"line":<n>,"type":"...","shots":[...], ...}}]}}"""
 LANG_NAME = {"en": "English", "es": "Spanish", "pt": "Portuguese", "fr": "French", "de": "German"}
 
 
+def _norm(s):
+    return " ".join(re.findall(r"[a-z0-9']+", str(s or "").lower()))
+
+
+def refs_path(ctx):
+    """refs written OUTSIDE the tool (ChatGPT while writing the script): '<script>.refs.json' or 'refs.json' next to
+    the script. 2026-10-17: agy Claude is going away; ChatGPT knows the episodes + exact quotes far better than Gemini
+    Flash (A/B: episode right 92-99% vs ~45%), and only the PLAN step needs our local shot list."""
+    if ctx.get("refs_file"):
+        return ctx["refs_file"] if os.path.exists(ctx["refs_file"]) else None
+    stem, topic = os.path.splitext(ctx["clean"])[0], os.path.dirname(ctx["clean"])
+    return next((p for p in (stem + ".refs.json", os.path.join(topic, "refs.json")) if os.path.exists(p)), None)
+
+
+def external_refs(path, ctx, lines, lib, log=print):
+    """{"refs":[{"line":"<verbatim start of the script sentence>","show":"<title>","ep":"S02E06" or film title,
+    "quote":"...","keywords":[...],"what":"...","confidence":"high|medium|low"}]} -> {line index: [refs]}"""
+    data = json.load(open(path, encoding="utf-8-sig"))
+    refs = data.get("refs", []) if isinstance(data, dict) else data
+    names = {}
+    for s in ctx["shows"]:
+        names[_norm(s["key"])] = s["key"]
+        names[_norm(s["name"])] = s["key"]
+    nl = [_norm(x) for x in lines]
+    out, cur, miss = {}, 0, []
+
+    def show_key(v):
+        v = _norm(v)
+        if v in names:
+            return names[v]
+        hit = [k for n, k in names.items() if n and (n in v or v and v in n)]
+        if hit:
+            return hit[0]
+        return ctx["shows"][0]["key"] if len(ctx["shows"]) == 1 else None
+
+    def ep_code(key, v):
+        m = re.search(r"S(\d{1,2})\s*E(\d{1,3})|\b(\d{1,2})x(\d{1,3})\b", str(v or ""), re.I)
+        if m:
+            return f"S{int(m.group(1) or m.group(3)):02d}E{int(m.group(2) or m.group(4)):02d}"
+        films = [(k[1], set(_toks(e["title"]))) for k, e in lib.eps.items() if k[0] == key and k[1].startswith("F")]
+        q = set(_toks(v))
+        best = max(films, key=lambda f: len(q & f[1]), default=None)
+        return best[0] if best and q & best[1] else None
+
+    def line_of(v):
+        nonlocal cur
+        if isinstance(v, int) or str(v).strip().isdigit():
+            return int(v) - 1 if 0 < int(v) <= len(lines) else None
+        t = _norm(v)
+        if not t:
+            return None
+        for rng in (range(cur, len(nl)), range(0, cur)):
+            for j in rng:
+                two = nl[j] + " " + nl[j + 1] if j + 1 < len(nl) else nl[j]      # "Mr. Mayor" splits our line
+                if nl[j].startswith(t[:60]) or t in nl[j] or (len(nl[j]) > 20 and nl[j] in t) or two.startswith(t[:60]):
+                    cur = j
+                    return j
+        tt = set(t.split())
+        sc = [(len(tt & set(x.split())) / max(1, len(tt)), j) for j, x in enumerate(nl)]
+        best = max(sc, default=(0, None))
+        return best[1] if best[0] >= 0.6 else None
+
+    for r in refs if isinstance(refs, list) else []:
+        if not isinstance(r, dict):
+            continue
+        j = line_of(r.get("line"))
+        if j is None:
+            miss.append(str(r.get("line"))[:50])
+            continue
+        key = show_key(r.get("show"))
+        out.setdefault(j, []).append(dict(r, line=j + 1, show=key, ep=ep_code(key, r.get("ep")) if key else None,
+                                          src_ep=r.get("ep")))
+    log(f"  refs from {os.path.basename(path)}: {sum(len(v) for v in out.values())} refs on {len(out)} lines"
+        + (f", {len(miss)} not matched to a script line (e.g. {miss[0]!r})" if miss else ""))
+    return out
+
+
 def build(ctx: dict, log=print) -> str:
     out_json = os.path.join(ctx["build"], "clue_v2.json")
     if os.path.exists(out_json):
@@ -163,7 +240,10 @@ def build(ctx: dict, log=print) -> str:
     log(f"  library: {len(lib.eps)} episodes/films, {len(lib.by_sid)} shots")
     lines = split_lines(open(ctx["clean"], encoding="utf-8-sig").read())
     B = [list(range(i, min(i + 12, len(lines)))) for i in range(0, len(lines), 12)]
-    log(f"  script: {len(lines)} lines in {len(B)} beats; model {text_model()} (agy)")
+    rp = refs_path(ctx)
+    ext = external_refs(rp, ctx, lines, lib, log) if rp else None
+    log(f"  script: {len(lines)} lines in {len(B)} beats; model {text_model()} (agy)"
+        + (" - refs from the script writer, model only plans shots" if ext is not None else ""))
     shows_txt = ", ".join(f"{s['key']} = {s['name']}" for s in ctx["shows"])
     eplists = "\n".join(f"- {s['key']}: {lib.episode_list(s['key'])}" for s in ctx["shows"])
     sys_resolve = RESOLVE_SYS.format(shows=shows_txt, eplists=eplists[:60000])
@@ -178,7 +258,10 @@ def build(ctx: dict, log=print) -> str:
         idx = B[bi]
         before = "\n".join(f"(context) {lines[j]}" for j in range(max(0, idx[0] - 6), idx[0]))
         body = "\n".join(f"{j + 1}. {lines[j]}" for j in idx)
-        refs, m1 = llm(sys_resolve, f"{before}\n\nLINES:\n{body}")
+        if ext is not None:
+            refs, m1 = {"refs": [r for j in idx for r in ext.get(j, [])]}, "refs.json"
+        else:
+            refs, m1 = llm(sys_resolve, f"{before}\n\nLINES:\n{body}")
         anchors = []
         for r in refs.get("refs", []):
             g = G.ground(r.get("show"), r.get("ep"), r.get("quote"), r.get("keywords"))
