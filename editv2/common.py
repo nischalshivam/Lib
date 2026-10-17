@@ -70,19 +70,30 @@ _GONE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache", "
 
 
 def model_gone(code, text) -> bool:
-    """True if the proxy says this MODEL no longer exists (not a quota / network / content problem)."""
+    """True if the proxy says this MODEL no longer exists (not a quota / network / content / account problem).
+    Used for VISION, where 'gone' is permanent (cache/gone_models.json, no expiry)."""
     t = str(text or "").lower()
     return (code in (400, 404) and ("unknown provider" in t or "model_not_found" in t or "is not found" in t
                                     or "entity was not found" in t)) or \
         (code == 403 and ("third-party" in t or "not available on your" in t)) or \
         (code == 503 and "auth_unavailable" in t and "is not found for api version" in t) or \
         (code == 503 and "auth_unavailable" in t and "last upstream error" in t and           # the proxy wraps the
-         ("not_found" in t or "entity was not found" in t or "third-party" in t or "not available on your" in t
-          or ("disabled in this account" in t and "no auth available" in t)))
+         ("not_found" in t or "entity was not found" in t or "third-party" in t or "not available on your" in t))
     # (a plain 503 auth_unavailable - the 2026-10-13 stuck-token outage - names no NOT_FOUND upstream: not 'gone')
     # 2026-10-17: a bare 403 "disabled in this account" is ONE account (the proxy rotates) - never 'gone'. It marked all
-    # three vision models gone within 8 min (03:32-03:40) and stalled 22 workers. Only "no auth available" = every
-    # account refuses this model.
+    # three vision models gone within 8 min (03:32-03:40) and stalled 22 workers.
+    # 2026-10-17 12:39: "no auth available" + a last upstream "disabled in this account" is NOT 'gone' either: every
+    # account was in its 3.8 quota cooldown ("Individual quota reached ... Resets in 3h57m") and the LAST one the proxy
+    # tried happened to be a ToS-banned account. It marked 3.8, 3-flash AND 3.5-flash-lite gone in one minute and the
+    # refines carried on with flash-lite. A quota / ban is an outage: callers wait for 3.8, never downgrade for good.
+
+
+def model_refused(code, text) -> bool:
+    """TEXT chain only (its 'gone' expires after 24 h): also skip a model every account refuses right now - agy's
+    Claude since 2026-10-16 ("disabled in this account for violation of Terms of Service", no auth available)."""
+    t = str(text or "").lower()
+    return model_gone(code, text) or (code == 503 and "auth_unavailable" in t and "no auth available" in t
+                                      and "disabled in this account" in t and "quota" not in t)
 
 
 def drop_vision_model(model=None):
@@ -105,7 +116,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.path.join(HERE, "cache")
 os.makedirs(CACHE, exist_ok=True)
 if not os.environ.get("VERIFY_MODEL"):            # start from the first chain model not already known to be gone
-    VISION_MODEL = next((m for m in VISION_CHAIN if m not in _gone()), VISION_CHAIN[-1])
+    VISION_MODEL = next((m for m in VISION_CHAIN if m not in _gone()), VISION_CHAIN[0])   # all 'gone' = a bad
+    # gone file, not three retired models: use the best one and let real errors surface (never silently flash-lite)
 FACE_MODEL = os.path.join(r"D:\Lib\models", "face_detection_yunet_2023mar.onnx")
 
 
@@ -228,7 +240,7 @@ def llm(system: str, user: str, max_tokens: int = 16000, tries: int = 4, tempera
             last = e
             if isinstance(e, urllib.error.HTTPError):
                 body = e.read().decode("utf-8", "replace") if hasattr(e, "read") else ""
-                if model_gone(e.code, body) and len(ms) > 1:
+                if model_refused(e.code, body) and len(ms) > 1:
                     try:
                         json_update(_GONE_FILE, lambda d: d.__setitem__(model, time.strftime("%Y-%m-%d %H:%M")))
                     except OSError:

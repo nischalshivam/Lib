@@ -154,44 +154,64 @@ LANG_NAME = {"en": "English", "es": "Spanish", "pt": "Portuguese", "fr": "French
 
 
 def _norm(s):
-    return " ".join(re.findall(r"[a-z0-9']+", str(s or "").lower()))
+    """lower-case words of any script (Latin, Devanagari with its vowel signs, ...), punctuation dropped."""
+    import unicodedata
+    s = unicodedata.normalize("NFC", str(s or "").lower().replace("’", "'"))
+    return " ".join("".join(ch if unicodedata.category(ch)[0] in "LMN" or ch == "'" else " " for ch in s).split())
 
 
 def refs_path(ctx):
-    """refs written OUTSIDE the tool (ChatGPT while writing the script): '<script>.refs.json' or 'refs.json' next to
-    the script. 2026-10-17: agy Claude is going away; ChatGPT knows the episodes + exact quotes far better than Gemini
-    Flash (A/B: episode right 92-99% vs ~45%), and only the PLAN step needs our local shot list."""
+    """refs written OUTSIDE the tool (ChatGPT while writing the script), next to the script: '<script>.refs.json' /
+    'refs.json', plus '..._part2.json' etc. when ChatGPT had to split a long list. Returns a list (empty = none).
+    2026-10-17: agy Claude is going away; ChatGPT knows the episodes + exact quotes far better than Gemini Flash
+    (A/B: episode right 92-99% vs ~45%), and only the PLAN step needs our local shot list."""
     if ctx.get("refs_file"):
-        return ctx["refs_file"] if os.path.exists(ctx["refs_file"]) else None
+        return [ctx["refs_file"]] if os.path.exists(ctx["refs_file"]) else []
     stem, topic = os.path.splitext(ctx["clean"])[0], os.path.dirname(ctx["clean"])
-    return next((p for p in (stem + ".refs.json", os.path.join(topic, "refs.json")) if os.path.exists(p)), None)
+    found = sorted(set(glob.glob(glob.escape(stem) + ".refs*.json") + glob.glob(os.path.join(glob.escape(topic), "refs*.json"))))
+    return [p for p in found if os.path.isfile(p)]
 
 
-def external_refs(path, ctx, lines, lib, log=print):
+def external_refs(paths, ctx, lines, lib, log=print):
     """{"refs":[{"line":"<verbatim start of the script sentence>","show":"<title>","ep":"S02E06" or film title,
-    "quote":"...","keywords":[...],"what":"...","confidence":"high|medium|low"}]} -> {line index: [refs]}"""
-    data = json.load(open(path, encoding="utf-8-sig"))
-    refs = data.get("refs", []) if isinstance(data, dict) else data
+    "quote":"...","keywords":[...],"what":"...","characters":[...],"confidence":"high|medium|low"}]}
+    (one file or several parts) -> {line index: [refs]}"""
+    refs, seen = [], set()
+    for p in paths if isinstance(paths, (list, tuple)) else [paths]:
+        data = json.load(open(p, encoding="utf-8-sig"))
+        for r in (data.get("refs", []) if isinstance(data, dict) else data):
+            sig = json.dumps(r, sort_keys=True, ensure_ascii=False) if isinstance(r, dict) else None
+            if sig and sig not in seen:              # 'refs.json' + a re-download 'refs (1).json' = no duplicates
+                seen.add(sig)
+                refs.append(r)
     names = {}
     for s in ctx["shows"]:
-        names[_norm(s["key"])] = s["key"]
-        names[_norm(s["name"])] = s["key"]
+        names.setdefault(_norm(s["key"]), set()).add(s["key"])
+        names.setdefault(_norm(s["name"]), set()).add(s["key"])
+    has_films = {k[0] for k in lib.eps if k[1].startswith("F")}
     nl = [_norm(x) for x in lines]
     out, cur, miss = {}, 0, []
 
-    def show_key(v):
+    def show_key(v, ep):
         v = _norm(v)
-        if v in names:
-            return names[v]
-        hit = [k for n, k in names.items() if n and (n in v or v and v in n)]
-        if hit:
-            return hit[0]
-        return ctx["shows"][0]["key"] if len(ctx["shows"]) == 1 else None
+        hit = names.get(v) or {k for n, ks in names.items() if n and (n in v or v and v in n) for k in ks}
+        if not hit:
+            return ctx["shows"][0]["key"] if len(ctx["shows"]) == 1 else None
+        if len(hit) > 1:                             # Reacher: series 'reacher' vs films 'jackreacher'
+            series = bool(re.search(r"S\d{1,2}\s*E\d|\b\d{1,2}x\d{1,3}\b|season\s*\d", str(ep or ""), re.I))
+            pref = [k for k in hit if (k in has_films) != series]
+            if pref:
+                hit = pref
+        def fit(k):                                  # the longest of its names found in the title wins
+            return max((len(n) for n, ks in names.items() if k in ks and n and (n in v or v in n)), default=0)
+        return max(sorted(hit), key=fit)
 
     def ep_code(key, v):
-        m = re.search(r"S(\d{1,2})\s*E(\d{1,3})|\b(\d{1,2})x(\d{1,3})\b", str(v or ""), re.I)
+        m = re.search(r"S(\d{1,2})\s*E(\d{1,3})|\b(\d{1,2})x(\d{1,3})\b|season\s*(\d{1,2})\D{1,12}?episode\s*(\d{1,3})",
+                      str(v or ""), re.I)
         if m:
-            return f"S{int(m.group(1) or m.group(3)):02d}E{int(m.group(2) or m.group(4)):02d}"
+            g = [x for x in m.groups() if x]
+            return f"S{int(g[0]):02d}E{int(g[1]):02d}"
         films = [(k[1], set(_toks(e["title"]))) for k, e in lib.eps.items() if k[0] == key and k[1].startswith("F")]
         q = set(_toks(v))
         best = max(films, key=lambda f: len(q & f[1]), default=None)
@@ -222,11 +242,15 @@ def external_refs(path, ctx, lines, lib, log=print):
         if j is None:
             miss.append(str(r.get("line"))[:50])
             continue
-        key = show_key(r.get("show"))
+        key = show_key(r.get("show"), r.get("ep"))
         out.setdefault(j, []).append(dict(r, line=j + 1, show=key, ep=ep_code(key, r.get("ep")) if key else None,
                                           src_ep=r.get("ep")))
-    log(f"  refs from {os.path.basename(path)}: {sum(len(v) for v in out.values())} refs on {len(out)} lines"
+    n = sum(len(v) for v in out.values())
+    names_ = ", ".join(os.path.basename(p) for p in (paths if isinstance(paths, (list, tuple)) else [paths]))
+    log(f"  refs from {names_}: {n} refs on {len(out)} lines"
         + (f", {len(miss)} not matched to a script line (e.g. {miss[0]!r})" if miss else ""))
+    if refs and len(miss) > 0.3 * len(refs):
+        log(f"  WARNING: {len(miss)} of {len(refs)} refs match no script line - is this refs file for THIS script?")
     return out
 
 
@@ -242,6 +266,9 @@ def build(ctx: dict, log=print) -> str:
     B = [list(range(i, min(i + 12, len(lines)))) for i in range(0, len(lines), 12)]
     rp = refs_path(ctx)
     ext = external_refs(rp, ctx, lines, lib, log) if rp else None
+    if ext is not None and not ext:
+        log("  refs file(s) found but no ref matched this script - the model resolves the scenes itself")
+        ext = None
     log(f"  script: {len(lines)} lines in {len(B)} beats; model {text_model()} (agy)"
         + (" - refs from the script writer, model only plans shots" if ext is not None else ""))
     shows_txt = ", ".join(f"{s['key']} = {s['name']}" for s in ctx["shows"])

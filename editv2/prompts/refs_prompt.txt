@@ -1,31 +1,69 @@
-REFS PROMPT v3 (for the Movie Editor - paste AFTER the final script is written, in the same chat)
+REFS PROMPT v4 - universal (for the Movie Editor). Paste it in the SAME chat right after the final script is written,
+or in a new chat with the final script attached / pasted. Save the answer as refs.json next to the script.
+----------------------------------------------------------------------------------------------------------------------
 
-## Goal
-For the final script above, list every sentence that points to a SPECIFIC on-screen moment of the show/film, with the
-exact episode and the dialogue that is actually spoken there. My editing tool uses this to find that exact scene in
-the real footage, so precision matters more than coverage.
+# Task: scene references (refs.json) for my video editor
 
-## Rules
-- Go sentence by sentence through the FINAL script (the exact text I will record).
-- Give a ref only for sentences that describe a concrete scene, event, action or line of dialogue. Skip pure
-  opinion/analysis sentences. A sentence that continues the same scene repeats that scene's ref.
-- "line": copy the first 10-12 words of that script sentence EXACTLY as written in the script (same words, same
-  spelling, same language). Do not paraphrase - the tool matches this text to the script.
-- "show": the show or film title (e.g. "The Wire", "Reacher", "Jack Reacher: Never Go Back").
-- "ep": the episode code SxxEyy (e.g. "S04E09"). For a film, write the film title instead.
-- "quote": what a character actually SAYS on screen in that scene, word for word, in the ORIGINAL language of the
-  show/film (not the script's language). Use web search (episode transcripts, subtitles, wikis) to check the episode
-  number and the exact wording. A short real line is better than a long invented one.
-- "keywords": 3-6 distinctive words that are spoken (or clearly seen) in that scene, original language.
-- "what": one short line of what is on screen.
-- "confidence": "high" if you verified episode + quote, "medium" if fairly sure, "low" if unsure. If you cannot find
-  the real dialogue, leave "quote" empty and set "low" - NEVER invent dialogue.
+Use the FINAL narration script - the one you just wrote in this chat, or the one I attached / pasted below. It is the
+exact text that will be recorded.
 
-## Output
-A downloadable file named refs.json (if a file is not possible, one JSON code block) in exactly this shape, nothing
-else:
-{"refs":[
- {"line":"Burrell is politically protected.","show":"The Wire","ep":"S04E09","quote":"If you want me to go, you're gonna have to shitcan me.","keywords":["resign","shitcan","mayor"],"what":"Burrell refuses to resign in a diner booth with Carcetti","confidence":"high"}
-]}
+## What happens to your answer
+My editing tool takes every "quote" you give and searches for it in the REAL subtitles of my footage. A match tells it
+the exact second of that scene, and it cuts the picture from there. Then it uses "what" and "characters" to pick the
+best shots around that moment. So:
+- a quote that was really spoken = the right scene on screen,
+- a wrong episode or an invented / paraphrased quote = wrong footage (or none),
+- precision matters more than coverage. An empty quote is honest; a made-up one is harmful.
 
-Save it as refs.json in the topic folder, next to Script.txt.
+## Step 1 - go through the script sentence by sentence, in order
+Give a ref for every sentence that points to something the viewer can SEE in the show/film:
+- a concrete scene, event, action, decision, fight, conversation, reveal, death, arrest, speech;
+- a sentence that quotes or paraphrases a character's line;
+- a sentence about what a character did / said / looked like in a particular episode or film.
+Skip sentences that are pure opinion, analysis, real-world facts, channel intro/outro, calls to action, or anything
+not in the footage (actors, behind the scenes, ratings, real news) - unless the sentence clearly describes one
+specific scene.
+- A sentence that continues the same scene gets its own ref too (same episode; preferably a DIFFERENT line from that
+  same scene, so a long scene gets quotes from its beginning, middle and end).
+- A sentence that mentions two different moments gets two refs (same "line" text).
+- General sentences about a character ("Walt changes over the seasons") may get a ref to the single most fitting
+  scene if one clearly fits; otherwise skip.
+
+## Step 2 - fields of each ref
+- "line": the first 10-12 words of that script sentence, copied EXACTLY as written in the script (same language and
+  alphabet, same spelling; do not translate, fix or shorten). If the sentence is shorter, copy the whole sentence.
+- "show": the official title of the series or film, e.g. "The Wire", "Reacher", "Breaking Bad",
+  "Jack Reacher: Never Go Back (2016)". For a film always add the year.
+- "ep": for a series the episode code SxxEyy, e.g. "S04E09" (official season/episode order - check two-part episodes,
+  specials and finales). For a film: the film title with year, e.g. "Jack Reacher (2012)".
+- "quote": one line of dialogue REALLY SPOKEN ON SCREEN in that scene, word for word, in the language of the
+  ORIGINAL footage (an English show discussed in a Hindi script still gets the English line). 4-20 words.
+  Use web search (episode transcripts, subtitle sites, fan wikis, script archives) to verify the episode and the exact
+  wording. If you cannot verify a real line, leave "quote" as "" and set "confidence" to "low" - NEVER invent,
+  paraphrase or "improve" dialogue. A short real line beats a long approximate one. Do not reuse one famous line for
+  many different scenes.
+- "keywords": 3-6 distinctive words SPOKEN in that scene (names, places, rare nouns - not common words), in the
+  original footage language. They are a backup search when the quote is not exact.
+- "what": one plain sentence describing what is on screen, as if the sound were off: who is there, what they wear or
+  hold, the place, day or night. Example: "Walt and Jesse argue inside the RV in the desert, daytime". Not ideas or
+  judgements ("Walt's moral fall" is useless).
+- "characters": the characters visible in that moment, full names where known, e.g. ["Walter White", "Jesse Pinkman"].
+- "confidence": "high" = episode AND quote verified from a transcript / subtitle source; "medium" = episode certain,
+  quote from memory; "low" = unsure.
+
+## Step 3 - output
+- A downloadable file named refs.json. If you cannot create files, ONE ```json code block instead.
+- Valid JSON only: double quotes, no comments, no trailing commas, nothing before or after the JSON.
+- Refs in script order. Shape:
+{"script_title": "<title of this video>",
+ "refs": [
+  {"line": "Walt finally tells Skyler who he really is, and it", "show": "Breaking Bad", "ep": "S04E06",
+   "quote": "I am not in danger, Skyler. I am the danger.", "keywords": ["danger", "knocks", "Skyler"],
+   "what": "Walt in a dark shirt confronts Skyler in their dim bedroom", "characters": ["Walter White", "Skyler White"],
+   "confidence": "high"}
+ ]}
+  (The example is from another show - format only.)
+- If the list is too long for one reply: give refs_part1.json now (same shape), then refs_part2.json, ... each time I
+  say "continue". Never stop in the middle of a ref.
+- After the file, one short line: total refs, how many high / medium / low, and any sentences you deliberately skipped
+  because the scene could not be verified.
