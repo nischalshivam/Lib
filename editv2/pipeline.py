@@ -256,10 +256,19 @@ def _hf_render(cmd, t_start, log):
         time.sleep(30)
         if p.poll() is not None:                 # finished during the wait: nothing to judge
             break
-        dirs = [d for d in glob.glob(os.path.join(tmp, "hf-render-*")) if os.path.getctime(d) >= t_start - 5]
+        # 2026-10-17: HyperFrames deletes a finished render's temp folder at any moment - between the glob and the
+        # getctime one vanished and the watchdog itself killed Reacher 19's render (FileNotFoundError). Vanished = skip.
+        dirs = []
+        for d in glob.glob(os.path.join(tmp, "hf-render-*")):
+            try:
+                ct = os.path.getctime(d)
+            except OSError:
+                continue
+            if ct >= t_start - 5:
+                dirs.append((ct, d))
         n = 0
         if dirs:
-            cur = max(dirs, key=os.path.getctime)
+            cur = max(dirs)[1]
             # frames land in captured-frames\ or, with several workers, capture-attempt-<n>\worker-<k>\ - count them all
             for dp, dn, fn in os.walk(cur):
                 n += sum(1 for f in fn if f.endswith((".jpg", ".png")))
