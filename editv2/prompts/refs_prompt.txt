@@ -1,85 +1,162 @@
-REFS PROMPT v5 - universal (for the Movie Editor). Paste it in the SAME chat right after the final script is written,
-or in a new chat with the final script attached / pasted. Save the answer as refs.json next to the script.
+REFS PROMPT v6 - universal (Movie Editor), 2026-10-17. Paste from "# Task" down to "(end of prompt)".
+
+For me, not for ChatGPT:
+- GPT-6, Thinking "High", web search ON.
+- Same chat right after the final script, or a new chat (better if the chat already holds several scripts). Attach the
+  final script as a .txt.
+- ALSO attach my subtitles zip of the show: Desktop\Subtitles for ChatGPT\<Show>.zip (made by tools\export_subs.py).
+  Its quotes then match my footage word for word.
+- First answer = only the episode table. Check it, then say "continue".
+- Save the answer as refs.json next to Script.txt (several parts: refs_part1.json, refs_part2.json, ...). Delete the
+  script's old refs files first. A changed refs file is picked up automatically (the video's clue is rebuilt).
 ----------------------------------------------------------------------------------------------------------------------
 
 # Task: scene references (refs.json) for my video editor
 
-Use the FINAL narration script - the one you just wrote in this chat, or the one I attached / pasted below. It is the
-exact text that will be recorded.
+Use ONE script only: the final version of the script you wrote last in this chat, all its parts, from the first hook
+sentence to the last sentence. If a script is attached to this message, use that one instead. Ignore every other script
+and draft in this chat. Do the whole job without asking me questions.
 
-## What happens to your answer
-My editing tool takes every "quote" you give and searches for it in the REAL subtitles of my footage. A match tells it
-the exact second of that scene, and it cuts the picture from there. Then it uses "what" and "characters" to pick the
-best shots around that moment. So:
-- a quote that was really spoken = the right scene on screen,
-- a wrong episode or an invented / paraphrased quote = wrong footage (or none),
-- precision matters more than coverage. An empty quote is honest; a made-up one is harmful.
+## Why this matters
+My editing tool searches for every "quote" word for word in the real English subtitles of my own copy of the footage. A
+match gives the exact second of the scene, and the tool takes its shots from the 45 seconds around it. Without a match
+it guesses from "keywords" and often lands on the wrong scene. So the quote is the key field. It must be really spoken,
+whole and word for word, from the right moment and the right episode. The quotes are only search keys for my editor;
+nothing is published.
 
-## Step 1 - go through the script sentence by sentence, in order
-Give a ref for every sentence that points to something the viewer can SEE in the show/film:
-- a concrete scene, event, action, decision, fight, conversation, reveal, death, arrest, speech;
-- a sentence that quotes or paraphrases a character's line;
-- a sentence about what a character did / said / looked like in a particular episode or film.
-Skip sentences that are pure opinion, analysis, real-world facts, channel intro/outro, calls to action, or anything
-not in the footage (actors, behind the scenes, ratings, real news) - unless the sentence clearly describes one
-specific scene.
-- A sentence that continues the same scene gets its own ref too (same episode; preferably a DIFFERENT line from that
-  same scene, so a long scene gets quotes from its beginning, middle and end).
-- A sentence that mentions two different moments gets two refs (same "line" text).
-- General sentences about a character ("Walt changes over the seasons") may get a ref to the single most fitting
-  scene if one clearly fits; otherwise skip.
+## Method: work EPISODE BY EPISODE
+1. List every episode and film the script uses: code, official episode title, and the sentences it covers. Check each
+   code against the episode list (Wikipedia). Take care with two-parters, specials, season openers and finales.
+2. For each episode get the full dialogue:
+   - the subtitle files I attached come first (unzip them; search them with code);
+   - otherwise web-search "<show> <SxxEyy> <episode title> transcript" (film: "<title> <year> transcript") and OPEN the
+     full page (subslikescript, springfieldspringfield, tvshowtranscripts, 8flix, a subtitle page). Never quote from
+     search-result snippets, screenplays / shooting scripts, or quote and wiki pages.
+   - Do not paste transcripts into the chat; only single lines go into the JSON.
+3. With that dialogue open, write the refs for every sentence about that episode, then move to the next episode.
+4. Output the refs in script order.
 
-## Step 2 - fields of each ref
-- "line": the first 10-12 words of that script sentence, copied EXACTLY as written in the script (same language and
-  alphabet, same spelling; do not translate, fix or shorten). If the sentence is shorter, copy the whole sentence.
-- "show": the official title of the series or film, e.g. "The Wire", "Reacher", "Breaking Bad",
-  "Jack Reacher: Never Go Back (2016)". For a film always add the year.
-- "ep": for a series the episode code SxxEyy, e.g. "S04E09" (official season/episode order - check two-part episodes,
-  specials and finales). For a film: the film title with year, e.g. "Jack Reacher (2012)".
-- "quote": one line of dialogue REALLY SPOKEN ON SCREEN in that scene, word for word, in the language of the
-  ORIGINAL footage (an English show discussed in a Hindi script still gets the English line). 4-20 words.
-  THIS IS THE MOST IMPORTANT FIELD. Measured on my tool: with a real quote the exact moment is found almost every
-  time; with keywords only, about 1 ref in 4 lands on the wrong scene. So aim for a real quote on at least 8 of every
-  10 refs:
-    1. for each episode/film the script uses, web-search its transcript ("<show> <episode title> transcript" - e.g.
-       subslikescript, springfieldspringfield, tvshowtranscripts, fan-wiki quote pages, subtitle sites) and OPEN it;
-    2. find the scene in the transcript and copy a line from it exactly - any line spoken in that moment works, it
-       does not have to be the famous one;
-    3. only if no transcript can be found, give the line as you remember it and mark "medium".
-  NEVER invent, paraphrase or "improve" dialogue; if you truly have nothing, leave "quote" as "" and mark "low".
-  A short real line beats a long approximate one. Do not reuse one line for different scenes.
-- "keywords": 3-6 RARE words SPOKEN in that exact scene (objects, places, unusual nouns, guest characters' names), in
-  the original footage language. Do NOT use the main characters' names or common words - they occur in every episode
-  and send the search to the wrong scene. Backup search only; it never replaces the quote.
-- "what": one plain sentence describing what is on screen, as if the sound were off: who is there, what they wear or
-  hold, the place, day or night. Example: "Walt and Jesse argue inside the RV in the desert, daytime". Not ideas or
-  judgements ("Walt's moral fall" is useless).
-- "characters": the characters visible in that moment, full names where known, e.g. ["Walter White", "Jesse Pinkman"].
-- "confidence": "high" = episode AND quote verified from a transcript / subtitle source; "medium" = episode certain,
-  quote from memory; "low" = unsure.
+## Reply order
+1. First reply: ONLY the episode table, then wait for "continue".
+   - Line 1: Script used: "<its first 6 words> ... <its last 6 words>", <N> sentences, about <R> refs, <P> parts.
+   - Then one row per episode or film: code - official title - transcript source (attached file / URL / NONE) -
+     number of sentences it covers.
+2. Each "continue": the next part (see Output). 3. After the last part: the summary.
 
-## Step 3 - output
-- A downloadable file named refs.json. If you cannot create files, ONE ```json code block instead.
-- Valid JSON only: double quotes, no comments, no trailing commas, nothing before or after the JSON.
-- Refs in script order. Shape:
-{"script_title": "<title of this video>",
- "refs": [
-  {"line": "Walt finally tells Skyler who he really is, and it", "show": "Breaking Bad", "ep": "S04E06",
-   "quote": "I am not in danger, Skyler. I am the danger.", "keywords": ["danger", "knocks", "Skyler"],
-   "what": "Walt in a dark shirt confronts Skyler in their dim bedroom", "characters": ["Walter White", "Skyler White"],
-   "confidence": "high"}
- ]}
-  (The example is from another show - format only.)
-- If the list is too long for one reply: give refs_part1.json now (same shape), then refs_part2.json, ... each time I
-  say "continue". Never stop in the middle of a ref.
-- After the file, one short line: total refs, how many have a quote, how many high / medium / low, and any sentences
-  you deliberately skipped because the scene could not be verified.
+## Which sentences get a ref
+- Every sentence about something the viewer can SEE: a scene, action, event, conversation, reveal, or a line a
+  character says. The opening hook is not an intro: every scene it describes gets a ref.
+- Consecutive sentences about one scene: one ref each, same episode. Give each the line spoken at the point that
+  sentence describes, so the quotes move FORWARD through the scene. If the scene has fewer good lines than sentences,
+  leave the extra quotes empty (keep their keywords). Never use a line a third time, rotate lines, or borrow a line from
+  another moment.
+- A sentence that mentions two different moments: two refs with the same "line".
+- A sentence that quotes or paraphrases a character: ONE ref, and its quote is that exact line.
+- A sentence that sums up many scenes gets a ref only if one scene clearly shows it.
+- No ref for opinion, analysis, real-world facts, channel intro/outro (welcome, subscribe, comment), calls to action,
+  book-only or behind-the-scenes content. Never add refs to non-scene sentences to look complete - but never skip a
+  scene sentence because its quote is hard to find: give the ref with an empty quote.
 
+## Fields (each ref has exactly these 8 keys)
+- "line": the first 10-12 words of the script sentence, copied EXACTLY (same language, alphabet and spelling, only
+  without quotation marks). Never translate or fix it; never a sentence number. Shorter sentence: copy it whole. Fewer
+  than 5 words: continue into the next sentence, up to 10 words.
+- "show": the title the scene is really from, as on English Wikipedia, in Latin letters, even in a Hindi or Spanish
+  script ("The Godfather (1972)", never "El Padrino"). Films always get their year. A scene from a spin-off, another
+  series or a film gets THAT title, never the main show's.
+- "ep": series: one "SxxEyy" code, the episode where the moment happens. Film: the film title with its year. Never
+  "S01E01-E02", "Pilot", "Finale" or "S01".
+- "quote": the dialogue spoken at the exact moment the sentence describes.
+  - Ranking: a whole real line > an empty quote > anything else. If you cannot give the whole line word for word,
+    leave it empty and mark "low" - except when you clearly remember the whole line in THAT scene: give it, mark
+    "medium". A cut, shortened, reworded or composed line is worse than an empty one.
+  - Always English, exactly as the English subtitles show it - also for Hindi / Spanish scripts and for scenes spoken in
+    another language (give the English subtitle line). Copy it character for character, keeping spelling,
+    contractions and numbers.
+  - One speaker: one whole sentence, or two that this speaker says with nobody in between. 6-15 words, at least 3 words
+    of 4+ letters. Only if the fitting sentence is longer than 15 words: copy its first 12-15 words, starting at its
+    first word (the only allowed cut). Never start mid-sentence, never drop or change a word, never add "...".
+  - Too short ("I need a name.")? Add that speaker's words right before or after it, word for word; else take the
+    nearest longer line from that moment.
+  - Spoken within about 30 seconds of what the sentence describes. A silent moment (a fight, a look, a body found): the
+    nearest line inside those 30 seconds, or empty.
+  - Distinctive: said only once in the episode, best with a name, place or unusual word - not "Let's go." or "I didn't
+    kill anybody." Among equally good lines prefer one without digits, dotted acronyms or slang contractions.
+  - Only from the episode where the scene happens: never from a "Previously on" recap (the first 1-2 minutes) or a
+    preview; never on-screen text, signs or song lyrics.
+  - Each quote at most twice, and only on adjacent sentences about the same moment.
+  - No speaker names (WALT:), [sound tags], music notes, <i> tags or leading dashes.
+  - When rules compete: right moment > whole real line > 6-15 words > distinctive.
+- "keywords": a list of 3-5 single words spoken in that moment (or an unusual object clearly on screen), spelled as in
+  the subtitles: guest-character names, places, objects, unusual nouns. NO main-cast names, NO common words (look,
+  job, money, city, body, killed, time, trust). A fresh set for every scene. 3 sure words beat 5 doubtful ones.
+- "what": English, max 20 words: what is on screen with the sound off - who, where, day or night when known, one
+  visible action or object. No interpretation ("Walt's moral fall" is useless).
+- "characters": a list of up to 4 people clearly in that moment, most important first, full English names, e.g.
+  ["Walter White", "Jesse Pinkman"]; an unnamed person by role ("bartender"). Never empty.
+- "confidence": "high" = quote copied from a subtitle file or transcript you opened; "medium" = whole quote from clear
+  memory of that scene; "low" = no quote.
+
+## Self-check (on each part; fix first, then output)
+- Count the empty quotes. More than 20% of the refs: go back to those episodes, open the dialogue and fill them. Still
+  over 20%: name those episodes in the summary.
+- Every "high" quote is 6-15 words, a whole line, English, from the named episode (not a recap), within ~30 s.
+- Every quote used at most twice; every scene sentence has a ref (hook included); no opinion sentence has one.
+- Refs in script order; every code matches its episode title; every "show" is the English title.
+- No main-cast names or common words in keywords; no keyword set copied from another scene.
+- Never break a rule to pass a check: no invented, cut or reused lines to fill quotes, no dropped refs.
+
+## Output
+- If you can run code: build the file with code (json.dump, ensure_ascii=False), take each "line" from the script text
+  with code, and run the self-check with code (valid JSON, quote word counts, reuse, keyword sets, order). Then give
+  ONE downloadable refs.json with ALL refs.
+- Without code: ```json code blocks of at most 50 refs each (refs_part1, refs_part2, ... in script order), one per
+  reply; I say "continue" for the next. Never shorten: no "...", "same as above" or placeholder refs.
+- Valid JSON only: double quotes, no comments, no trailing commas. Each ref has exactly the 8 keys; no sources, links or
+  notes inside the JSON. "keywords" and "characters" are lists of strings. Inside values: no line breaks, no "
+  character (delete quotation marks from dialogue and script text), only the straight apostrophe '.
+- Shape (format example only):
+{"refs": [
+ {"line": "Walt finally tells Skyler who he really is, and it", "show": "Breaking Bad", "ep": "S04E06",
+  "quote": "I am not in danger, Skyler. I am the danger.", "keywords": ["NASDAQ", "knocks", "belly"],
+  "what": "Walt, standing, confronts a frightened Skyler in their bedroom", "characters": ["Walter White", "Skyler White"],
+  "confidence": "high"}
+]}
+- After each file, outside the JSON, one line: "PART n OF N - more follows" or "LAST PART (n OF N)".
+- After the last part, a SHORT summary: script used ("<first 6 words> ... <last 6 words>", N sentences); refs total,
+  refs with a quote, high / medium / low; one row per episode: code - title - refs - quotes - source; episodes still
+  over 20% empty quotes.
+
+(end of prompt)
+
+======================================================================================================================
+FOLLOW-UP v6 (repair an existing refs.json). Paste from "Repair" down to "(end of follow-up)".
+For me: same chat - paste it as it is. New chat - attach the script, the refs file and the subtitles zip, and send the
+REFS PROMPT + this FOLLOW-UP in ONE message starting with "Do not start a new refs.json. Do only the repair below."
+If the Movie Editor wrote a refs_fix_list.txt (in the video's <name>_v2build folder), paste its content under it.
+Then delete the old refs file and save the new one.
 ----------------------------------------------------------------------------------------------------------------------
-FOLLOW-UP (when a refs.json came back with many empty quotes) - paste in the same chat:
 
-In the refs.json you gave, N refs have an empty "quote". For each of them: web-search and OPEN the transcript of that
-episode/film, find that scene and copy one line actually spoken there, word for word (any line from that moment).
-Fix "keywords" too: rare words spoken in that scene, no main-character names. Keep every other field and the order.
-Give me the complete corrected refs.json (all refs, same shape). Never invent dialogue - leave "" only if there is
-really no transcript for that episode.
+Repair the refs.json (yours above, or the attached one) under the same rules. Skip the episode-table reply and start
+with the corrected file. Work episode by episode with each subtitle file / transcript OPEN.
+1. Fix every empty quote, every quote under 6 words, and every quote that starts or is cut mid-sentence: copy the real
+   line spoken at that moment, whole and word for word (extend a fragment to its full line). Never shorten a quote
+   (only exception: the first 12-15 words of a sentence longer than 15 words). Still no whole line: leave it empty, "low".
+2. Keep every ref, in the same order; never drop one. Add a ref for any scene sentence that has none. A ref on an
+   opinion sentence stays as it is. Change a non-empty quote ONLY if (a) it is in the list I pasted, (b) it is under 6
+   words or starts mid-sentence, or (c) the dialogue shows it is spoken in another episode or more than 30 seconds from
+   the moment. Otherwise keep it character for character.
+3. Consecutive sentences on one scene: lines move forward in time, each quote at most twice, no rotating. An extra
+   sentence with no good line left gets an empty quote.
+4. Keywords: change a set only if it has main-cast names, common words, words not spoken in that moment, or is copied
+   from another scene. Every set is a list of 3-5 words from the English subtitles.
+5. A wrong title or episode: fix "show" / "ep" (a spin-off or film gets its own English title).
+6. If I pasted a list: my tool could not find those quotes word for word in my subtitles, usually because the
+   transcript spells them differently. Use another whole line from the same moment (no digits, acronyms or
+   contractions), or the same line from the attached subtitles.
+7. Fix any format problem: English quotes, exactly 8 keys, lists not strings, no line breaks or " inside values,
+   straight apostrophes only.
+Give the COMPLETE corrected refs file (all refs, same shape, same output rules), then the summary, how many quotes you
+filled / extended / replaced and refs you added, and the "line" of every replaced quote with its reason (a/b/c).
+
+(end of follow-up)

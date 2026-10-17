@@ -605,6 +605,23 @@ def _invalidate_changed(out_dir, clean, look, language, audio, voice_ref, log):
                     shutil.rmtree(q, ignore_errors=True)
                 elif os.path.exists(q):
                     os.remove(q)
+    # 2026-10-17: a corrected refs.json (ChatGPT follow-up) was never read - clue_v2.json, plan and cut were reused.
+    # The refs file set is fingerprinted; a change rebuilds clue -> plan -> cut -> look. A build from before this
+    # rule (no 'refs' entry yet) just records it, so a resume never redoes finished work.
+    try:
+        from .clue import refs_path
+        cur["refs"] = [_fp(x) for x in refs_path({"clean": os.path.abspath(clean)})]
+    except Exception:                                                            # noqa: BLE001
+        cur["refs"] = (old or {}).get("refs", [])
+    if old and "refs" in old and old["refs"] != cur["refs"] and os.path.exists(os.path.join(out_dir, "clue_v2.json")):
+        redo = ["clue_v2.json", "plan.json", "state.json", "look.json", "comp", "parts", "silent.mp4"]
+        log(f"  refs file changed since the last run -> rebuilding: {', '.join(redo)}")
+        for f in redo:
+            q = os.path.join(out_dir, f)
+            if os.path.isdir(q):
+                shutil.rmtree(q, ignore_errors=True)
+            elif os.path.exists(q):
+                os.remove(q)
     ctxp = os.path.join(out_dir, "ctx.json")             # ctx.json caches look + language too
     if os.path.exists(ctxp):
         try:

@@ -41,13 +41,16 @@ class Library:
                     ep = f"F{films:02d}"
                     title = re.sub(r"[._]+", " ", re.sub(r"\.catalog\.json$", "", base))[:60]
                 else:
-                    tm = re.search(r"(?:S\d{2}E\d{2}|\d{1,2}x\d{2})\s*-\s*(.+?)\s*[\(\[]", base)
+                    # "Reacher - S01E01 - Welcome to Margrave.catalog.json" has no "(1080p ...)" after the title
+                    tm = re.search(r"(?:S\d{2}E\d{2}|\d{1,2}x\d{2})\s*-\s*(.+?)\s*(?:[\(\[]|\.catalog\.json$)", base)
                     title = tm.group(1) if tm else ""
                 key = (sh["key"], ep)
                 if key in self.eps:
                     continue
                 try:
-                    shots = mark_unusable(json.load(open(lp(f), encoding="utf-8"))["shots"])
+                    data = json.load(open(lp(f), encoding="utf-8"))
+                    shots = mark_unusable(data["shots"])
+                    cues = [c for c in (data.get("cues") or []) if isinstance(c, list) and len(c) >= 3]
                 except Exception:
                     continue
                 stem = f[: -len(".catalog.json")]
@@ -57,7 +60,7 @@ class Library:
                 for i, s in enumerate(shots):
                     s["sid"] = f"{sh['key']}:{ep}_{i:03d}"
                     s["ep"] = key
-                self.eps[key] = {"video": video, "catalog": f, "title": title, "shots": shots}
+                self.eps[key] = {"video": video, "catalog": f, "title": title, "shots": shots, "cues": cues}
         self.by_sid = {s["sid"]: s for e in self.eps.values() for s in e["shots"]}
 
     def episode_list(self, key):
@@ -66,7 +69,32 @@ class Library:
 
 
 def _toks(s):
-    return [w for w in re.findall(r"[a-z0-9']+", (s or "").lower()) if len(w) > 2]
+    return [w for w in re.findall(r"[a-z0-9']+", str(s or "").lower().replace("’", "'").replace("‘", "'")) if len(w) > 2]
+
+
+_NUM = ("zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen "
+        "seventeen eighteen nineteen twenty").split()
+_CONTR = {"should've": "should have", "could've": "could have", "would've": "would have", "must've": "must have",
+          "might've": "might have", "gonna": "going to", "wanna": "want to", "gotta": "got to", "kinda": "kind of",
+          "outta": "out of", "lemme": "let me", "gimme": "give me", "y'all": "you all", "'cause": "because",
+          "cos": "because", "ok": "okay", "an": "a"}
+
+
+def _canon(s):
+    """words for the word-for-word quote search: transcript sites and our subtitles spell the same line differently
+    ("should've"/"should have", "6"/"six", "D.D.A.'s"/"DDA's", curly apostrophes) - 23 of 31 real-but-unmatched
+    quotes in the 2026-10-17 audit."""
+    s = str(s or "").lower().replace("’", "'").replace("‘", "'")
+    s = re.sub(r"\b([a-z])\.(?=[a-z]\.)", r"\1", s)                 # d.d.a. -> dda.
+    s = re.sub(r"\b([a-z])\.([a-z])\.", r"\1\2", s)
+    s = re.sub(r"\.(?=')", "", s)                                    # dda.'s -> dda's
+    words = []
+    for w in re.findall(r"[a-z0-9']+", s):
+        w = w.strip("'")
+        if w.isdigit() and int(w) <= 20:
+            w = _NUM[int(w)]
+        words += _CONTR.get(w, w).split()
+    return [w for w in words if len(w) > 2]
 
 
 class Grounder:
@@ -86,13 +114,27 @@ class Grounder:
             self.df[key] = (df, n)
         return self.df[key]
 
+    def _windows(self, k):
+        """(start time, canonical words) of 3 consecutive subtitle cues (the catalogue's 'cues'), else of 3 shots."""
+        if not hasattr(self, "_win"):
+            self._win = {}
+        if k not in self._win:
+            e = self.lib.eps[k]
+            src = [(c[0], c[2]) for c in e.get("cues") or []] or [(s["start"], s.get("dialogue") or "") for s in e["shots"]]
+            words = [_canon(t) for _, t in src]
+            self._win[k] = [(src[i][0], " ".join(w for x in words[i:i + 3] for w in x)) for i in range(len(src))]
+        return self._win[k]
+
     def _exact(self, key, ep, quote):
         """the quote itself in the named episode (then +-2 episodes): a line like 'You need to let her go.' is only
-        common words, the IDF search below cannot place it (Mentalist refs 2026-10-17), but it is in the subtitles."""
+        common words, the IDF search below cannot place it (Mentalist refs 2026-10-17), but it is in the subtitles.
+        Searched in the subtitle cues, spelling-normalised (_canon); a hit in the first 90 s ('Previously on') is
+        used only when the episode has no other one."""
         import difflib
-        q = " ".join(_toks(quote))
-        if len(q.split()) < 3 or not ep:
+        qw = _canon(quote)
+        if not ep or not (len(qw) >= 3 or (len(qw) == 2 and min(map(len, qw)) >= 5)):
             return None
+        q = " ".join(qw)
         ep = ep.upper()
         keys = [k for k in self.lib.eps if k[0] == key]
         m = re.match(r"S(\d{2})E(\d{2})", ep)
@@ -102,19 +144,20 @@ class Grounder:
             tiers.append([k for k in keys if re.match(r"S\d{2}E\d{2}", k[1]) and int(k[1][1:3]) == s_
                           and 0 < abs(int(k[1][4:6]) - e_) <= 2])
         for pool in tiers:
-            best = None
+            hits = []
             for k in pool:
-                sh = self.lib.eps[k]["shots"]
-                for i in range(len(sh)):
-                    win = " ".join(_toks(" ".join(sh[j].get("dialogue") or "" for j in range(i, min(i + 3, len(sh))))))
+                for t, win in self._windows(k):
                     if not win:
                         continue
                     sm = difflib.SequenceMatcher(None, q, win, autojunk=False)
                     sc = max((b.size for b in sm.get_matching_blocks()), default=0) / len(q)
-                    if sc >= 0.85 and (best is None or sc > best[2]):
-                        best = (k, sh[i]["start"], sc, "exact")
-            if best:
-                return best
+                    if sc >= 0.85:
+                        hits.append((k, t, sc, "exact"))
+            if hits:
+                top = max(h[2] for h in hits)
+                good = [h for h in hits if h[2] >= top - 0.05]
+                late = [h for h in good if h[1] >= 90]          # not the 'Previously on' recap
+                return max(late or good, key=lambda h: h[2])
         return None
 
     def ground(self, key, ep, quote, keywords):
@@ -123,6 +166,8 @@ class Grounder:
         hit = self._exact(key, ep, quote)
         if hit:
             return hit
+        if isinstance(keywords, str):                # "a, b, c" instead of a list: was read letter by letter
+            keywords = re.split(r"[,;]", keywords)
         q = set(_toks(quote)) | set(t for k in (keywords or []) for t in _toks(k))
         if not q:
             return None
@@ -140,10 +185,10 @@ class Grounder:
                 near += [k for k in keys if re.match(r"S\d{2}E\d{2}", k[1]) and int(k[1][1:3]) == s_
                          and 0 < abs(int(k[1][4:6]) - e_) <= 2]
         best = None
-        # keywords only (no quote): trust the script writer's episode - ChatGPT's episode is right 96-99 % when its
-        # quotes are checked, while keywords alone jumped seasons (Reacher 18/20 refs 2026-10-17: S01 lines grounded
-        # in S04E01). A quote may still search the whole show.
-        tiers = ((0, near),) if near and not _toks(quote) else ((0, near), (1, keys))
+        # no word-for-word hit: trust the script writer's episode - ChatGPT's episode is right ~99 % (audit of 1,343
+        # refs, 2026-10-17), while keywords / a remembered quote alone jumped seasons (Reacher 18/20: S01 lines in
+        # S04E01). Only without a usable episode the whole show is searched.
+        tiers = ((0, near),) if near else ((1, keys),)
         for tier, pool in tiers:
             for k in pool:
                 sh = self.lib.eps[k]["shots"]
@@ -161,7 +206,8 @@ class Grounder:
 def split_lines(text):
     out = []
     for para in [p.strip() for p in text.split("\n") if p.strip()]:
-        out += [p.strip() for p in re.split(r'(?<=[.?!…])\s+(?=[A-ZÁÉÍÓÚÑÇÀÂÊÔÃÕÜÖÄ¿¡"“«])', para) if p.strip()]
+        for part in re.split(r"(?<=[।॥])\s*", para):              # Hindi sentences end with a danda
+            out += [p.strip() for p in re.split(r'(?<=[.?!…])\s+(?=[A-ZÁÉÍÓÚÑÇÀÂÊÔÃÕÜÖÄ¿¡"“«])', part) if p.strip()]
     return out
 
 
@@ -206,8 +252,16 @@ def refs_path(ctx):
     if ctx.get("refs_file"):
         return [ctx["refs_file"]] if os.path.exists(ctx["refs_file"]) else []
     stem, topic = os.path.splitext(ctx["clean"])[0], os.path.dirname(ctx["clean"])
-    found = sorted(set(glob.glob(glob.escape(stem) + ".refs*.json") + glob.glob(os.path.join(glob.escape(topic), "refs*.json"))))
-    return [p for p in found if os.path.isfile(p)]
+    found = [p for p in sorted(set(glob.glob(glob.escape(stem) + ".refs*.json")
+                                   + glob.glob(os.path.join(glob.escape(topic), "refs*.json")))) if os.path.isfile(p)]
+    # one SET only: all parts (refs_part1, refs_part2 ... in number order) or the newest single file - an old
+    # 'refs.json' beside a corrected 'refs (1).json' must not be merged into it (2026-10-17 audit)
+    parts = [p for p in found if re.search(r"part\s*\d+", os.path.basename(p), re.I)]
+    singles = [p for p in found if p not in parts]
+    newest = lambda ps: max(os.path.getmtime(p) for p in ps) if ps else 0
+    if parts and newest(parts) >= newest(singles):
+        return sorted(parts, key=lambda p: int(re.search(r"part\s*(\d+)", os.path.basename(p), re.I).group(1)))
+    return [max(singles, key=os.path.getmtime)] if singles else []
 
 
 def external_refs(paths, ctx, lines, lib, log=print):
@@ -230,11 +284,16 @@ def external_refs(paths, ctx, lines, lib, log=print):
     nl = [_norm(x) for x in lines]
     out, cur, miss = {}, 0, []
 
+    other = set()
+
     def show_key(v, ep):
         v = _norm(v)
-        hit = names.get(v) or {k for n, ks in names.items() if n and (n in v or v and v in n) for k in ks}
-        if not hit:
+        if not v:                                    # no title given: the script's only show
             return ctx["shows"][0]["key"] if len(ctx["shows"]) == 1 else None
+        hit = names.get(v) or {k for n, ks in names.items() if n and (n in v or v in n) for k in ks}
+        if not hit:                                  # a spin-off / another title: never filed under the main show
+            other.add(v)
+            return None
         if len(hit) > 1:                             # Reacher: series 'reacher' vs films 'jackreacher'
             series = bool(re.search(r"S\d{1,2}\s*E\d|\b\d{1,2}x\d{1,3}\b|season\s*\d", str(ep or ""), re.I))
             pref = [k for k in hit if (k in has_films) != series]
@@ -262,10 +321,13 @@ def external_refs(paths, ctx, lines, lib, log=print):
         t = _norm(v)
         if not t:
             return None
+        sub = len(t.split()) >= 3                    # a 1-2 word 'line' ("No.") may only match a line START
         for rng in (range(cur, len(nl)), range(0, cur)):
             for j in rng:
                 two = nl[j] + " " + nl[j + 1] if j + 1 < len(nl) else nl[j]      # "Mr. Mayor" splits our line
-                if nl[j].startswith(t[:60]) or t in nl[j] or (len(nl[j]) > 20 and nl[j] in t) or two.startswith(t[:60]):
+                if (nl[j] + " ").startswith(t[:60] + " ") or nl[j] == t or (sub and f" {t} " in f" {nl[j]} ") \
+                        or (len(nl[j]) > 20 and f" {nl[j]} " in f" {t} ") or (two + " ").startswith(t[:60] + " ") \
+                        or (len(t) > 60 and nl[j].startswith(t[:60])):
                     cur = j
                     return j
         tt = set(t.split())
@@ -280,15 +342,23 @@ def external_refs(paths, ctx, lines, lib, log=print):
         if j is None:
             miss.append(str(r.get("line"))[:50])
             continue
+        for f in ("keywords", "characters"):         # a comma string instead of a list
+            if isinstance(r.get(f), str):
+                r = dict(r, **{f: [x.strip() for x in re.split(r"[,;]", r[f]) if x.strip()]})
         key = show_key(r.get("show"), r.get("ep"))
-        out.setdefault(j, []).append(dict(r, line=j + 1, show=key, ep=ep_code(key, r.get("ep")) if key else None,
-                                          src_ep=r.get("ep")))
+        code = ep_code(key, r.get("ep")) if key else None
+        if key and not code and r.get("ep") and not re.search(r"S\d{1,2}\s*E\d|\d{1,2}x\d|season", str(r["ep"]), re.I):
+            other.add(_norm(r.get("ep")))            # a film we do not have under this show: not grounded at all
+            key = None
+        out.setdefault(j, []).append(dict(r, line=j + 1, show=key, ep=code, src_ep=r.get("ep")))
     n = sum(len(v) for v in out.values())
     names_ = ", ".join(os.path.basename(p) for p in (paths if isinstance(paths, (list, tuple)) else [paths]))
     log(f"  refs from {names_}: {n} refs on {len(out)} lines"
         + (f", {len(miss)} not matched to a script line (e.g. {miss[0]!r})" if miss else ""))
     if refs and len(miss) > 0.3 * len(refs):
         log(f"  WARNING: {len(miss)} of {len(refs)} refs match no script line - is this refs file for THIS script?")
+    if other:
+        log(f"  refs naming titles / films that are not in this video's library (left out): {sorted(other)[:6]}")
     return out
 
 
@@ -437,16 +507,23 @@ def refs_report(refs, n_lines, ctx, log=print):
            f"word-for-word in our subtitles {exact} ({100 * exact // n}%) | placed in the footage {ground} ({100 * ground // n}%)"
            f" | episodes {len(eps)}")
     warn = []
-    if quoted < 0.6 * n:
-        warn.append("fewer than 60% of the refs have a quote - ask ChatGPT for the FOLLOW-UP (fill the quotes)")
-    if quoted and exact < 0.6 * quoted:
-        warn.append("many quotes are not found word for word - ChatGPT may be paraphrasing")
+    if quoted < 0.8 * n:
+        warn.append(f"{n - quoted} refs ({100 * (n - quoted) // n}%) have no quote - paste the FOLLOW-UP prompt in ChatGPT")
+    if quoted and exact < 0.75 * quoted:
+        warn.append("many quotes are not found word for word in our subtitles - see refs_fix_list.txt")
     if ground < 0.85 * n:
         warn.append("many refs could not be placed in the footage - wrong show / episode?")
     log("  refs check: " + rep)
     for w in warn:
         log("  refs WARNING: " + w)
+    # the refs to fix, ready to paste under the FOLLOW-UP prompt (in the BUILD folder: a .txt in the topic folder
+    # would be taken for a script)
+    fix = [f"line {r.get('line')} | {r.get('src_ep') or r.get('ep')} | quote: {r.get('quote') or '(empty)'}"
+           for r in refs if (r.get("grounded") or {}).get("how") != "exact"]
     try:
         open(os.path.join(ctx["build"], "refs_report.txt"), "w", encoding="utf-8").write(rep + "\n" + "\n".join(warn) + "\n")
+        open(os.path.join(ctx["build"], "refs_fix_list.txt"), "w", encoding="utf-8").write(
+            "Refs my tool could not find word for word in my subtitles (empty, cut or differently spelled quotes):\n"
+            + "\n".join(fix) + "\n")
     except OSError:
         pass
