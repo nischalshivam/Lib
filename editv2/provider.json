@@ -1,11 +1,13 @@
 {
  "enabled": true,
- "name": "openlux (Gemini API format)",
+ "name": "openlux (Gemini API format) - gemini-3.8-flash for everything (final, 2026-10-17)",
  "base": "https://api.openlux.ai",
  "key_file": "D:\\Lib\\secrets\\openlux_api_key.txt",
  "text_model": "gemini-3.8-flash",
  "vision_model": "gemini-3.8-flash",
  "max_parallel": 8,
+ "warn_usd_per_video": 2.5,
+ "max_usd_per_video": 5.0,
  "kinds": {
   "default": {"thinking": "low", "media": "medium", "think_room": 4096},
   "plan": {"thinking": "low", "think_room": 16384},

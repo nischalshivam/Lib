@@ -254,6 +254,9 @@ def refs_path(ctx):
     stem, topic = os.path.splitext(ctx["clean"])[0], os.path.dirname(ctx["clean"])
     found = [p for p in sorted(set(glob.glob(glob.escape(stem) + ".refs*.json")
                                    + glob.glob(os.path.join(glob.escape(topic), "refs*.json")))) if os.path.isfile(p)]
+    scripts = [f for f in glob.glob(os.path.join(glob.escape(topic), "*.txt")) if not f.lower().endswith("_qa.txt")]
+    if not found and len(scripts) <= 1:          # one script in the folder: ChatGPT's own names count too
+        found = sorted(p for p in glob.glob(os.path.join(glob.escape(topic), "*refs*.json")) if os.path.isfile(p))
     # one SET only: all parts (refs_part1, refs_part2 ... in number order) or the newest single file - an old
     # 'refs.json' beside a corrected 'refs (1).json' must not be merged into it (2026-10-17 audit)
     parts = [p for p in found if re.search(r"part\s*\d+", os.path.basename(p), re.I)]

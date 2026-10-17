@@ -135,6 +135,14 @@ def run(ctx, video, log=print):
         if R["cross_show"]:
             warn.append(f"{len(R['cross_show'])} shots from another show under a line about one show, at {R['cross_show'][:6]}")
     R["look"] = json.load(open(os.path.join(B, "look.json"), encoding="utf-8"))
+    try:                                   # 2026-10-17: paid API - what did this video cost (list-price estimate)?
+        from .common import api_cost, provider_cfg
+        n_api, usd = api_cost(B)
+        R["api"] = {"calls": n_api, "usd_est": round(usd, 2)}
+        if usd > float(provider_cfg().get("warn_usd_per_video", 2.5)):
+            warn.append(f"API cost ~${usd:.2f} for this video (above the ${provider_cfg().get('warn_usd_per_video', 2.5)} warning line)")
+    except Exception:                                              # noqa: BLE001
+        R["api"] = {}
     R["warnings"], R["result"] = warn, "WARN" if warn else "PASS"
     json.dump(R, open(os.path.join(B, "qa_report.json"), "w", encoding="utf-8"), indent=1, default=str)
     # the topic, not the build's internal "final.mp4" (2026-10-14 long-path fix renamed it)
@@ -147,6 +155,7 @@ def run(ctx, video, log=print):
              f"loudness {li} LUFS, peak {pk} dBFS; {len(cuts)} cuts, {len(flashes)} flash, look {R['look'].get('look')}",
              f"clue: {R['clue']}", f"verify: {R['verify']}, burned text fixed in {R['text_fixed']} clips",
              f"pictures: {100 * R['still_share']:.0f}% stills; punch-ins at {R['punch_ins']}; repeats {len(R['repeats'])}"] + \
+            ([f"API: {R['api']['calls']} calls, ~${R['api']['usd_est']:.2f} (list-price estimate)"] if R.get("api") else []) + \
             [f"WARN: {w}" for w in warn]
     open(os.path.join(B, "QA.txt"), "w", encoding="utf-8").write("\n".join(lines) + "\n")
     for l in lines:

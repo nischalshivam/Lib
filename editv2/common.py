@@ -136,6 +136,39 @@ class Blocked(RuntimeError):
     """the model refused (safety / prohibited content): never re-sent - a blocked request is billed too."""
 
 
+class BudgetExceeded(RuntimeError):
+    """this video's estimated API spend passed provider.json max_usd_per_video: the build stops (never silently on)."""
+
+
+def provider_cfg():
+    return json_read(_PROV_FILE, {})
+
+
+def _price(model):
+    p = (provider_cfg().get("est_price_per_1m_usd") or {}).get(model) or [0.75, 3.75]
+    return float(p[0]), float(p[1])
+
+
+def api_cost(build_dir):
+    """(calls, estimated USD at list price) of one build, from its api_usage.jsonl ledger."""
+    n, usd = 0, 0.0
+    try:
+        for line in open(os.path.join(build_dir, "api_usage.jsonl"), encoding="utf-8"):
+            try:
+                r = json.loads(line)
+            except ValueError:
+                continue
+            pi, po = _price(r.get("model", ""))
+            n += 1
+            usd += (r.get("in", 0) * pi + (r.get("out", 0) + (r.get("think") or 0)) * po) / 1e6
+    except OSError:
+        pass
+    return n, usd
+
+
+_SPENT = [None]                                  # this build's running estimate (seeded from its ledger on first use)
+
+
 def provider():
     if not os.environ.get("EDITV2_PROVIDER"):
         return None
@@ -156,7 +189,10 @@ def _usage(model, kind, usage, status):
            "model": model, "in": usage.get("promptTokenCount", 0), "out": usage.get("candidatesTokenCount", 0),
            "think": usage.get("thoughtsTokenCount", 0), "status": status}
     line = json.dumps(rec, ensure_ascii=False) + "\n"
+    pi, po = _price(model)
     with _LOG_LOCK:
+        if _SPENT[0] is not None:
+            _SPENT[0] += (rec["in"] * pi + (rec["out"] + (rec["think"] or 0)) * po) / 1e6
         for p in filter(None, (USAGE_LOG, os.path.join(os.environ["EDITV2_BUILD"], "api_usage.jsonl")
                                if os.environ.get("EDITV2_BUILD") else None)):
             try:
@@ -199,6 +235,15 @@ def _gemini(body: dict, timeout: int) -> str:
     req = {"contents": [{"role": "user", "parts": parts}], "generationConfig": gen}
     if system:
         req["systemInstruction"] = {"parts": system}
+    # cost guard (user, 2026-10-17: "isse jayada na jaye costing"): a typical video is ~$1-1.8 at list price
+    cap = float(cfg.get("max_usd_per_video", 5.0))
+    with _LOG_LOCK:
+        if _SPENT[0] is None:
+            _SPENT[0] = api_cost(os.environ["EDITV2_BUILD"])[1] if os.environ.get("EDITV2_BUILD") else 0.0
+        spent = _SPENT[0]
+    if spent >= cap:
+        raise BudgetExceeded(f"API spend for this video ~${spent:.2f} reached max_usd_per_video ${cap:.2f} "
+                             "(editv2/provider.json) - stopped so the bill cannot run away")
     url = f"{cfg['base'].rstrip('/')}/v1beta/models/{model}:generateContent"
     key = open(cfg["key_file"], encoding="utf-8").read().strip()
     data = json.dumps(req).encode()
@@ -354,6 +399,8 @@ def llm(system: str, user: str, max_tokens: int = 16000, tries: int = 4, tempera
             txt = _post({"model": model, "temperature": temperature, "max_tokens": max_tokens, "tag": tag,
                          "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}, 600)
             return parse_json(txt), model
+        except BudgetExceeded:
+            raise
         except Exception as e:
             last = e
             if isinstance(e, urllib.error.HTTPError):
@@ -386,6 +433,8 @@ def vision(question: str, jpeg_bytes: bytes, tries: int = 3, timeout: int = 180,
             return parse_json(_post(body, timeout))
         except Blocked:
             return None
+        except BudgetExceeded:
+            raise
         except urllib.error.HTTPError as e:
             txt = e.read().decode("utf-8", "replace") if hasattr(e, "read") else ""
             if not provider() and model_gone(e.code, txt) and drop_vision_model():
