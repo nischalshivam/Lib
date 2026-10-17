@@ -86,9 +86,43 @@ class Grounder:
             self.df[key] = (df, n)
         return self.df[key]
 
+    def _exact(self, key, ep, quote):
+        """the quote itself in the named episode (then +-2 episodes): a line like 'You need to let her go.' is only
+        common words, the IDF search below cannot place it (Mentalist refs 2026-10-17), but it is in the subtitles."""
+        import difflib
+        q = " ".join(_toks(quote))
+        if len(q.split()) < 3 or not ep:
+            return None
+        ep = ep.upper()
+        keys = [k for k in self.lib.eps if k[0] == key]
+        m = re.match(r"S(\d{2})E(\d{2})", ep)
+        tiers = [[k for k in keys if k[1] == ep]]
+        if m:
+            s_, e_ = int(m.group(1)), int(m.group(2))
+            tiers.append([k for k in keys if re.match(r"S\d{2}E\d{2}", k[1]) and int(k[1][1:3]) == s_
+                          and 0 < abs(int(k[1][4:6]) - e_) <= 2])
+        for pool in tiers:
+            best = None
+            for k in pool:
+                sh = self.lib.eps[k]["shots"]
+                for i in range(len(sh)):
+                    win = " ".join(_toks(" ".join(sh[j].get("dialogue") or "" for j in range(i, min(i + 3, len(sh))))))
+                    if not win:
+                        continue
+                    sm = difflib.SequenceMatcher(None, q, win, autojunk=False)
+                    sc = max((b.size for b in sm.get_matching_blocks()), default=0) / len(q)
+                    if sc >= 0.85 and (best is None or sc > best[2]):
+                        best = (k, sh[i]["start"], sc)
+            if best:
+                return best
+        return None
+
     def ground(self, key, ep, quote, keywords):
         if key not in {k[0] for k in self.lib.eps}:
             return None
+        hit = self._exact(key, ep, quote)
+        if hit:
+            return hit
         q = set(_toks(quote)) | set(t for k in (keywords or []) for t in _toks(k))
         if not q:
             return None
