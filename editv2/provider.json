@@ -1,0 +1,21 @@
+{
+ "enabled": true,
+ "name": "openlux (Gemini API format)",
+ "base": "https://api.openlux.ai",
+ "key_file": "D:\\Lib\\secrets\\openlux_api_key.txt",
+ "text_model": "gemini-3.8-flash",
+ "vision_model": "gemini-3.8-flash",
+ "max_parallel": 8,
+ "kinds": {
+  "default": {"thinking": "low", "media": "medium", "think_room": 4096},
+  "plan": {"thinking": "low", "think_room": 16384},
+  "verify": {"thinking": "low", "media": "medium"},
+  "textcheck": {"thinking": "low", "media": "medium"},
+  "zones": {"thinking": "low", "media": "medium"},
+  "identity": {"thinking": "low", "media": "medium"},
+  "style": {"thinking": "low", "media": "high"},
+  "logo": {"thinking": "low", "media": "high"}
+ },
+ "est_price_per_1m_usd": {"gemini-3.8-flash": [0.75, 3.75], "gemini-2.5-flash": [0.30, 2.50],
+                          "note": "Google list prices (output includes thinking); openlux bills its own rates - see its dashboard"}
+}

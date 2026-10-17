@@ -362,13 +362,18 @@ def preflight(clean, out_dir, audio, voice_ref, save_dir):
         bad.append(r"node.js not found (C:\Program Files\nodejs)")
     if not glob.glob(os.path.expanduser(r"~\.cache\hyperframes\chrome\**\chrome-headless-shell.exe"), recursive=True):
         bad.append(r"HyperFrames' Chrome is missing (~\.cache\hyperframes\chrome) - run: hyperframes browser install")
-    from .common import PROXY, KEY, FACE_MODEL
+    from .common import PROXY, KEY, FACE_MODEL, provider
+    P = provider()
     if not all(os.path.exists(os.path.join(out_dir, f)) for f in ("clue_v2.json", "plan.json", "state.json")):
-        try:                                      # only clue/plan/cut talk to the models; a render-only resume does not
-            req = urllib.request.Request(PROXY.rsplit("/chat/", 1)[0] + "/models", headers={"Authorization": "Bearer " + KEY})
-            urllib.request.urlopen(req, timeout=15).read()
-        except Exception as e:                                                   # noqa: BLE001
-            bad.append(f"the model proxy (:8317, needed for clue/plan) does not answer: {type(e).__name__}")
+        if P:                                     # 2026-10-17: the paid Gemini-API provider replaces the agy proxy
+            if not os.path.isfile(P.get("key_file", "")):
+                bad.append(f"API key file missing: {P.get('key_file')} (see editv2/provider.json)")
+        else:
+            try:                                  # only clue/plan/cut talk to the models; a render-only resume does not
+                req = urllib.request.Request(PROXY.rsplit("/chat/", 1)[0] + "/models", headers={"Authorization": "Bearer " + KEY})
+                urllib.request.urlopen(req, timeout=15).read()
+            except Exception as e:                                               # noqa: BLE001
+                bad.append(f"the model proxy (:8317, needed for clue/plan) does not answer: {type(e).__name__}")
     if not os.path.isfile(FACE_MODEL):
         bad.append(f"face model missing: {FACE_MODEL}")
     from .mix import BGM

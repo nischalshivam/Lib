@@ -94,7 +94,7 @@ def logo(key: str, show: str, log=print) -> str | None:
             continue
         v = vision(f'Is this image the official title LOGO (wordmark) of "{show}"? Not fan art, not a poster with '
                    'actors, not another title, no extra taglines. Reply ONLY JSON {"match":true|false,'
-                   '"watermark":true|false,"score":0-10}', _jpeg(im))
+                   '"watermark":true|false,"score":0-10}', _jpeg(im), tag="logo")
         if v and v.get("match") and not v.get("watermark"):
             good.append((_real_alpha(im), v.get("score", 0), im.width, im, c.get("domain")))
     good.sort(key=lambda g: (g[0], g[1], g[2]), reverse=True)
@@ -105,7 +105,7 @@ def logo(key: str, show: str, log=print) -> str | None:
         cut = _sticker_if_dark(cut.crop(cut.getchannel("A").getbbox()))
         v = vision(f'This is the "{show}" logo on a DARK GREY background. Is it clearly readable against this dark '
                    'background, complete, with no leftover panel/box and no broken letters? Reply ONLY JSON '
-                   '{"match":true|false,"score":0-10}', _jpeg(cut))
+                   '{"match":true|false,"score":0-10}', _jpeg(cut), tag="logo")
         if v and v.get("match") and v.get("score", 0) >= 7:
             cut.save(out)
             log(f"  logo for {show}: {dom}")

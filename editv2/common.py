@@ -8,7 +8,10 @@ import base64, json, os, re, subprocess, time, urllib.request
 FPS = int(os.environ.get("EDITV2_FPS", "24"))
 
 PROXY = os.environ.get("MODEL_ROUTER_URL", "http://127.0.0.1:8317") + "/v1/chat/completions"
-KEY = os.environ.get("MODEL_ROUTER_KEY") or open(os.path.expanduser("~/.model-router-proxy-key.txt")).read().strip()
+try:                                         # the old agy proxy key (agy is off since 2026-10-17; kept optional)
+    KEY = os.environ.get("MODEL_ROUTER_KEY") or open(os.path.expanduser("~/.model-router-proxy-key.txt")).read().strip()
+except OSError:
+    KEY = ""
 TEXT_MODEL = os.environ.get("CLUE_MODEL", "claude-opus-4-6-thinking")      # agy Claude (NOT this session)
 TEXT_FALLBACK = os.environ.get("CLUE_FALLBACK", "claude-sonnet-4-6")
 # 2026-10-16: agy's free plan drops third-party models (Claude, GPT-OSS) on 2026-11-02 ("Third-party model access will
@@ -118,6 +121,114 @@ os.makedirs(CACHE, exist_ok=True)
 if not os.environ.get("VERIFY_MODEL"):            # start from the first chain model not already known to be gone
     VISION_MODEL = next((m for m in VISION_CHAIN if m not in _gone()), VISION_CHAIN[0])   # all 'gone' = a bad
     # gone file, not three retired models: use the best one and let real errors surface (never silently flash-lite)
+
+
+# ---------------------------------------------------------------- paid Gemini-API provider (2026-10-17)
+# agy is off for good (Google bans third-party clients + account rotation). The Movie Editor now calls ONE paid
+# endpoint in the Gemini API format (editv2/provider.json: base URL, key file, models, thinking + image resolution per
+# call kind). It is active only when EDITV2_PROVIDER is set - editv2.__main__ sets it - so the old catalogue tools
+# (catalog_refine, libjobs) never bill the key by importing this module. One model, no automatic downgrade.
+_PROV_FILE = os.path.join(HERE, "provider.json")
+USAGE_LOG = os.path.join(CACHE, "api_usage.jsonl")
+
+
+class Blocked(RuntimeError):
+    """the model refused (safety / prohibited content): never re-sent - a blocked request is billed too."""
+
+
+def provider():
+    if not os.environ.get("EDITV2_PROVIDER"):
+        return None
+    cfg = json_read(_PROV_FILE, {})
+    return cfg if cfg.get("enabled") else None
+
+
+_P = provider()
+if _P:
+    VISION_CHAIN = [_P["vision_model"]]
+    VISION_MODEL = _P["vision_model"]
+_SEM = __import__("threading").BoundedSemaphore(int((_P or {}).get("max_parallel", 8)))
+_LOG_LOCK = __import__("threading").Lock()
+
+
+def _usage(model, kind, usage, status):
+    rec = {"t": time.strftime("%Y-%m-%d %H:%M:%S"), "build": os.environ.get("EDITV2_BUILD", ""), "kind": kind,
+           "model": model, "in": usage.get("promptTokenCount", 0), "out": usage.get("candidatesTokenCount", 0),
+           "think": usage.get("thoughtsTokenCount", 0), "status": status}
+    line = json.dumps(rec, ensure_ascii=False) + "\n"
+    with _LOG_LOCK:
+        for p in filter(None, (USAGE_LOG, os.path.join(os.environ["EDITV2_BUILD"], "api_usage.jsonl")
+                               if os.environ.get("EDITV2_BUILD") else None)):
+            try:
+                with open(p, "a", encoding="utf-8") as f:
+                    f.write(line)
+            except OSError:
+                pass
+
+
+def _gemini(body: dict, timeout: int) -> str:
+    """OpenAI-style body -> POST {base}/v1beta/models/{model}:generateContent. Returns the answer text (thoughts left
+    out). 429 / overload = wait and resend (never counted as a try); a block raises Blocked."""
+    import urllib.error
+    cfg = provider()
+    kind = body.get("tag") or "default"
+    kinds = cfg.get("kinds", {})
+    k = dict(kinds.get("default", {}), **kinds.get(kind, {}))
+    model = body["model"]
+    system, parts = [], []
+    for m in body["messages"]:
+        items = m["content"] if isinstance(m["content"], list) else [{"type": "text", "text": m["content"]}]
+        for it in items:
+            if it.get("type") == "image_url":
+                head, data = it["image_url"]["url"].split(",", 1)
+                (parts if m["role"] != "system" else system).append(
+                    {"inline_data": {"mime_type": head[5:].split(";")[0] or "image/jpeg", "data": data}})
+            elif m["role"] == "system":
+                system.append({"text": it.get("text", "")})
+            else:
+                parts.append({"text": it.get("text", "")})
+    level = os.environ.get(f"EDITV2_THINK_{kind.upper()}") or k.get("thinking", "low")    # env = A/B override
+    gen = {"temperature": body.get("temperature", 0.2),
+           "maxOutputTokens": int(body.get("max_tokens", 8192)) + int(k.get("think_room", 8192))}
+    if model.startswith("gemini-2"):
+        gen["thinkingConfig"] = {"thinkingBudget": {"none": 0, "low": 1024, "medium": 4096, "high": 8192}.get(level, 0)}
+    else:
+        gen["thinkingConfig"] = {"thinkingLevel": "low" if level == "none" else level}
+    if any("inline_data" in p for p in parts) and k.get("media"):
+        gen["mediaResolution"] = "MEDIA_RESOLUTION_" + k["media"].upper()
+    req = {"contents": [{"role": "user", "parts": parts}], "generationConfig": gen}
+    if system:
+        req["systemInstruction"] = {"parts": system}
+    url = f"{cfg['base'].rstrip('/')}/v1beta/models/{model}:generateContent"
+    key = open(cfg["key_file"], encoding="utf-8").read().strip()
+    data = json.dumps(req).encode()
+    wait = 5
+    for attempt in range(10):
+        try:
+            with _SEM:
+                r = urllib.request.Request(url, data, {"x-goog-api-key": key, "Content-Type": "application/json"})
+                with urllib.request.urlopen(r, timeout=timeout) as resp:
+                    out = json.load(resp)
+        except urllib.error.HTTPError as e:
+            if e.code in (429, 529) or (e.code == 503 and attempt < 9):
+                txt = e.read().decode("utf-8", "replace") if hasattr(e, "read") else ""
+                m_ = re.search(r'"retryDelay":\s*"(\d+)', txt)
+                time.sleep(int(m_.group(1)) if m_ else wait)
+                wait = min(wait * 2, 120)
+                continue
+            raise
+        cand = (out.get("candidates") or [{}])[0]
+        usage = out.get("usageMetadata") or {}
+        fr = cand.get("finishReason") or (out.get("promptFeedback") or {}).get("blockReason") or "NONE"
+        txt = "".join(p.get("text", "") for p in (cand.get("content") or {}).get("parts", []) if not p.get("thought"))
+        _usage(model, kind, usage, fr)
+        if fr in ("SAFETY", "PROHIBITED_CONTENT", "IMAGE_SAFETY", "BLOCKLIST", "SPII", "OTHER") or \
+                (out.get("promptFeedback") or {}).get("blockReason"):
+            raise Blocked(fr)
+        if not txt.strip():
+            raise RuntimeError(f"empty answer (finishReason {fr})")
+        return txt
+    raise RuntimeError("provider busy (429) for too long")
 FACE_MODEL = os.path.join(r"D:\Lib\models", "face_detection_yunet_2023mar.onnx")
 
 
@@ -159,6 +270,9 @@ def _codex(body: dict, timeout: int) -> str:
 def _post(body: dict, timeout: int):
     if str(body.get("model", "")).startswith("codex:"):
         return _codex(body, timeout)
+    if provider():
+        return _gemini(body, timeout)
+    body = {k: v for k, v in body.items() if k != "tag"}
     req = urllib.request.Request(PROXY, json.dumps(body).encode(),
                                  {"Authorization": "Bearer " + KEY, "Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -210,7 +324,10 @@ def _wait_proxy(log, limit):
 
 def text_models():
     """the text chain without the models the proxy reported gone in the last 24 h (re-tried after that, so one wrong
-    'gone' never pins the editor to the weaker model for good). Never empty."""
+    'gone' never pins the editor to the weaker model for good). Never empty. With the paid provider: its one model."""
+    if provider():
+        return [provider()["text_model"]]
+
     def recent(stamp):
         try:
             return time.time() - time.mktime(time.strptime(stamp, "%Y-%m-%d %H:%M")) < 24 * 3600
@@ -224,16 +341,17 @@ def text_model():
     return text_models()[0]
 
 
-def llm(system: str, user: str, max_tokens: int = 16000, tries: int = 4, temperature: float = 0.2):
-    """agy text model (Claude first, see TEXT_CHAIN). Returns (parsed_json, model_used). A proxy/internet outage is
-    waited out (wait_proxy) and a retired model is skipped - neither is counted as a try."""
+def llm(system: str, user: str, max_tokens: int = 16000, tries: int = 4, temperature: float = 0.2, tag: str = "text"):
+    """text model (the paid provider's model, else the old TEXT_CHAIN). Returns (parsed_json, model_used). A proxy /
+    internet outage is waited out (wait_proxy) and a retired model is skipped - neither is counted as a try.
+    tag = the call kind (plan, punchin, names, ctx...): its thinking level comes from provider.json."""
     import urllib.error
     last, k, waited = None, 0, False
     while k < tries:
         ms = text_models()
         model = ms[0] if k < tries - 1 else ms[min(1, len(ms) - 1)]
         try:
-            txt = _post({"model": model, "temperature": temperature, "max_tokens": max_tokens,
+            txt = _post({"model": model, "temperature": temperature, "max_tokens": max_tokens, "tag": tag,
                          "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}, 600)
             return parse_json(txt), model
         except Exception as e:
@@ -256,19 +374,21 @@ def llm(system: str, user: str, max_tokens: int = 16000, tries: int = 4, tempera
     raise RuntimeError(f"LLM failed after {tries} tries: {last}")
 
 
-def vision(question: str, jpeg_bytes: bytes, tries: int = 3, timeout: int = 180):
-    """Gemini (vision) on one image. Returns parsed JSON or None."""
+def vision(question: str, jpeg_bytes: bytes, tries: int = 3, timeout: int = 180, tag: str = "vision"):
+    """Gemini (vision) on one image. Returns parsed JSON or None (a blocked image: None at once, never re-sent)."""
     import urllib.error
     uri = "data:image/jpeg;base64," + base64.b64encode(jpeg_bytes).decode()
     k, waited = 0, False
     while k < tries:
-        body = {"model": VISION_MODEL, "temperature": 0, "messages": [{"role": "user", "content": [
+        body = {"model": VISION_MODEL, "temperature": 0, "tag": tag, "messages": [{"role": "user", "content": [
             {"type": "text", "text": question}, {"type": "image_url", "image_url": {"url": uri}}]}]}
         try:
             return parse_json(_post(body, timeout))
+        except Blocked:
+            return None
         except urllib.error.HTTPError as e:
             txt = e.read().decode("utf-8", "replace") if hasattr(e, "read") else ""
-            if model_gone(e.code, txt) and drop_vision_model():
+            if not provider() and model_gone(e.code, txt) and drop_vision_model():
                 continue                          # the model was retired: same request on the next one, not a try
             if _proxy_down(e) and not waited:     # an outage would otherwise mark every shot 'rejected'
                 waited = True
@@ -319,7 +439,7 @@ def is_person(video: str, t: float, name: str, show: str):
     v = vision(f'Frame from "{show}". Is {name} clearly visible and the main person in this frame? Judge only by '
                'the face/appearance you see. Reply ONLY JSON {"yes": true|false, "who": "<CHARACTER name of the main '
                'person in this show, or unknown>", "actor": "<their actor, or unknown>"}',
-               frame_jpeg(video, t))
+               frame_jpeg(video, t), tag="identity")
     if not v:
         return False, "check-error"
     return bool(v.get("yes")), (str(v.get("who", "")) + " / " + str(v.get("actor", ""))).strip(" /")

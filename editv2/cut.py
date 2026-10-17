@@ -450,7 +450,7 @@ class Cutter:
         b = io.BytesIO(); G.save(b, "JPEG", quality=80)
         v = vision("Four numbered frames from a TV/film clip. Does any frame contain BURNED-IN TEXT laid over the picture: "
                    "credits (actor/writer/producer names), title cards, captions/subtitles, channel logos? Ignore text that is "
-                   'part of the set. Reply ONLY JSON {"first_text_frame":0-4,"what":"<short>"} (0 = none).', b.getvalue())
+                   'part of the set. Reply ONLY JSON {"first_text_frame":0-4,"what":"<short>"} (0 = none).', b.getvalue(), tag="textcheck")
         try:
             return int((v or {}).get("first_text_frame") or 0), ts, (v or {}).get("what", "")
         except (TypeError, ValueError):

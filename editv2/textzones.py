@@ -48,8 +48,6 @@ from PIL import Image, ImageDraw, ImageFont
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.path.join(HERE, "cache", "text_zones.json")
-PROXY = "http://127.0.0.1:8317/v1/chat/completions"
-KEY = open(os.path.expanduser("~/.model-router-proxy-key.txt")).read().strip()
 # 2026-10-16: was a fixed "gemini-3.6-flash-high" - retired 2026-10-13, so every call failed, _ask() returned [] and
 # zones() CACHED "no credits" for every episode seen since (164 of 302, all 60 The Wire). Now the shared vision chain.
 try:
@@ -94,23 +92,14 @@ def _ask(video, t0):
     g = _grid(video, t0)
     if g is None:
         return []
-    import urllib.error
-    for _ in range(3):
-        model = _E.VISION_MODEL if _E else MODEL
-        body = {"model": model, "temperature": 0, "messages": [{"role": "user", "content": [
-            {"type": "text", "text": q}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + g}}]}]}
-        try:
-            req = urllib.request.Request(PROXY, json.dumps(body).encode(), {"Authorization": "Bearer " + KEY, "Content-Type": "application/json"})
-            txt = json.load(urllib.request.urlopen(req, timeout=120))["choices"][0]["message"]["content"]
-            v = json.JSONDecoder().raw_decode(txt[txt.find("{"):])[0]
-            return [t0 + int(k) - 1 for k in v.get("text_frames", []) if 1 <= int(k) <= 16]
-        except urllib.error.HTTPError as e:
-            body_txt = e.read().decode("utf-8", "replace") if hasattr(e, "read") else ""
-            if _E and _E.model_gone(e.code, body_txt):
-                _E.drop_vision_model(model)
-        except Exception:
-            continue
-    return None                           # the call FAILED - not "no text here"
+    # 2026-10-17: through common.vision (the paid provider / outage waits), no own proxy call any more
+    v = _E.vision(q, base64.b64decode(g), tag="zones") if _E else None
+    if not isinstance(v, dict):
+        return None                       # the call FAILED - not "no text here"
+    try:
+        return [t0 + int(k) - 1 for k in v.get("text_frames", []) if 1 <= int(k) <= 16]
+    except (TypeError, ValueError):
+        return None
 
 
 def zones(video, log=print):

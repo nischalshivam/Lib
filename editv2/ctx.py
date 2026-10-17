@@ -159,7 +159,7 @@ def detect_shows(text: str, folders: dict, log=print) -> list:
     names = sorted({f"{k} = {_clean_name(p)}" for k, p in folders.items()})
     res, _ = llm("You map a video-essay script to the TV shows / films it discusses. Choose ONLY from the given "
                  "library list. Reply ONLY JSON {\"shows\":[{\"key\":\"<library key>\",\"name\":\"<official title>\"}]}",
-                 "LIBRARY (key = folder name):\n" + "\n".join(names) + "\n\nSCRIPT (start):\n" + text[:6000])
+                 "LIBRARY (key = folder name):\n" + "\n".join(names) + "\n\nSCRIPT (start):\n" + text[:6000], tag="ctx")
     out = [s for s in res.get("shows", []) if s.get("key") in folders]
     log(f"  shows in script: {[s['name'] for s in out]}")
     return out

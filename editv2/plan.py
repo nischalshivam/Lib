@@ -178,7 +178,7 @@ class Plan:
              "16 numbered frames, 0.8 s apart. Pick the frame where a clip under this line should START (right people / "
              "action; a person SAYING the quoted dialogue counts). Never pick a frame with burned-in text, credits, captions "
              "or logos on the picture. Pick 0 only if no frame fits. Reply ONLY JSON {\"pick\":0-16,\"score\":0-10,\"why\":\"<short>\"}")
-        v = vision(q, g) or {"pick": 0, "score": 5, "why": "verify-error"}
+        v = vision(q, g, tag="verify") or {"pick": 0, "score": 5, "why": "verify-error"}
         try:
             k = int(v.get("pick") or 0)
         except (TypeError, ValueError):
@@ -374,7 +374,7 @@ class Plan:
                            "punchy or funny, clearly connected to the narration line before them, and make sense out of "
                            "context. Never pick fragments, mumbles, or lines that need a missing setup. "
                            'Reply ONLY JSON {"picks":[<option ids>],"why":"<short>"} (empty list if none is good).',
-                           f"Choose up to {need} option(s), at least 25 seconds apart in the video.\n{listing}")
+                           f"Choose up to {need} option(s), at least 25 seconds apart in the video.\n{listing}", tag="punchin")
                 picks = [int(x) for x in (v.get("picks") or [])][:need]
                 llm_ok = True
             except Exception as ex:
@@ -474,7 +474,7 @@ class Plan:
                            "show-specific terms); never rephrase, never add or drop words. Reply ONLY JSON {\"fixed\":[...]} with "
                            "the same number of strings in the same order.",
                            f"Shows: {shows}\nNames/terms in the script: {', '.join(names)}\n" +
-                           json.dumps([r["said"] for r in res], ensure_ascii=False))
+                           json.dumps([r["said"] for r in res], ensure_ascii=False), tag="names")
                 fx = (v.get("fixed") if isinstance(v, dict) else v) or []      # the model sometimes replies a bare list
                 if len(fx) == len(res):
                     for r, f in zip(res, fx):

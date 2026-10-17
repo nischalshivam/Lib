@@ -140,7 +140,11 @@ class Grounder:
                 near += [k for k in keys if re.match(r"S\d{2}E\d{2}", k[1]) and int(k[1][1:3]) == s_
                          and 0 < abs(int(k[1][4:6]) - e_) <= 2]
         best = None
-        for tier, pool in ((0, near), (1, keys)):
+        # keywords only (no quote): trust the script writer's episode - ChatGPT's episode is right 96-99 % when its
+        # quotes are checked, while keywords alone jumped seasons (Reacher 18/20 refs 2026-10-17: S01 lines grounded
+        # in S04E01). A quote may still search the whole show.
+        tiers = ((0, near),) if near and not _toks(quote) else ((0, near), (1, keys))
+        for tier, pool in tiers:
             for k in pool:
                 sh = self.lib.eps[k]["shots"]
                 for i in range(len(sh)):
@@ -322,7 +326,7 @@ def build(ctx: dict, log=print) -> str:
         if ext is not None:
             refs, m1 = {"refs": [r for j in idx for r in ext.get(j, [])]}, "refs.json"
         else:
-            refs, m1 = llm(sys_resolve, f"{before}\n\nLINES:\n{body}")
+            refs, m1 = llm(sys_resolve, f"{before}\n\nLINES:\n{body}", tag="resolve")
         anchors = []
         for r in refs.get("refs", []):
             g = G.ground(r.get("show"), r.get("ep"), r.get("quote"), r.get("keywords"))
@@ -357,7 +361,7 @@ def build(ctx: dict, log=print) -> str:
                        f"{s['description'][:90]} | \"{(s.get('dialogue') or '')[:70]}\""
                        for s in sorted(cands.values(), key=lambda s: (s['ep'], s['start'])))
         plan, m2 = llm(sys_plan, f"SCRIPT LINES:\n{body}\n\nGROUNDED REFERENCES:\n{json.dumps(refs.get('refs', []), ensure_ascii=False)[:6000]}"
-                                 f"\n\nCANDIDATE SHOTS ({len(cands)}):\n{cl or '(none)'}")
+                                 f"\n\nCANDIDATE SHOTS ({len(cands)}):\n{cl or '(none)'}", tag="plan")
         models_used.extend([m1, m2])
         return bi, refs, plan, len(cands)
 

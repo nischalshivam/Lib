@@ -1,9 +1,18 @@
 """python -m editv2 build  <clean.txt> [--audio a.wav] [--lang en] [--look auto|A|B|C] [--out dir] [--save dir] [--voice-ref ref.wav]
 python -m editv2 clues  <folder of clean .txt> [--lang en]
 python -m editv2 styles  (rebuild the show typography preview)"""
-import argparse, sys
+import argparse, os, sys
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+# 2026-10-17: agy is off for good; the Movie Editor uses the paid provider in editv2/provider.json (only THIS entry
+# point turns it on, so other tools that import editv2.common never bill the key). EDITV2_PROVIDER=0 = old proxy.
+os.environ.setdefault("EDITV2_PROVIDER", "1")
+if os.environ["EDITV2_PROVIDER"] == "0":
+    del os.environ["EDITV2_PROVIDER"]
+if len(sys.argv) > 2 and sys.argv[1] == "build":     # per-video usage ledger: <build dir>/api_usage.jsonl
+    _o = next((sys.argv[i + 1] for i, x in enumerate(sys.argv[:-1]) if x == "--out"), "")
+    _p = os.path.abspath(sys.argv[2])
+    os.environ.setdefault("EDITV2_BUILD", _o or os.path.join(os.path.dirname(_p), os.path.splitext(os.path.basename(_p))[0] + "_v2build"))
 from . import pipeline  # noqa: E402
 
 ap = argparse.ArgumentParser(prog="editv2")

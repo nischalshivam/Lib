@@ -77,13 +77,13 @@ def style(key: str, show: str, log=print) -> dict:
                    'weight, width, texture/distress, era). Also: is the logo set in ALL CAPS? And give one accent '
                    'colour (hex) that represents the show\'s branding (from the logo if it has colour). '
                    'Reply ONLY JSON {"best":[n,n],"caps":true|false,"accent":"#RRGGBB","why":"<short>"}',
-                   _sheet(show, lg, fonts, upper=True))
+                   _sheet(show, lg, fonts, upper=True), tag="style")
     if not v or not v.get("best"):
         # no logo: ask for a mood-based pick from the same sheet without a logo
         v = vision(f'Numbered font samples. Which 2 fonts best match the mood/era of the TV show or film "{show}"? '
                    'Also an accent colour hex that fits its look, and whether its title is usually in caps. '
                    'Reply ONLY JSON {"best":[n,n],"caps":true|false,"accent":"#RRGGBB","why":"<short>"}',
-                   _sheet(show, None, fonts, upper=True)) or {"best": [fonts.index("Montserrat_wght.ttf") + 1], "caps": True,
+                   _sheet(show, None, fonts, upper=True), tag="style") or {"best": [fonts.index("Montserrat_wght.ttf") + 1], "caps": True,
                                                               "accent": "#F2C230"}
     pick = fonts[int(v["best"][0]) - 1] if 1 <= int(v["best"][0]) <= len(fonts) else "Montserrat_wght.ttf"
     st = {"key": key, "show": show, "font": pick, "accent": v.get("accent") or "#F2C230", "upper": bool(v.get("caps", True)),
