@@ -561,6 +561,24 @@ def _omnivoice_ensure(api, log):
     2026-10-16: two batch builds found it down in the same second and BOTH started one (two models in VRAM, the
     second on the wrong port) - the start decision is now taken under a cross-process lock, and a server another
     build has just started (model still loading = 'down') is waited for, never started a second time."""
+    st, why = _omnivoice_start_locked(api, log)
+    t0, last = time.time(), 0.0
+    while st != "ready" and time.time() - t0 < 900:
+        time.sleep(5)
+        st, why = _omnivoice_state(api)
+        if time.time() - last > 60 and st != "ready":
+            log(f"  [voiceover] waiting for OmniVoice ({st}: {why[:80]})")
+            last = time.time()
+    if st != "ready":
+        raise RuntimeError(f"OmniVoice voice server not ready after 15 min ({st}: {why}) - "
+                           "open omnivoice-wrapper/run.bat and check its window")
+    log(f"  [voiceover] OmniVoice ready")
+
+
+def _omnivoice_start_locked(api, log):
+    """start the server only if it is down / broken AND nobody else is starting it - decided under the cross-process
+    lock. 2026-10-19: the batch's pre-start (_build_v2) called _omnivoice_restart directly, so the two parallel
+    online builds started TWO servers again (two models in VRAM all day; a 4,200-word voice then timed out)."""
     st, why = _omnivoice_state(api)
     if st in ("down", "broken"):
         import msvcrt
@@ -589,17 +607,7 @@ def _omnivoice_ensure(api, log):
             except OSError:
                 pass
             lk.close()
-    t0, last = time.time(), 0.0
-    while st != "ready" and time.time() - t0 < 900:
-        time.sleep(5)
-        st, why = _omnivoice_state(api)
-        if time.time() - last > 60 and st != "ready":
-            log(f"  [voiceover] waiting for OmniVoice ({st}: {why[:80]})")
-            last = time.time()
-    if st != "ready":
-        raise RuntimeError(f"OmniVoice voice server not ready after 15 min ({st}: {why}) - "
-                           "open omnivoice-wrapper/run.bat and check its window")
-    log(f"  [voiceover] OmniVoice ready")
+    return st, why
 
 
 def _render_capturing() -> bool:
@@ -765,7 +773,7 @@ def _build_v2(job: "Job", log, on_proc, stop, until=None) -> "Job":
             api = (os.environ.get("OMNIVOICE_API") or "http://127.0.0.1:8001").rstrip("/")
             try:
                 if _omnivoice_state(api)[0] == "down":
-                    _omnivoice_restart(log)
+                    _omnivoice_start_locked(api, log)       # never a second server (2026-10-19)
             except Exception as exc:
                 log(f"  [voiceover] could not pre-start OmniVoice ({exc}) - the voice stage will retry")
     if job.save_dir:
