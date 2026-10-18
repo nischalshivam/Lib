@@ -210,7 +210,7 @@ def _gemini(body: dict, timeout: int) -> str:
     kind = body.get("tag") or "default"
     kinds = cfg.get("kinds", {})
     k = dict(kinds.get("default", {}), **kinds.get(kind, {}))
-    model = body["model"]
+    model = kinds.get(kind, {}).get("model") or body["model"]      # per-kind model (2026-10-18: verify on 2.5)
     system, parts = [], []
     for m in body["messages"]:
         items = m["content"] if isinstance(m["content"], list) else [{"type": "text", "text": m["content"]}]
@@ -236,7 +236,7 @@ def _gemini(body: dict, timeout: int) -> str:
     if system:
         req["systemInstruction"] = {"parts": system}
     # cost guard (user, 2026-10-17: "isse jayada na jaye costing"): a typical video is ~$1-1.8 at list price
-    cap = float(cfg.get("max_usd_per_video", 5.0))
+    cap = float(os.environ.get("EDITV2_MAX_USD") or cfg.get("max_usd_per_video", 5.0))   # env = one-off override
     with _LOG_LOCK:
         if _SPENT[0] is None:
             _SPENT[0] = api_cost(os.environ["EDITV2_BUILD"])[1] if os.environ.get("EDITV2_BUILD") else 0.0
