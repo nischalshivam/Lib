@@ -6,8 +6,8 @@
  "text_model": "gemini-3.8-flash",
  "vision_model": "gemini-3.8-flash",
  "max_parallel": 8,
- "warn_usd_per_video": 2.5,
- "max_usd_per_video": 5.0,
+ "warn_usd_per_video": 4.0,
+ "max_usd_per_video": 8.0,
  "kinds": {
   "default": {"thinking": "low", "media": "medium", "think_room": 4096},
   "plan": {"thinking": "low", "think_room": 16384},

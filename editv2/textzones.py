@@ -2,7 +2,7 @@
 Scans the first 300 s and the last 90 s of an episode at 1 fps in 4x4 grids;
 Gemini marks frames with credits/titles. Cached forever in text_zones.json,
 so every later video that uses the episode gets it for free."""
-import base64, io, json, os, subprocess, sys, urllib.request
+import base64, io, json, os, subprocess, sys, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 try:                                     # shared cache: several builds read/write it at once (2026-10-13 crash in cut)
     from .common import json_read, json_update
@@ -102,11 +102,52 @@ def _ask(video, t0):
         return None
 
 
+_MEMO, _KEYLOCKS, _GUARD = {}, {}, __import__("threading").Lock()
+
+
 def zones(video, log=print):
-    cache = json_read(CACHE, {})
+    """2026-10-18: cut asks for every CLIP - an episode whose scan had one failed check was never cached and was scanned
+    again for each clip, by 8 threads and by both parallel builds at once (Mentalist O'Laughlin: 977 zone calls,
+    ~$3.8). Now: one scan per episode - memo in this build, a lock per episode across builds, and the result is cached
+    even when a check failed (those 16 s count as 'no text'; the catalogue's own text/safe flags still apply)."""
     key = os.path.basename(video)
-    if key in cache:
-        return cache[key]
+    if key in _MEMO:
+        return _MEMO[key]
+    with _GUARD:
+        kl = _KEYLOCKS.setdefault(key, __import__("threading").Lock())
+    with kl:
+        if key in _MEMO:
+            return _MEMO[key]
+        cache = json_read(CACHE, {})
+        if key in cache:
+            _MEMO[key] = cache[key]
+            return cache[key]
+        import hashlib, msvcrt
+        lpth = os.path.join(os.path.dirname(CACHE), "zones_" + hashlib.md5(key.encode()).hexdigest()[:12] + ".lock")
+        with open(lpth, "a+") as lk:                 # the other build scanning this episode: wait for its result
+            for _ in range(1800):
+                try:
+                    msvcrt.locking(lk.fileno(), msvcrt.LK_NBLCK, 1)
+                    break
+                except OSError:
+                    time.sleep(1)
+            try:
+                cache = json_read(CACHE, {})
+                if key in cache:
+                    _MEMO[key] = cache[key]
+                    return cache[key]
+                iv = _scan(video, key, log)
+                _MEMO[key] = iv
+                return iv
+            finally:
+                try:
+                    lk.seek(0)
+                    msvcrt.locking(lk.fileno(), msvcrt.LK_UNLCK, 1)
+                except OSError:
+                    pass
+
+
+def _scan(video, key, log):
     dur = _dur(video)
     starts = list(range(0, min(300, int(dur)), 16)) + list(range(max(0, int(dur) - 90), max(1, int(dur) - 17), 16))
     with ThreadPoolExecutor(8) as ex:
@@ -121,9 +162,8 @@ def zones(video, log=print):
             iv[-1][1] = b
         else:
             iv.append([a, b])
-    if failed:                            # never cache a partly blind scan: the next build asks again
-        log(f"  text zones {key[:50]}: {failed}/{len(starts)} checks failed - not cached")
-        return iv
+    if failed:
+        log(f"  text zones {key[:50]}: {failed}/{len(starts)} checks failed - cached anyway (no re-billing per clip)")
     json_update(CACHE, lambda d: d.__setitem__(key, iv))
     log(f"  text zones {key[:50]}: {[(round(a), round(b)) for a, b in iv]}")
     return iv
