@@ -117,10 +117,20 @@ def render(build, log=print):
     # 2026-10-15: a comp with 260-313 clips hangs Chrome (see parts.py) -> long comps render in ~5-min parts
     from . import parts as _parts
     plist = _parts.write(comp, FPS, log)
+    # 2026-10-18: HyperFrames makes its temp folder NEXT TO the output file; with a long topic name twice in the build
+    # path (Mentalist 'Fugue in Red', 87 chars) that passed Windows' 260-char limit (ENAMETOOLONG, mkdtemp). Renders
+    # now go to a short folder per build (D:\hfr\<id>); the parts stay there across retries, the result moves back.
+    import hashlib
+    short = os.path.join(os.path.splitdrive(os.path.abspath(build))[0] + "\\", "hfr",
+                         hashlib.md5(os.path.abspath(build).lower().encode()).hexdigest()[:10])
+    os.makedirs(short, exist_ok=True)
     if not plist:
-        _render_target(hf, build, None, out, want, None, rlog, log)
+        tmp_out = os.path.join(short, "silent.mp4")
+        _render_target(hf, build, None, tmp_out, want, None, rlog, log)
+        if os.path.exists(tmp_out):
+            shutil.move(tmp_out, out)
     else:
-        pdir = os.path.join(build, "parts")
+        pdir = os.path.join(short, "parts")
         os.makedirs(pdir, exist_ok=True)
         idx_time = os.path.getmtime(os.path.join(comp, "index.html"))
         for k, (name, f0, f1) in enumerate(plist):
@@ -135,7 +145,7 @@ def render(build, log=print):
         _concat([os.path.join(pdir, f"part_{k:02d}.mp4") for k in range(len(plist))], out)
         if _frames(out) != plist[-1][2]:
             raise RuntimeError(f"joined render has {_frames(out)} frames, the comp {plist[-1][2]} (full log: {rlog})")
-        shutil.rmtree(pdir, ignore_errors=True)    # ~2.4 GB for a 29-min video; silent.mp4 is the render now
+        shutil.rmtree(short, ignore_errors=True)   # ~2.4 GB for a 29-min video; silent.mp4 is the render now
     if not (os.path.exists(out) and _duration(out) >= (want - 1.0 if want else 1.0)):
         raise RuntimeError(f"HyperFrames render is {_duration(out):.0f}s, the voiceover {want:.0f}s (full log: {rlog})")
     log(f"  render: {time.time() - t:.0f}s, {_duration(out):.0f}s of video")
