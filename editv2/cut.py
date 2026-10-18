@@ -186,6 +186,17 @@ class Cutter:
                 self._dark[key] = False
         return self._dark[key]
 
+    def _clip_luma(self, path):
+        """mean brightness (0-255) of 3 frames of a finished clip; 255 when it cannot be read (no false alarm)."""
+        try:
+            r = subprocess.run(["ffmpeg", "-hide_banner", "-i", path, "-vf", "fps=1,scale=64:36,signalstats,"
+                                "metadata=print:key=lavfi.signalstats.YAVG", "-frames:v", "3", "-f", "null", "-"],
+                               capture_output=True, text=True, encoding="utf-8", errors="replace")
+            ys = [float(x) for x in re.findall(r"YAVG=([\d.]+)", r.stderr)]
+            return sum(ys) / len(ys) if ys else 255.0
+        except Exception:                                                   # noqa: BLE001
+            return 255.0
+
     def clean_span(self, video, a, b):
         """Longest stretch of [a-0.3, b+0.3] with no real picture cut inside (0.08 s margins)."""
         a0, b0 = max(0.0, a - 0.3), b + 0.3
@@ -385,6 +396,9 @@ class Cutter:
                 for nx in self.next_safe(video, last_end + 60):
                     a, b = self.clean_span(video, nx["start"], nx["end"])
                     got = self.claim(video, a, b, need - have, min_len=0.8)
+                    # 2026-10-18: this branch had no dark check - Mentalist LaRoche got 4 black stretches (~12 s)
+                    if got and (self.dark(video, got[0] + 0.25) or self.dark(video, (got[0] + got[1]) / 2)):
+                        continue
                     if got:
                         pieces.append((got[0], got[1] - got[0], 1.0))
                         have += got[1] - got[0]
@@ -404,6 +418,17 @@ class Cutter:
             fc.append("".join(f"[p{j}]" for j in range(len(pieces))) + f"concat=n={len(pieces)}:v=1:a=0[out]")
             subprocess.run(["ffmpeg", "-v", "error", "-y", *args, "-filter_complex", ";".join(fc), "-map", "[out]",
                             "-an", "-c:v", "libx264", "-preset", "fast", "-g", str(FPS), "-crf", "18", "-t", f"{need:.3f}", o], check=True)
+            # last guard (2026-10-18, black stretches in 4 Mentalist videos): a clip that came out (nearly) black is
+            # rebuilt from the item's OWN shot, held on its last frame - a still moment beats a black screen
+            if self._clip_luma(o) < 15:
+                own = (start, min(need, max(0.5, c1 - start)))
+                self.log(f"  clip {k:03d}{tag}: came out black - rebuilt from its own shot")
+                subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{own[0]:.3f}", "-t", f"{own[1] + 0.2:.3f}", "-i", lp(src),
+                                "-vf", "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,eq=contrast=1.04:"
+                                f"saturation=1.03,fps={FPS},setsar=1,format=yuv420p,trim=duration={own[1]:.3f},"
+                                f"tpad=stop_mode=clone:stop_duration={max(0.0, need - own[1]) + 0.2:.3f}",
+                                "-an", "-c:v", "libx264", "-preset", "fast", "-g", str(FPS), "-crf", "18", "-t", f"{need:.3f}", o],
+                               check=True)
             self.trim_edges(o, need)
             outs.append((tag, o))
         return k, outs
