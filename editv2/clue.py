@@ -29,6 +29,9 @@ class Library:
 
     def __init__(self, shows):
         self.eps, self.show_name = {}, {}
+        # a two-part finale in ONE file ("The Mentalist S03E23E24 ...", "7x12-13"): its second code points to the first,
+        # so a ref to S03E24 lands in that file (2026-10-18: 6 Mentalist scripts used S03E24 / S07E13)
+        self.alias = {}
         for sh in shows:
             self.show_name[sh["key"]] = sh["name"]
             films = 0
@@ -61,6 +64,11 @@ class Library:
                     s["sid"] = f"{sh['key']}:{ep}_{i:03d}"
                     s["ep"] = key
                 self.eps[key] = {"video": video, "catalog": f, "title": title, "shots": shots, "cues": cues}
+                mm = re.search(r"S(\d{2})E(\d{2})((?:[-_ ]?E\d{2})+)|\b(\d{1,2})x(\d{2})((?:-\d{2})+)\b", base, re.I)
+                if mm:
+                    s_ = int(mm.group(1) or mm.group(4))
+                    for e2 in re.findall(r"\d{2}", mm.group(3) or mm.group(6)):
+                        self.alias.setdefault((sh["key"], f"S{s_:02d}E{int(e2):02d}"), key)
         self.by_sid = {s["sid"]: s for e in self.eps.values() for s in e["shots"]}
 
     def episode_list(self, key):
@@ -350,6 +358,8 @@ def external_refs(paths, ctx, lines, lib, log=print):
                 r = dict(r, **{f: [x.strip() for x in re.split(r"[,;]", r[f]) if x.strip()]})
         key = show_key(r.get("show"), r.get("ep"))
         code = ep_code(key, r.get("ep")) if key else None
+        if code and (key, code) not in lib.eps and (key, code) in getattr(lib, "alias", {}):
+            code = lib.alias[(key, code)][1]         # second half of a two-part finale file
         if key and not code and r.get("ep") and not re.search(r"S\d{1,2}\s*E\d|\d{1,2}x\d|season", str(r["ep"]), re.I):
             other.add(_norm(r.get("ep")))            # a film we do not have under this show: not grounded at all
             key = None
