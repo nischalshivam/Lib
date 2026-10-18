@@ -12,6 +12,7 @@ from . import textzones
 
 # per video (2026-10-14): clip cutting is ffmpeg/CPU, the burned-text check is one Gemini call per clip
 CUT_THREADS = int(os.environ.get("EDITV2_CUT_THREADS", "8"))
+DARK_LUMA = 18.0          # mean YAVG under this = a (nearly) black clip (QA blackdetect pix_th 0.06 ~ 15)
 TEXT_THREADS = int(os.environ.get("EDITV2_TEXT_THREADS", "16"))
 
 
@@ -34,6 +35,7 @@ class Cutter:
                 self.REPL.append((t0, t1, d, s))           # the original moment replaces the line
         self.REPL.sort(key=lambda r: r[0])
         self._cat, self._dark = {}, {}
+        self._src = {}                      # clip path -> (source video, start, own length, need) for debright
         self._used, self._lock, self._still_hashes = {}, threading.Lock(), []     # every second of source is shown ONCE per video
 
     # ---------------------------------------------------------------- time map
@@ -174,17 +176,17 @@ class Cutter:
     def zones(self, video):
         return textzones.zones(video, log=lambda *a: None)
 
-    def dark(self, video, t):
-        """Act-break fade / black frame (catalog shots don't say so)."""
+    def dark(self, video, t, th=30.0):
+        """Act-break fade / black frame (catalog shots don't say so). th=DARK_LUMA: only (nearly) black, not moody."""
         key = (video, round(t, 1))
         if key not in self._dark:
             try:
                 from PIL import Image, ImageStat
                 im = Image.open(io.BytesIO(frame_jpeg(video, t, 160))).convert("L")
-                self._dark[key] = ImageStat.Stat(im).mean[0] < 30
+                self._dark[key] = ImageStat.Stat(im).mean[0]
             except Exception:
-                self._dark[key] = False
-        return self._dark[key]
+                self._dark[key] = 255.0
+        return self._dark[key] < th
 
     def _clip_luma(self, path):
         """mean brightness (0-255) of 3 frames of a finished clip; 255 when it cannot be read (no false alarm)."""
@@ -196,6 +198,61 @@ class Cutter:
             return sum(ys) / len(ys) if ys else 255.0
         except Exception:                                                   # noqa: BLE001
             return 255.0
+
+    def _hold(self, src, ss, ln, need, o):
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{ss:.3f}", "-t", f"{ln + 0.2:.3f}", "-i", lp(src),
+                        "-vf", "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,eq=contrast=1.04:"
+                        f"saturation=1.03,fps={FPS},setsar=1,format=yuv420p,trim=duration={ln:.3f},"
+                        f"tpad=stop_mode=clone:stop_duration={max(0.0, need - ln) + 0.2:.3f}",
+                        "-an", "-c:v", "libx264", "-preset", "fast", "-g", str(FPS), "-crf", "18", "-t", f"{need:.3f}", o],
+                       check=True)
+
+    def debright(self, o, name):
+        """(Nearly) black clip -> own shot -> nearest bright shot. Also run after the text fix (its blur darkens)."""
+        if o not in self._src or self._clip_luma(o) >= DARK_LUMA:
+            return False
+        src, start, own_len, need = self._src[o]
+        if not self.dark(src, start + 0.25, DARK_LUMA) and not self.dark(src, start + own_len / 2, DARK_LUMA):
+            self._hold(src, start, own_len, need, o)
+            if self._clip_luma(o) >= DARK_LUMA:
+                self.log(f"  clip {name}: came out black - rebuilt from its own shot")
+                return True
+        t = self.bright_near(src, start)
+        if t is not None:
+            self._hold(src, t, min(need, 4.0), need, o)
+            self.log(f"  clip {name}: came out black (own shot is dark too) - rebuilt from the nearest bright shot @{t:.0f}s")
+            return True
+        self.log(f"  clip {name}: came out black - no bright shot nearby, left as is")
+        return False
+
+    def bright_near(self, video, t, span=240.0, ok=None):
+        """Start time of the nearest catalogued shot around t that is safe and NOT dark (unshown first), else None.
+        ok(t) can reject a candidate (stills: same picture as one already used).
+        2026-10-19 Code Red: the item's own shot was a night road (luma 13) - rebuilding from it stayed black."""
+        zones = self.zones(video)
+        cands = []
+        for s in self.cat(video):
+            mid = (s["start"] + s["end"]) / 2
+            if abs(mid - t) > span or s["end"] - s["start"] < 1.0 or s.get("safe") is False:
+                continue
+            if any(s["start"] < b and s["end"] > a for a, b in zones):
+                continue
+            if re.search(r"black (screen|frame)|fade[sd]? (to|out|in)|title card|credits", (s.get("description") or "").lower()):
+                continue
+            cands.append((abs(mid - t), s))
+        cands.sort(key=lambda x: x[0])
+        fallback = None
+        for _, s in cands[:30]:
+            a, b = s["start"] + 0.15, s["end"] - 0.15
+            if self.dark(video, a + 0.25) or self.dark(video, (a + b) / 2):
+                continue
+            if ok is not None and not ok(a + 0.5):
+                continue
+            got = self.claim(video, a, b, b - a, min_len=0.8)
+            if got:
+                return got[0]
+            fallback = fallback if fallback is not None else a
+        return fallback
 
     def clean_span(self, video, a, b):
         """Longest stretch of [a-0.3, b+0.3] with no real picture cut inside (0.08 s margins)."""
@@ -337,6 +394,18 @@ class Cutter:
                 if not similar:
                     t = alt
                     break
+            if self.dark(video, t, DARK_LUMA):          # 2026-10-19 Code Red: a night still (mean 2.6) = 4 s of black
+                def fresh(x):
+                    h = self.dhash(video, x)
+                    with self._lock:
+                        if any(bin(h ^ h2).count("1") <= 10 for h2 in self._still_hashes):
+                            return False
+                        self._still_hashes.append(h)
+                    return True
+                tb = self.bright_near(video, t, ok=fresh)
+                if tb is not None:
+                    self.log(f"  still {k:03d}: picked frame is dark - using the nearest bright shot @{tb:.0f}s")
+                    t = tb + 0.5
             o = os.path.join(self.A, f"c{k:03d}s.jpg")
             subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t:.3f}", "-i", lp(video), "-frames:v", "1",
                             "-vf", "scale=2112:1188:force_original_aspect_ratio=increase:flags=lanczos,crop=2112:1188,"
@@ -419,16 +488,9 @@ class Cutter:
             subprocess.run(["ffmpeg", "-v", "error", "-y", *args, "-filter_complex", ";".join(fc), "-map", "[out]",
                             "-an", "-c:v", "libx264", "-preset", "fast", "-g", str(FPS), "-crf", "18", "-t", f"{need:.3f}", o], check=True)
             # last guard (2026-10-18, black stretches in 4 Mentalist videos): a clip that came out (nearly) black is
-            # rebuilt from the item's OWN shot, held on its last frame - a still moment beats a black screen
-            if self._clip_luma(o) < 15:
-                own = (start, min(need, max(0.5, c1 - start)))
-                self.log(f"  clip {k:03d}{tag}: came out black - rebuilt from its own shot")
-                subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{own[0]:.3f}", "-t", f"{own[1] + 0.2:.3f}", "-i", lp(src),
-                                "-vf", "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,eq=contrast=1.04:"
-                                f"saturation=1.03,fps={FPS},setsar=1,format=yuv420p,trim=duration={own[1]:.3f},"
-                                f"tpad=stop_mode=clone:stop_duration={max(0.0, need - own[1]) + 0.2:.3f}",
-                                "-an", "-c:v", "libx264", "-preset", "fast", "-g", str(FPS), "-crf", "18", "-t", f"{need:.3f}", o],
-                               check=True)
+            # rebuilt from the item's OWN shot, else (own shot is a night scene) from the nearest bright shot, held
+            self._src[o] = (src, start, min(need, max(0.5, c1 - start)), need)
+            self.debright(o, f"{k:03d}{tag}")
             self.trim_edges(o, need)
             outs.append((tag, o))
         return k, outs
@@ -489,7 +551,7 @@ class Cutter:
         # 2026-10-18: a short clip with text from frame 2 gave keep = -0.01 -> ffmpeg 'trim=duration=-0.010' failed the
         # whole cut stage (Mentalist 'disband the CBI'). Less than 0.4 s of clean picture: blur it like frame-1 text.
         if first == 1 or keep < 0.4:
-            vf = "gblur=sigma=28,eq=brightness=-0.22:saturation=0.7"
+            vf = "gblur=sigma=28,eq=brightness=-0.06:saturation=0.8"   # -0.22 turned night scenes black (Code Red)
             subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", path, "-vf", vf, "-an", "-c:v", "libx264", "-crf", "18", tmp], check=True)
         else:
             subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", path, "-vf",
@@ -522,6 +584,7 @@ class Cutter:
             if first:
                 fixed += 1
                 self.fix_text(p, first, ts)
+                self.debright(p, os.path.basename(p))
         self.log(f"  burned-in text found and fixed in {fixed} clips")
         st = dict(items=items, clips={str(k): v for k, v in CLIPS.items()}, total=total,
                   repl=[(a, b, d, s) for a, b, d, s in self.REPL], text_fixed=fixed)
