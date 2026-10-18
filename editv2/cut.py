@@ -484,11 +484,14 @@ class Cutter:
     def fix_text(self, path, first, ts):
         tmp = path + ".fix.mp4"
         dur = ts[-1] + 0.08
-        if first == 1:
+        first = max(1, min(int(first), len(ts)))
+        keep = (ts[first - 2] + ts[first - 1]) / 2 - 0.25 if first >= 2 else 0.0
+        # 2026-10-18: a short clip with text from frame 2 gave keep = -0.01 -> ffmpeg 'trim=duration=-0.010' failed the
+        # whole cut stage (Mentalist 'disband the CBI'). Less than 0.4 s of clean picture: blur it like frame-1 text.
+        if first == 1 or keep < 0.4:
             vf = "gblur=sigma=28,eq=brightness=-0.22:saturation=0.7"
             subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", path, "-vf", vf, "-an", "-c:v", "libx264", "-crf", "18", tmp], check=True)
         else:
-            keep = (ts[first - 2] + ts[first - 1]) / 2 - 0.25
             subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", path, "-vf",
                             f"trim=duration={keep:.3f},tpad=stop_mode=clone:stop_duration={dur - keep + 0.1:.3f}",
                             "-an", "-c:v", "libx264", "-crf", "18", "-t", f"{dur:.3f}", tmp], check=True)

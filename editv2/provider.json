@@ -11,10 +11,10 @@
  "kinds": {
   "default": {"thinking": "low", "media": "medium", "think_room": 4096},
   "plan": {"thinking": "low", "think_room": 16384},
-  "verify": {"thinking": "low", "media": "medium"},
-  "textcheck": {"thinking": "low", "media": "medium"},
-  "zones": {"thinking": "low", "media": "medium"},
-  "identity": {"thinking": "low", "media": "medium"},
+  "verify": {"model": "gemini-2.5-flash", "thinking": "none", "media": "medium"},
+  "textcheck": {"model": "gemini-2.5-flash", "thinking": "none", "media": "medium"},
+  "zones": {"model": "gemini-2.5-flash", "thinking": "none", "media": "medium"},
+  "identity": {"model": "gemini-2.5-flash", "thinking": "none", "media": "medium"},
   "style": {"thinking": "low", "media": "high"},
   "logo": {"thinking": "low", "media": "high"}
  },
