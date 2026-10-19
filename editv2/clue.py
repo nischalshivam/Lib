@@ -327,16 +327,36 @@ def foreign_refs(data):
     L = max(lists, key=len)
     if all("line" in r for r in L[:5]):
         return None
+
+    def kids_of(item):                         # B99 2026-10-19: paragraphs/beats -> scene_refs/shots inside each
+        for v in item.values():
+            if isinstance(v, list) and v and isinstance(v[0], dict) and any(
+                    "quote" in k.lower() or "dialogue" in k.lower() or "episode" in k.lower() for k in _flat(v[0])):
+                return v
+        return None
+    rows = []
+    if sum(1 for it in L if kids_of(it)) >= 0.5 * len(L):
+        for it in L:
+            kids = kids_of(it) or []
+            parent = {k: v for k, v in it.items() if not (isinstance(v, list) and v and isinstance(v[0], dict))}
+            pf = _flat(parent)
+            text = _pick(pf, ["narration_text_verbatim", "original_clean_narration", "narration_verbatim", "text_exact",
+                              "narration"], avoid=("seconds", "estimate", "basis", "count", "first_12", "first_words", "header"))
+            sents = split_lines(text) if text else []
+            for j, kid in enumerate(kids):
+                rows.append((pf, _flat(kid), sents[j * len(sents) // len(kids)] if sents else ""))
+    else:
+        rows = [({}, _flat(r), "") for r in L]
     out = []
-    for r in L:
-        f = _flat(r)
-        line = _pick(f, ["first_12", "first_words", "anchor_first", "anchor_exact", "start_exact", "start_words", "opening_exact",
-                         "cue_12", "narration_anchor", "sentence_exact", "exact_sentence", "narration_sentence", "sentence_full",
-                         "narration_context", "narration_excerpt", "narration.text", "script_sentence", "narration"],
-                     avoid=("paragraph_opening", "index", "number", "offset", "order", "alignment", "time", "word_count", "paragraph_ref"))
+    for pf, f, sent in rows:
+        line = _pick(f, ["sentence_first_12", "first_12", "first_words", "anchor_first", "anchor_exact", "start_exact", "start_words",
+                         "opening_exact", "cue_12", "narration_anchor", "sentence_exact", "exact_sentence", "narration_sentence",
+                         "sentence_full", "narration_context", "narration_excerpt", "narration.text", "script_sentence", "narration"],
+                     avoid=("paragraph_opening", "paragraph_first", "index", "number", "offset", "order", "alignment", "time",
+                            "word_count", "paragraph_ref", "note")) or sent or _pick(pf, ["first_12", "first_words"])
         ep = None
-        for w in ("episode_id", "episode", "ep"):
-            for k, v in f.items():
+        for w in ("episode_id", "episode", "season_episode", "ep"):
+            for k, v in list(f.items()) + list(pf.items()):
                 kl = k.lower().rsplit(".", 1)[-1]
                 if kl == w and isinstance(v, str) and re.search(r"S\d{1,2}\s*E\d{1,3}|\d{1,2}x\d{1,3}", v, re.I):
                     ep = v
@@ -344,10 +364,10 @@ def foreign_refs(data):
             if ep:
                 break
         ep = ep or _pick(f, ["episode_title", "film", "movie"])
-        quote = _pick(f, ["exact_subtitle_quote", "quote_exact", "dialogue_quote_verbatim", "text_exact", "verified_quote",
-                          "subtitle_quote", "quote_verbatim", "quote"],
+        quote = _pick(f, ["exact_subtitle_quote", "quote_exact", "dialogue_quote_verbatim", "exact_dialogue", "text_exact",
+                          "verified_quote", "subtitle_quote", "quote_verbatim", "quote"],
                       avoid=("count", "confidence", "status", "verification", "verified_in", "provenance", "time", "start", "end", "cue_", "reused",
-                             "note", "words", "source", "match", "first_used", "keyword", "callback", "scope", "external"))
+                             "note", "words", "source", "match", "first_used", "keyword", "callback", "scope", "external", "checked", "context"))
         if quote and len(quote.split()) < 2:
             quote = ""
         kws = _pick(f, ["keyword", "search_terms"], kind=list) or []
@@ -355,9 +375,9 @@ def foreign_refs(data):
                          "suggested_footage", "visual_search_brief", "shot_target", "visual_match_description", "visual_instruction",
                          "scene_at_subtitle_time", "visual", "what"],
                      avoid=("verified", "confidence", "verification", "level", "status", "needed"))
-        chars = _pick(f, ["character"], kind=list) or []
+        chars = _pick(f, ["character"], kind=list) or ([_pick(f, ["speaker"])] if _pick(f, ["speaker"]) else [])
         conf = (_pick(f, ["confidence"]) or "").lower()
-        out.append(dict(line=" ".join((line or "").split()[:12]), show=_pick(f, ["show"]) or "", ep=ep or "",
+        out.append(dict(line=" ".join((line or "").split()[:12]), show=_pick(f, ["show"]) or _pick(pf, ["show"]) or "", ep=ep or "",
                         quote=quote or "", keywords=kws[:5], what=(what or "")[:200], characters=chars[:4],
                         confidence="high" if conf.startswith("high") else "low" if conf.startswith("low") else "medium"))
     return out
