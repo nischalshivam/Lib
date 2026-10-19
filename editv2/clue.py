@@ -148,7 +148,9 @@ class Grounder:
         qw = _canon(quote)
         if not ep or not (len(qw) >= 3 or (len(qw) == 2 and min(map(len, qw)) >= 5)):
             return None
-        q = " ".join(qw)
+        # a quote of several joined cues (TAHM 2026-10-19: 15-25 words) is longer than the 3-cue window and never
+        # reached 0.85 - its first 12 words are enough to find the moment
+        q = " ".join(qw[:12])
         ep = ep.upper()
         keys = [k for k in self.lib.eps if k[0] == key]
         m = re.match(r"S(\d{2})E(\d{2})", ep)
@@ -300,7 +302,8 @@ def _pick(f, want, avoid=(), kind=str):
     for w in want:
         for k, v in f.items():
             kl = k.lower()
-            if w in kl and not any(a in kl for a in avoid):
+            # avoid is checked on the key WITHOUT the wanted part: 'editor_match_quote' is a quote, 'quote_match_method' not
+            if w in kl and not any(a in kl.replace(w, "|") for a in avoid):
                 if kind is str and isinstance(v, str) and v.strip() and v.strip().lower() not in ("none", "null", "true", "false", "n/a"):
                     return v.strip()
                 if kind is list and isinstance(v, list) and v:
@@ -364,7 +367,7 @@ def foreign_refs(data):
             if ep:
                 break
         ep = ep or _pick(f, ["episode_title", "film", "movie"])
-        quote = _pick(f, ["exact_subtitle_quote", "quote_exact", "dialogue_quote_verbatim", "exact_dialogue", "text_exact",
+        quote = _pick(f, ["exact_subtitle_quote", "match_quote", "quote_exact", "dialogue_quote_verbatim", "exact_dialogue", "text_exact",
                           "verified_quote", "subtitle_quote", "quote_verbatim", "quote"],
                       avoid=("count", "confidence", "status", "verification", "verified_in", "provenance", "time", "start", "end", "cue_", "reused",
                              "note", "words", "source", "match", "first_used", "keyword", "callback", "scope", "external", "checked", "context"))

@@ -210,7 +210,8 @@ def _gemini(body: dict, timeout: int) -> str:
     kind = body.get("tag") or "default"
     kinds = cfg.get("kinds", {})
     k = dict(kinds.get("default", {}), **kinds.get(kind, {}))
-    model = kinds.get(kind, {}).get("model") or body["model"]      # per-kind model (2026-10-18: verify on 2.5)
+    model = (os.environ.get(f"EDITV2_MODEL_{kind.upper()}") or kinds.get(kind, {}).get("model")
+             or body["model"])                                     # per-kind model (2026-10-18: verify on 2.5); env = A/B
     system, parts = [], []
     for m in body["messages"]:
         items = m["content"] if isinstance(m["content"], list) else [{"type": "text", "text": m["content"]}]

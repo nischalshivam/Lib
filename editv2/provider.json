@@ -9,15 +9,55 @@
  "warn_usd_per_video": 4.0,
  "max_usd_per_video": 8.0,
  "kinds": {
-  "default": {"thinking": "low", "media": "medium", "think_room": 4096},
-  "plan": {"thinking": "low", "think_room": 16384},
-  "verify": {"model": "gemini-2.5-flash", "thinking": "none", "media": "medium"},
-  "textcheck": {"model": "gemini-2.5-flash", "thinking": "none", "media": "medium"},
-  "zones": {"model": "gemini-2.5-flash", "thinking": "none", "media": "medium"},
-  "identity": {"model": "gemini-2.5-flash", "thinking": "none", "media": "medium"},
-  "style": {"thinking": "low", "media": "high"},
-  "logo": {"thinking": "low", "media": "high"}
+  "default": {
+   "thinking": "low",
+   "media": "medium",
+   "think_room": 4096
+  },
+  "plan": {
+   "model": "gemini-2.5-flash",
+   "thinking": "medium",
+   "think_room": 16384,
+   "_note": "2026-10-19: 3.8 plan thinking spiked to 250-480k tokens/video on openlux ($1.3-2.1); 2.5 with a 4096 budget = $0.26-0.34. Back to 3.8 = delete the model line."
+  },
+  "verify": {
+   "model": "gemini-2.5-flash",
+   "thinking": "none",
+   "media": "medium"
+  },
+  "textcheck": {
+   "model": "gemini-2.5-flash",
+   "thinking": "none",
+   "media": "medium"
+  },
+  "zones": {
+   "model": "gemini-2.5-flash",
+   "thinking": "none",
+   "media": "medium"
+  },
+  "identity": {
+   "model": "gemini-2.5-flash",
+   "thinking": "none",
+   "media": "medium"
+  },
+  "style": {
+   "thinking": "low",
+   "media": "high"
+  },
+  "logo": {
+   "thinking": "low",
+   "media": "high"
+  }
  },
- "est_price_per_1m_usd": {"gemini-3.8-flash": [0.75, 3.75], "gemini-2.5-flash": [0.30, 2.50],
-                          "note": "Google list prices (output includes thinking); openlux bills its own rates - see its dashboard"}
+ "est_price_per_1m_usd": {
+  "gemini-3.8-flash": [
+   0.75,
+   3.75
+  ],
+  "gemini-2.5-flash": [
+   0.3,
+   2.5
+  ],
+  "note": "Google list prices (output includes thinking); openlux bills its own rates - see its dashboard"
+ }
 }
