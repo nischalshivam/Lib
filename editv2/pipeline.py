@@ -467,16 +467,44 @@ def build(clean, out_dir="", audio="", language="en", look="auto", save_dir="", 
         log(f"\nONLINE PHASE DONE - everything that needs the internet is saved ({(time.time() - T) / 60:.1f} min); "
             "render / mix / QA can run offline")
         return f"ONLINE-DONE {out_dir}"
-    stage("render (HyperFrames)")
-    with _render_gpu_guard(out_dir, log):
-        silent = render(out_dir, log)
-    stage("mix")
-    # short name inside the build: "<topic>_v2build\<topic>.mp4" passed Windows' 260-char limit for long topic names
-    # (The Wire 2026-10-14: the copy to Final Videos failed and the batch marked a finished video "failed")
+    # final = <build>\final.mp4 (short name: "<topic>_v2build\<topic>.mp4" passed Windows' 260-char limit for long topic
+    # names - The Wire 2026-10-14: the copy to Final Videos failed and the batch marked a finished video "failed")
     final = os.path.join(out_dir, "final.mp4")
-    _mix.run(ctx, silent, final, log)
-    stage("QA")
-    R = _qa.run(ctx, final, log)
+    for attempt in (0, 1):
+        stage("render (HyperFrames)")
+        with _render_gpu_guard(out_dir, log):
+            silent = render(out_dir, log)
+        stage("mix")
+        _mix.run(ctx, silent, final, log)
+        stage("QA")
+        R = _qa.run(ctx, final, log)
+        # 2026-10-19 (user rule): a black gap longer than BLACK_REDO_S is visible and bad -> patch those clips from a
+        # bright shot and render once more. Shorter gaps and every other QA warning are accepted (re-rendering every
+        # video for a 0.6-s blink costs ~35 min each).
+        big = [(a, b) for a, b in R.get("black", []) if a > 0.5 and b - a > BLACK_REDO_S]
+        if not big or attempt:
+            if big:
+                log(f"  WARN: black gap(s) over {BLACK_REDO_S:.0f} s remain after the automatic fix: {[(round(a), round(b - a, 1)) for a, b in big]}")
+            break
+        log(f"  black gap(s) over {BLACK_REDO_S:.0f} s at {[(round(a), round(b - a, 1)) for a, b in big]} -> patching and rendering again")
+        from .cut import Cutter
+        try:
+            patched = Cutter(ctx, log).patch_black(big)
+        except Exception as e:                                                   # noqa: BLE001 - never lose a finished video
+            log(f"  black-gap patch failed ({type(e).__name__}: {e}) - delivering as is")
+            break
+        if not patched:
+            log("  nothing patchable - delivering as is")
+            break
+        for f in ("look.json", "comp", "parts", "silent.mp4"):
+            q = os.path.join(out_dir, f)
+            if os.path.isdir(q):
+                shutil.rmtree(q, ignore_errors=True)
+            elif os.path.exists(q):
+                os.remove(q)
+        from .look import Look
+        stage("look (effects + typography)")
+        Look(ctx, log).build()
     if save_dir:
         final = deliver(final, save_dir, topic_name(clean), os.path.join(out_dir, "QA.txt"), R["result"], log)
     log(f"\nDONE {final}  ({(time.time() - T) / 60:.1f} min, QA {R['result']})")
@@ -644,11 +672,11 @@ def _invalidate_changed(out_dir, clean, look, language, audio, voice_ref, log):
     # 2026-10-19: a re-cut (state.json rewritten, e.g. after a cut.py fix) left the OLD comp + silent.mp4 in place, so the
     # "fixed" Mentalist Code Red render reused the old picture in 2 min and still had the black gaps. A finished render
     # older than the cut it was made from is stale.
-    sj, ci = os.path.join(out_dir, "state.json"), os.path.join(out_dir, "comp", "index.html")
+    sj, ci = os.path.join(out_dir, "state.json"), os.path.join(out_dir, "look.json")      # look.json builds comp from state
     try:
         if os.path.exists(sj) and os.path.exists(ci) and os.path.getmtime(sj) > os.path.getmtime(ci):
-            log("  the cut is newer than the render files -> rebuilding: comp, parts, silent.mp4")
-            for f in ("comp", "parts", "silent.mp4"):
+            log("  the cut is newer than the look/render files -> rebuilding: look, comp, parts, silent.mp4")
+            for f in ("look.json", "comp", "parts", "silent.mp4"):
                 q = os.path.join(out_dir, f)
                 if os.path.isdir(q):
                     shutil.rmtree(q, ignore_errors=True)
@@ -667,6 +695,8 @@ def _invalidate_changed(out_dir, clean, look, language, audio, voice_ref, log):
             pass
     json.dump(cur, open(p, "w", encoding="utf-8"), indent=1)
 
+
+BLACK_REDO_S = float(os.environ.get("EDITV2_BLACK_REDO_S", "2.0"))    # QA black gap longer than this -> patch + one more render
 
 GENERIC = {"script", "clean", "narration", "final", "script_final", "clean_script", "voiceover", "text"}
 

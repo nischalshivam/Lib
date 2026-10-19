@@ -254,6 +254,39 @@ class Cutter:
             fallback = fallback if fallback is not None else a
         return fallback
 
+    def patch_black(self, gaps):
+        """QA found black gaps (>2 s, see pipeline.BLACK_REDO_S): rebuild every video clip / still under a gap from the
+        nearest bright shot of its own source. Same file names + same lengths, so state.json and the timing stay as they
+        are; the caller rebuilds look/comp/render. Returns how many clips were replaced."""
+        st = json.load(open(os.path.join(self.B, "state.json"), encoding="utf-8"))
+        n = 0
+        for k, it in enumerate(st["items"]):
+            if not any(it["o0"] < b + 0.3 and it["o1"] > a - 0.3 for a, b in gaps):
+                continue
+            for tag, path in st["clips"].get(str(k), []):
+                sid = it.get("sid") if tag in ("v", "s") else it.get({"l": "left", "r": "right"}.get(tag, ""))
+                if not sid or tag == "su" or not os.path.exists(path):
+                    continue
+                video = self.P.SH[sid]["video"]
+                c0, c1 = self.RR[sid]
+                tb = self.bright_near(video, (c0 + c1) / 2, span=300.0)
+                if tb is None:
+                    self.log(f"  black-gap patch: no bright shot near item {k} ({sid}) - left as is")
+                    continue
+                if path.endswith(".jpg"):
+                    subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{tb + 0.5:.3f}", "-i", lp(video), "-frames:v", "1",
+                                    "-vf", "scale=2112:1188:force_original_aspect_ratio=increase:flags=lanczos,crop=2112:1188,"
+                                           "unsharp=5:5:0.6,eq=contrast=1.04:saturation=1.04", "-q:v", "2", path], check=True)
+                else:
+                    dur = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", path],
+                                               capture_output=True, text=True).stdout or 0) or (it["o1"] - it["o0"] + 0.3)
+                    tmp = path + ".patch.mp4"
+                    self._hold(video, tb, min(dur, 4.0), dur, tmp)
+                    os.replace(tmp, path)
+                n += 1
+                self.log(f"  black-gap patch: item {k} {tag} @{it['o0']:.0f}s -> bright shot @{tb:.0f}s")
+        return n
+
     def clean_span(self, video, a, b):
         """Longest stretch of [a-0.3, b+0.3] with no real picture cut inside (0.08 s margins)."""
         a0, b0 = max(0.0, a - 0.3), b + 0.3
