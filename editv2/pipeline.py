@@ -641,6 +641,21 @@ def _invalidate_changed(out_dir, clean, look, language, audio, voice_ref, log):
                 shutil.rmtree(q, ignore_errors=True)
             elif os.path.exists(q):
                 os.remove(q)
+    # 2026-10-19: a re-cut (state.json rewritten, e.g. after a cut.py fix) left the OLD comp + silent.mp4 in place, so the
+    # "fixed" Mentalist Code Red render reused the old picture in 2 min and still had the black gaps. A finished render
+    # older than the cut it was made from is stale.
+    sj, ci = os.path.join(out_dir, "state.json"), os.path.join(out_dir, "comp", "index.html")
+    try:
+        if os.path.exists(sj) and os.path.exists(ci) and os.path.getmtime(sj) > os.path.getmtime(ci):
+            log("  the cut is newer than the render files -> rebuilding: comp, parts, silent.mp4")
+            for f in ("comp", "parts", "silent.mp4"):
+                q = os.path.join(out_dir, f)
+                if os.path.isdir(q):
+                    shutil.rmtree(q, ignore_errors=True)
+                elif os.path.exists(q):
+                    os.remove(q)
+    except OSError:
+        pass
     ctxp = os.path.join(out_dir, "ctx.json")             # ctx.json caches look + language too
     if os.path.exists(ctxp):
         try:
