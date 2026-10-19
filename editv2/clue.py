@@ -271,6 +271,8 @@ def refs_path(ctx):
     scripts = [f for f in glob.glob(os.path.join(glob.escape(topic), "*.txt")) if not f.lower().endswith("_qa.txt")]
     if not found and len(scripts) <= 1:          # one script in the folder: ChatGPT's own names count too
         found = sorted(p for p in glob.glob(os.path.join(glob.escape(topic), "*refs*.json")) if os.path.isfile(p))
+        if not found:                            # House 2026-10-19: "..._Editor_Clues_VERIFIED.json" - any json next to it
+            found = sorted(p for p in glob.glob(os.path.join(glob.escape(topic), "*.json")) if os.path.isfile(p))
     # one SET only: all parts (refs_part1, refs_part2 ... in number order) or the newest single file - an old
     # 'refs.json' beside a corrected 'refs (1).json' must not be merged into it (2026-10-17 audit)
     parts = [p for p in found if re.search(r"part\s*\d+", os.path.basename(p), re.I)]
@@ -281,6 +283,86 @@ def refs_path(ctx):
     return [max(singles, key=os.path.getmtime)] if singles else []
 
 
+def _flat(o, p=""):
+    out = {}
+    if isinstance(o, dict):
+        for k, v in o.items():
+            out.update(_flat(v, f"{p}.{k}" if p else str(k)))
+    elif isinstance(o, list) and (not o or not isinstance(o[0], (dict, list))):
+        out[p] = o
+    elif not isinstance(o, (dict, list)):
+        out[p] = o
+    return out
+
+
+def _pick(f, want, avoid=(), kind=str):
+    """first non-empty value whose key path contains one of `want` (in priority order) and none of `avoid`"""
+    for w in want:
+        for k, v in f.items():
+            kl = k.lower()
+            if w in kl and not any(a in kl for a in avoid):
+                if kind is str and isinstance(v, str) and v.strip() and v.strip().lower() not in ("none", "null", "true", "false", "n/a"):
+                    return v.strip()
+                if kind is list and isinstance(v, list) and v:
+                    return [str(x) for x in v if str(x).strip()]
+    return None
+
+
+def foreign_refs(data):
+    """2026-10-19 (House batch): ChatGPT chats invent their OWN refs schema (20 files, 20 shapes: 'references' /
+    'clues' lists, nested narration/footage/dialogue blocks, 'exact_subtitle_quote', 'episode_id' ...). The content is
+    good (quotes copied from our subtitle zip), so convert it to the v6 shape instead of making the user redo it.
+    Returns None when the data already is v6 (refs with a 'line' key)."""
+    lists = []
+
+    def walk(o):
+        if isinstance(o, list) and o and all(isinstance(x, dict) for x in o[:5]):
+            lists.append(o)
+        if isinstance(o, dict):
+            for v in o.values():
+                walk(v)
+    walk(data)
+    if not lists:
+        return None
+    L = max(lists, key=len)
+    if all("line" in r for r in L[:5]):
+        return None
+    out = []
+    for r in L:
+        f = _flat(r)
+        line = _pick(f, ["first_12", "first_words", "anchor_first", "anchor_exact", "start_exact", "start_words", "opening_exact",
+                         "cue_12", "narration_anchor", "sentence_exact", "exact_sentence", "narration_sentence", "sentence_full",
+                         "narration_context", "narration_excerpt", "narration.text", "script_sentence", "narration"],
+                     avoid=("paragraph_opening", "index", "number", "offset", "order", "alignment", "time", "word_count", "paragraph_ref"))
+        ep = None
+        for w in ("episode_id", "episode", "ep"):
+            for k, v in f.items():
+                kl = k.lower().rsplit(".", 1)[-1]
+                if kl == w and isinstance(v, str) and re.search(r"S\d{1,2}\s*E\d{1,3}|\d{1,2}x\d{1,3}", v, re.I):
+                    ep = v
+                    break
+            if ep:
+                break
+        ep = ep or _pick(f, ["episode_title", "film", "movie"])
+        quote = _pick(f, ["exact_subtitle_quote", "quote_exact", "dialogue_quote_verbatim", "text_exact", "verified_quote",
+                          "subtitle_quote", "quote_verbatim", "quote"],
+                      avoid=("count", "confidence", "status", "verification", "verified_in", "provenance", "time", "start", "end", "cue_", "reused",
+                             "note", "words", "source", "match", "first_used", "keyword", "callback", "scope", "external"))
+        if quote and len(quote.split()) < 2:
+            quote = ""
+        kws = _pick(f, ["keyword", "search_terms"], kind=list) or []
+        what = _pick(f, ["shot_description", "visual_scene_description", "shot_to_find", "visual_target", "visible_shot",
+                         "suggested_footage", "visual_search_brief", "shot_target", "visual_match_description", "visual_instruction",
+                         "scene_at_subtitle_time", "visual", "what"],
+                     avoid=("verified", "confidence", "verification", "level", "status", "needed"))
+        chars = _pick(f, ["character"], kind=list) or []
+        conf = (_pick(f, ["confidence"]) or "").lower()
+        out.append(dict(line=" ".join((line or "").split()[:12]), show=_pick(f, ["show"]) or "", ep=ep or "",
+                        quote=quote or "", keywords=kws[:5], what=(what or "")[:200], characters=chars[:4],
+                        confidence="high" if conf.startswith("high") else "low" if conf.startswith("low") else "medium"))
+    return out
+
+
 def external_refs(paths, ctx, lines, lib, log=print):
     """{"refs":[{"line":"<verbatim start of the script sentence>","show":"<title>","ep":"S02E06" or film title,
     "quote":"...","keywords":[...],"what":"...","characters":[...],"confidence":"high|medium|low"}]}
@@ -288,7 +370,10 @@ def external_refs(paths, ctx, lines, lib, log=print):
     refs, seen = [], set()
     for p in paths if isinstance(paths, (list, tuple)) else [paths]:
         data = json.load(open(p, encoding="utf-8-sig"))
-        for r in (data.get("refs", []) if isinstance(data, dict) else data):
+        got = foreign_refs(data)
+        if got is not None:
+            log(f"  refs file {os.path.basename(p)}: own ChatGPT format - read {len(got)} refs through the converter")
+        for r in (got if got is not None else data.get("refs", []) if isinstance(data, dict) else data):
             sig = json.dumps(r, sort_keys=True, ensure_ascii=False) if isinstance(r, dict) else None
             if sig and sig not in seen:              # 'refs.json' + a re-download 'refs (1).json' = no duplicates
                 seen.add(sig)
