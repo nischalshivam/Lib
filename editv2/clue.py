@@ -15,10 +15,16 @@ SE = re.compile(r"S(\d{2})E(\d{2})|\b(\d{1,2})x(\d{2})\b", re.I)
 VEXT = (".mkv", ".mp4", ".avi", ".m4v")
 
 
+SEASON_EP = re.compile(r"season[ ._-]*(\d{1,2})[ ._-]*episode[ ._-]*(\d{1,3})", re.I)
+
+
 def _ep_code(fname):
     m = SE.search(fname)
     if not m:
-        return None
+        # "Breaking Bad Season 2 Episode 1.catalog.json" (2026-10-19: all of BB S2-S5 was read as films F01..F55,
+        # so no Breaking Bad ref to those seasons ever matched its episode)
+        m2 = SEASON_EP.search(fname)
+        return f"S{int(m2.group(1)):02d}E{int(m2.group(2)):02d}" if m2 else None
     if m.group(1):
         return f"S{int(m.group(1)):02d}E{int(m.group(2)):02d}"
     return f"S{int(m.group(3)):02d}E{int(m.group(4)):02d}"
