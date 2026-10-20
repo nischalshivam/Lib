@@ -36,7 +36,14 @@ except ImportError:                      # a build started before common.py had 
                 tmp = f"{path}.{os.getpid()}.tmp"
                 with open(tmp, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=0)
-                os.replace(tmp, path)
+                for i in range(40):                       # 2026-10-20 TAHM 11: 'Access is denied' while another build reads it
+                    try:
+                        os.replace(tmp, path)
+                        break
+                    except PermissionError:
+                        if i == 39:
+                            raise
+                        _t.sleep(0.25)
                 return data
             finally:
                 try:
