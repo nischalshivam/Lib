@@ -1,0 +1,126 @@
+[Fr/Drama] Avon et Marlo ne dirigeaient pas la même organisat  5204 w | refs 117 on 106/342 lines | quote  76% | exact 100% | placed  99% | ep  93% | shows 1  <<< 24% empty quotes
+[Fr/Drama] Carmela Soprano n'était pas seulement une victime   3921 w | refs  84 on  78/249 lines | quote  58% | exact 100% | placed  84% | ep  95% | shows 1  <<< 42% empty quotes; only 84% placed
+[Fr/Drama] Ce geste de Tony dit tout sur Christopher           3681 w | refs 119 on 115/269 lines | quote  68% | exact 100% | placed  97% | ep 100% | shows 1  <<< 32% empty quotes
+[Fr/Drama] Chase était-il meilleur diagnosticien que Foreman   4308 w | refs  94 on  91/258 lines | quote  82% | exact 100% | placed 100% | ep  78% | shows 1  OK
+[Fr/Drama] Dans Les Soprano, le rang ne protège personne       4422 w | refs  85 on  81/294 lines | quote  58% | exact 100% | placed  89% | ep  97% | shows 1  <<< 42% empty quotes; only 89% placed
+[Fr/Drama] Gus et les Salamanca ne jouaient pas au même jeu    3963 w | refs  85 on  84/272 lines | quote  36% | exact 100% | placed  72% | ep  91% | shows 1  <<< 64% empty quotes; only 72% placed
+[Fr/Drama] Hank avait trouvé Heisenberg. Pas les preuves       5275 w | refs  98 on  97/348 lines | quote  61% | exact 100% | placed  96% | ep  97% | shows 1  <<< 39% empty quotes
+[Fr/Drama] Harry voulait protéger Dexter. Qu'a-t-il vraiment   4302 w | refs 103 on 103/282 lines | quote  52% | exact 100% | placed  96% | ep  93% | shows 1  <<< 48% empty quotes
+[Fr/Drama] Jimmy a gagné cette audience. Il a perdu bien dava  4566 w | refs 104 on 104/298 lines | quote  89% | exact 100% | placed  95% | ep 100% | shows 1  OK
+[Fr/Drama] Kim et Jimmy savaient exactement ce qu'ils faisaie  5020 w | refs  99 on  96/336 lines | quote  89% | exact 100% | placed  96% | ep 100% | shows 1  OK
+[Fr/Drama] LaGuerta était-elle plus près de Dexter qu'on ne l  4095 w | refs 105 on 105/284 lines | quote  50% | exact 100% | placed  97% | ep  98% | shows 1  <<< 50% empty quotes
+[Fr/Drama] Lalo était terrifiant parce qu'il posait les bonne  3997 w | refs 126 on 124/296 lines | quote  41% | exact 100% | placed  77% | ep 100% | shows 1  <<< 59% empty quotes; only 77% placed
+[Fr/Drama] Patrick Jane aurait-il démasqué Walter White        3859 w | refs  45 on  40/257 lines | quote  68% | exact 100% | placed  93% | ep 100% | shows 2  <<< refs cover only 40/257 lines; 32% empty quotes
+[Fr/Drama] Patrick Jane devinait-il tout… ou provoquait-il le  3699 w | refs  91 on  91/261 lines | quote  67% | exact 100% | placed  94% | ep 100% | shows 1  <<< 33% empty quotes
+[Fr/Drama] Pourquoi ces mafieux étaient toujours à court d'ar  4910 w | refs  88 on  88/312 lines | quote  17% | exact 100% | placed  79% | ep  80% | shows 1  <<< 83% empty quotes; only 79% placed
+[Fr/Drama] Pourquoi le Grec était si difficile à atteindre da  4701 w | refs  69 on  69/317 lines | quote  59% | exact 100% | placed  94% | ep  84% | shows 1  <<< refs cover only 69/317 lines; 41% empty quotes
+[Fr/Drama] Randy avait parlé à la police. C'était le début du  5083 w | refs 125 on 123/377 lines | quote  77% | exact 100% | placed  94% | ep  97% | shows 1  <<< 23% empty quotes
+[Fr/Drama] Reacher résout-il ses enquêtes… ou ses ennemis      3698 w | refs 115 on 114/248 lines | quote  67% | exact 100% | placed  96% | ep  87% | shows 1  <<< 33% empty quotes
+[Fr/Drama] Red John - les indices étaient-ils vraiment là      5066 w | refs  83 on  82/317 lines | quote  65% | exact 100% | placed 100% | ep  98% | shows 1  <<< 35% empty quotes
+[Fr/Drama] The Wire - quand de bonnes statistiques font de ma  4837 w | refs  73 on  73/304 lines | quote  68% | exact 100% | placed  91% | ep  97% | shows 1  <<< refs cover only 73/304 lines; 32% empty quotes
+[Fr/Sitco] Alan Harper - quand la victime devient le problème  4090 w | refs 133 on 132/283 lines | quote  90% | exact 100% | placed 100% | ep 100% | shows 1  OK
+[Fr/Sitco] Barney avait-il déjà trouvé la bonne personne avan  4659 w | refs 148 on 144/348 lines | quote  77% | exact 100% | placed  99% | ep 100% | shows 1  <<< 23% empty quotes
+[Fr/Sitco] Howard Wolowitz a changé. Mais qu'a-t-il vraiment   4309 w | refs 128 on 126/275 lines | quote  60% | exact 100% | placed  92% | ep  95% | shows 1  <<< 40% empty quotes
+[Fr/Sitco] Le meilleur enquêteur de Brooklyn Nine-Nine n'est   3915 w | refs 126 on 122/284 lines | quote  84% | exact 100% | placed  99% | ep 100% | shows 1  OK
+[Fr/Sitco] Le pilote abandonné de Big Bang Theory révèle pour  4223 w | refs  71 on  69/265 lines | quote  40% | exact 100% | placed  74% | ep  77% | shows 1  <<< 60% empty quotes; only 74% placed; eps not in library [('bigbangtheory', 'S00E01')]
+[Fr/Sitco] Le père que Sheldon racontait n'est pas celui qu'o  4103 w | refs  94 on  94/262 lines | quote  87% | exact 100% | placed 100% | ep 100% | shows 2  OK
+[Fr/Sitco] Lily est partie pour se trouver. Qui en a payé le   4078 w | refs 106 on 106/274 lines | quote  76% | exact 100% | placed 100% | ep 100% | shows 1  <<< 24% empty quotes
+[Fr/Sitco] Lois voulait protéger ses fils. À quel prix         4478 w | refs 118 on 117/306 lines | quote  98% | exact 100% | placed 100% | ep 100% | shows 1  OK
+[Fr/Sitco] Mary Cooper avait des principes. Pour qui exacteme  4217 w | refs 130 on 128/291 lines | quote  96% | exact 100% | placed 100% | ep 100% | shows 1  OK
+[Fr/Sitco] Missy n'était pas l'enfant difficile qu'on croyait  4551 w | refs 179 on 177/335 lines | quote  93% | exact 100% | placed 100% | ep 100% | shows 1  OK
+[Fr/Sitco] Modern Family a-t-elle oublié qui était vraiment L  3454 w | refs  89 on  89/237 lines | quote  96% | exact 100% | placed 100% | ep 100% | shows 1  OK
+[Fr/Sitco] Modern Family faisait grandir Haley… puis revenait  4560 w | refs 121 on 114/313 lines | quote  96% | exact 100% | placed 100% | ep 100% | shows 1  OK
+[Fr/Sitco] Paige avait autant de talent que Sheldon. Pas les   4104 w | refs 108 on 107/274 lines | quote  95% | exact 100% | placed 100% | ep  99% | shows 2  OK
+[Fr/Sitco] Penny voulait une autre vie. Sa fin respecte-t-ell  3569 w | refs  69 on  69/248 lines | quote 100% | exact 100% | placed 100% | ep  62% | shows 1  OK
+[Fr/Sitco] Pourquoi la famille de Malcolm était-elle toujours  3909 w | refs 115 on 113/261 lines | quote 100% | exact 100% | placed 100% | ep 100% | shows 1  OK
+[Fr/Sitco] Reese avait enfin trouvé son talent. Pourquoi cett  4309 w | refs 104 on 100/288 lines | quote  89% | exact 100% | placed 100% | ep  98% | shows 1  OK
+[Fr/Sitco] Sheldon a remporté le Nobel. Et les autres, alors   3958 w | refs 113 on 107/274 lines | quote  90% | exact 100% | placed 100% | ep  52% | shows 1  OK
+[Fr/Sitco] Sheldon nous avait raconté un autre père            4320 w | refs 120 on 116/286 lines | quote  83% | exact 100% | placed 100% | ep 100% | shows 2  OK
+[Fr/Sitco] Ted voulait trouver l'amour. Pourquoi sabotait-il   4411 w | refs 141 on 138/309 lines | quote  68% | exact 100% | placed  90% | ep 100% | shows 1  <<< 32% empty quotes
+[Fr/Sitco] Tracy avait sa propre histoire. Pourquoi la fin la  3961 w | refs 118 on 114/277 lines | quote  95% | exact 100% | placed  96% | ep 100% | shows 1  OK
+French/Drama: 20 videos, 17 flagged | refs 1908 quote 63% exact 100% placed 92% ep 94%
+French/Sitcoms: 20 videos, 5 flagged | refs 2331 quote 86% exact 100% placed 98% ep 95%
+[Po/Drama] A morte de Carmine abriu uma guerra que ninguém co  5029 w | refs  99 on  97/341 lines | quote  59% | exact 100% | placed  94% | ep  92% | shows 1  <<< 41% empty quotes
+[Po/Drama] As regras que Tony cobrava de todos — e quebrava s  4613 w | refs 111 on 106/307 lines | quote  31% | exact 100% | placed  86% | ep  77% | shows 1  <<< 69% empty quotes; only 86% placed
+[Po/Drama] Chase matou um ditador. Isso não resolve o dilema   4212 w | refs 109 on 106/294 lines | quote  33% | exact 100% | placed  96% | ep  18% | shows 1  <<< 67% empty quotes
+[Po/Drama] Como Reacher desvendou uma conspiração que control  4668 w | refs 140 on 138/308 lines | quote  51% | exact 100% | placed  90% | ep  91% | shows 1  <<< 49% empty quotes
+[Po/Drama] Como Red John soube de uma lista que Jane ainda nã  4110 w | refs 105 on 104/287 lines | quote  48% | exact 100% | placed  93% | ep 100% | shows 1  <<< 52% empty quotes
+[Po/Drama] Dexter conhecia o perigo de Trinity. Mesmo assim,   5113 w | refs 126 on 119/336 lines | quote  75% | exact 100% | placed  99% | ep 100% | shows 1  <<< 25% empty quotes
+[Po/Drama] Gus matou Victor diante de todos. A mensagem não e  3127 w | refs  83 on  83/219 lines | quote  50% | exact 100% | placed 100% | ep  96% | shows 1  <<< 50% empty quotes
+[Po/Drama] Hamsterdam deu resultado. Então por que precisou a  4917 w | refs  86 on  86/303 lines | quote  45% | exact 100% | placed  86% | ep  90% | shows 1  <<< 55% empty quotes; only 86% placed
+[Po/Drama] Hank chegou perto demais de Heisenberg — e ainda n  4366 w | refs 132 on 126/321 lines | quote  53% | exact 100% | placed  88% | ep  93% | shows 1  <<< 47% empty quotes; only 88% placed
+[Po/Drama] Howard tinha defeitos. Nada disso explica o que fi  5159 w | refs 169 on 166/369 lines | quote  91% | exact 100% | placed  99% | ep 100% | shows 1  OK
+[Po/Drama] LaGuerta chegou mais perto de provar quem era Dext  4756 w | refs 130 on 124/322 lines | quote  70% | exact 100% | placed 100% | ep  96% | shows 1  <<< 30% empty quotes
+[Po/Drama] Lalo e Gus descobriram o mesmo problema. Resolvera  5388 w | refs 118 on 117/368 lines | quote  31% | exact 100% | placed  78% | ep  93% | shows 1  <<< 69% empty quotes; only 78% placed
+[Po/Drama] Nacho perdeu o controle de tudo — menos da última   3765 w | refs  99 on  98/278 lines | quote  43% | exact 100% | placed  87% | ep  90% | shows 1  <<< 57% empty quotes; only 87% placed
+[Po/Drama] O caso Ledoux acabou. As pistas, não                5215 w | refs 124 on 120/364 lines | quote  40% | exact 100% | placed  84% | ep  84% | shows 1  <<< 60% empty quotes; only 84% placed
+[Po/Drama] O império de Gus Fring tinha uma fraqueza que dinh  5263 w | refs 110 on 108/356 lines | quote  38% | exact 100% | placed  91% | ep  89% | shows 1  <<< 62% empty quotes
+[Po/Drama] Patrick Jane não resolveria tudo sem Lisbon e Cho   3856 w | refs 113 on 111/253 lines | quote  34% | exact 100% | placed  83% | ep  97% | shows 1  <<< 66% empty quotes; only 83% placed
+[Po/Drama] Prop Joe construiu a parceria que Marlo aprendeu a  4551 w | refs  91 on  88/334 lines | quote  74% | exact 100% | placed  87% | ep 100% | shows 1  <<< 26% empty quotes; only 87% placed
+[Po/Drama] Randy perdeu tudo por causa de um atalho policial   4902 w | refs 114 on 114/362 lines | quote  73% | exact 100% | placed  93% | ep  98% | shows 1  <<< 27% empty quotes
+[Po/Drama] Se você ignorar a revelação, Red John ainda faz se  4711 w | refs  94 on  91/304 lines | quote  46% | exact 100% | placed  76% | ep  86% | shows 1  <<< 54% empty quotes; only 76% placed
+[Po/Drama] The Wire não terminou a história. Mostrou quem ass  4472 w | refs 112 on 111/294 lines | quote  32% | exact 100% | placed  81% | ep  69% | shows 1  <<< 68% empty quotes; only 81% placed
+[Po/Sitco] A traição que Sheldon lembrava não aconteceu como   3651 w | refs  72 on  72/252 lines | quote  68% | exact 100% | placed 100% | ep 100% | shows 2  <<< 32% empty quotes
+[Po/Sitco] Charlie parecia o egoísta. Até você olhar para Ala  4881 w | refs 114 on 114/323 lines | quote  54% | exact 100% | placed  92% | ep 100% | shows 1  <<< 46% empty quotes
+[Po/Sitco] Chris sempre levava a culpa. Mas Drew e Tonya tamb  4955 w | refs 118 on 110/336 lines | quote 100% | exact 100% | placed 100% | ep 100% | shows 1  OK
+[Po/Sitco] Hitchcock e Scully eram inúteis… ou só pararam de   4036 w | refs  91 on  91/271 lines | quote  58% | exact 100% | placed  93% | ep 100% | shows 1  <<< 42% empty quotes
+[Po/Sitco] How I Met Your Mother construiu um casamento só pa  4093 w | refs  80 on  74/293 lines | quote  72% | exact 100% | placed  98% | ep  89% | shows 1  <<< 28% empty quotes
+[Po/Sitco] Lois escolheu o futuro de Malcolm. Vinte anos depo  5115 w | refs 128 on 128/368 lines | quote  99% | exact 100% | placed 100% | ep 100% | shows 2  OK
+[Po/Sitco] Lois estava criando filhos melhores — ou filhos co  4809 w | refs 122 on 122/327 lines | quote  95% | exact 100% | placed  97% | ep 100% | shows 1  OK
+[Po/Sitco] Lois ou Rochelle - quem realmente foi mais injusta  4309 w | refs 119 on 119/313 lines | quote  95% | exact 100% | placed 100% | ep 100% | shows 2  OK
+[Po/Sitco] Mary Cooper protegeu Sheldon… mas quem pagou por i  4654 w | refs 112 on 111/316 lines | quote  98% | exact 100% | placed 100% | ep 100% | shows 1  OK
+[Po/Sitco] Missy perdeu o pai. O que aconteceu com a dor dela  4056 w | refs 105 on 105/306 lines | quote  88% | exact 100% | placed 100% | ep 100% | shows 3  OK
+[Po/Sitco] O Cooper sem diploma que construiu a própria carre  4706 w | refs 127 on 125/327 lines | quote  96% | exact 100% | placed  99% | ep 100% | shows 3  OK
+[Po/Sitco] O mesmo dia. Dois pais. Dois episódios completamen  3601 w | refs 113 on 108/274 lines | quote  83% | exact 100% | placed 100% | ep 100% | shows 1  OK
+[Po/Sitco] O pai que Sheldon descrevia não era o pai que vimo  4961 w | refs 123 on 117/354 lines | quote  91% | exact 100% | placed  98% | ep 100% | shows 2  OK
+[Po/Sitco] O problema de Jim e Pam não começou com uma briga   4862 w | refs 108 on 107/336 lines | quote  76% | exact   7% | placed  11% | ep  50% | shows 1  <<< 24% empty quotes; only 11% placed; eps not in library [('office', 'S09E25')]
+[Po/Sitco] Os planos geniais de Barney — e os que explodiram   4552 w | refs 108 on 107/328 lines | quote  78% | exact 100% | placed  93% | ep 100% | shows 1  <<< 22% empty quotes
+[Po/Sitco] Paige desapareceu de Young Sheldon. A série nunca   3937 w | refs 102 on  99/287 lines | quote  95% | exact 100% | placed 100% | ep 100% | shows 1  OK
+[Po/Sitco] Quando uma bronca deixou de ser apenas uma piada    3736 w | refs 100 on 100/271 lines | quote  96% | exact 100% | placed 100% | ep 100% | shows 1  OK
+[Po/Sitco] Raj foi o único a terminar sozinho. Isso foi injus  4542 w | refs  85 on  84/295 lines | quote  78% | exact 100% | placed  95% | ep  81% | shows 1  <<< 22% empty quotes
+[Po/Sitco] Reese sabia cozinhar. Por que terminou limpando o   4104 w | refs  91 on  90/298 lines | quote 100% | exact 100% | placed 100% | ep 100% | shows 1  OK
+[Po/Sitco] Young Sheldon fez algo que sitcoms quase nunca con  4312 w | refs 108 on 107/302 lines | quote  83% | exact 100% | placed 100% | ep 100% | shows 1  OK
+Portuguese/Drama: 20 videos, 19 flagged | refs 2265 quote 52% exact 100% placed 90% ep 88%
+Portuguese/Sitcoms: 20 videos, 7 flagged | refs 2126 quote 86% exact 95% placed 93% ep 98%
+[Sp/Drama] Barksdale y Stanfield no dirigían el mismo tipo de  6031 w | refs 137 on 124/390 lines | quote  31% | exact 100% | placed  87% | ep  75% | shows 1  <<< 69% empty quotes; only 87% placed
+[Sp/Drama] Chuck tenía razón sobre Jimmy. Eso no lo convierte  5141 w | refs 131 on 128/358 lines | quote  61% | exact 100% | placed  97% | ep  97% | shows 1  <<< 39% empty quotes
+[Sp/Drama] Doakes descubrió el monstruo. Le faltaba demostrar  4934 w | refs 101 on  98/330 lines | quote  61% | exact 100% | placed  99% | ep  91% | shows 1  <<< 39% empty quotes
+[Sp/Drama] El código que debía proteger inocentes también los  5146 w | refs  95 on  91/326 lines | quote  41% | exact 100% | placed  88% | ep  84% | shows 1  <<< 59% empty quotes; only 88% placed
+[Sp/Drama] El niño al que destruyó una investigación policial  4971 w | refs 148 on 137/325 lines | quote  81% | exact 100% | placed  97% | ep 100% | shows 1  OK
+[Sp/Drama] Gus Fring controlaba casi todo. Ahí estaba su debi  4804 w | refs 114 on 107/332 lines | quote  51% | exact 100% | placed  91% | ep  95% | shows 2  <<< 49% empty quotes
+[Sp/Drama] Hamsterdam funcionaba… hasta que mirabas quién pag  4991 w | refs  94 on  92/319 lines | quote  58% | exact 100% | placed  90% | ep  87% | shows 1  <<< 42% empty quotes
+[Sp/Drama] Lalo descubrió el secreto de Gus antes de tener pr  5025 w | refs 121 on 113/320 lines | quote  42% | exact 100% | placed  87% | ep  96% | shows 1  <<< 58% empty quotes; only 87% placed
+[Sp/Drama] Las pistas reales de Red John y las que inventamos  5368 w | refs  91 on  82/358 lines | quote  61% | exact 100% | placed  90% | ep  97% | shows 1  <<< refs cover only 82/358 lines; 39% empty quotes
+[Sp/Drama] Lester Freamon veía lo que sus jefes no querían ve  5318 w | refs  96 on  88/359 lines | quote  46% | exact 100% | placed  92% | ep  89% | shows 1  <<< refs cover only 88/359 lines; 54% empty quotes
+[Sp/Drama] Nacho conocía a dos jefes. Ninguno le dejaba salir  4894 w | refs 103 on 100/345 lines | quote  32% | exact 100% | placed  84% | ep  82% | shows 1  <<< 68% empty quotes; only 84% placed
+[Sp/Drama] Nacho dijo dos cosas distintas antes de morir       3358 w | refs  87 on  85/252 lines | quote  36% | exact 100% | placed  95% | ep  92% | shows 1  <<< 64% empty quotes
+[Sp/Drama] Red John sabía los siete nombres. ¿Cómo era posibl  3844 w | refs  68 on  65/255 lines | quote  60% | exact 100% | placed  94% | ep 100% | shows 1  <<< 40% empty quotes
+[Sp/Drama] Rust y Marty resolvieron el caso por motivos muy d  4177 w | refs  89 on  88/272 lines | quote  35% | exact 100% | placed  75% | ep  91% | shows 1  <<< 65% empty quotes; only 75% placed
+[Sp/Drama] Tony Soprano exigía reglas que él mismo rompía      5317 w | refs  92 on  91/342 lines | quote  36% | exact 100% | placed  92% | ep  85% | shows 1  <<< 64% empty quotes
+[Sp/Drama] Tony gritó «lo entendí». La serie nunca confirmó q  4154 w | refs  91 on  79/288 lines | quote  37% | exact 100% | placed  97% | ep  96% | shows 1  <<< 63% empty quotes
+[Sp/Drama] Tres investigadores se acercaron a Dexter por razo  5039 w | refs  93 on  87/315 lines | quote  76% | exact 100% | placed 100% | ep 100% | shows 1  <<< 24% empty quotes
+[Sp/Drama] ¿Chase era mejor diagnosticando que Foreman         4803 w | refs 129 on 123/335 lines | quote  45% | exact 100% | placed  96% | ep  72% | shows 1  <<< 55% empty quotes
+[Sp/Drama] ¿Podría Patrick Jane demostrar quién es realmente   4208 w | refs  45 on  45/294 lines | quote  73% | exact 100% | placed 100% | ep 100% | shows 2  <<< refs cover only 45/294 lines; 27% empty quotes
+[Sp/Drama] ¿Y si Hank nunca hubiera sido familia de Walter Wh  4492 w | refs  86 on  82/314 lines | quote  41% | exact 100% | placed  93% | ep  92% | shows 1  <<< 59% empty quotes
+[Sp/Sitco] Dewey parecía el menos listo. Las pruebas dicen lo  3774 w | refs  77 on  75/248 lines | quote  97% | exact 100% | placed 100% | ep  84% | shows 1  OK
+[Sp/Sitco] El final de HIMYM tomó dos decisiones. Solo una su  4156 w | refs  62 on  59/273 lines | quote  70% | exact 100% | placed  88% | ep 100% | shows 1  <<< refs cover only 59/273 lines; 30% empty quotes; only 88% placed
+[Sp/Sitco] Georgie tuvo que crecer antes que todos             3737 w | refs  77 on  76/234 lines | quote  96% | exact 100% | placed 100% | ep  98% | shows 3  OK
+[Sp/Sitco] Haley estaba encontrando su camino. ¿Por qué volvi  4328 w | refs  75 on  75/270 lines | quote 100% | exact 100% | placed 100% | ep 100% | shows 1  OK
+[Sp/Sitco] Jake dejó el trabajo de sus sueños. ¿Era su verdad  4344 w | refs 127 on 124/296 lines | quote  86% | exact 100% | placed  94% | ep 100% | shows 1  OK
+[Sp/Sitco] Jim parecía el bueno de The Office. ¿Lo era tanto   4430 w | refs 123 on 122/288 lines | quote  77% | exact  65% | placed  65% | ep  59% | shows 1  <<< 23% empty quotes; only 65% placed; eps not in library [('office', 'S09E24')]
+[Sp/Sitco] Lily arruinó relaciones de Ted. ¿También lo estaba  4160 w | refs 128 on 127/287 lines | quote  76% | exact 100% | placed  93% | ep 100% | shows 1  <<< 24% empty quotes
+[Sp/Sitco] Malcolm tenía un futuro escrito. Veinte años despu  4459 w | refs 124 on 122/291 lines | quote  99% | exact 100% | placed 100% | ep 100% | shows 2  OK
+[Sp/Sitco] Mary quería proteger a Sheldon. ¿Qué pasó con los   4579 w | refs 124 on 124/297 lines | quote  91% | exact 100% | placed 100% | ep  99% | shows 1  OK
+[Sp/Sitco] Missy no era la niña problemática de esa familia    4656 w | refs 142 on 141/325 lines | quote  95% | exact 100% | placed 100% | ep 100% | shows 1  OK
+[Sp/Sitco] Paige era tan brillante como Sheldon. ¿Por qué des  3862 w | refs  96 on  96/250 lines | quote  97% | exact 100% | placed 100% | ep 100% | shows 1  OK
+[Sp/Sitco] Paige tenía todo para triunfar. Su infancia contó   4442 w | refs 143 on 143/295 lines | quote  94% | exact 100% | placed 100% | ep 100% | shows 1  OK
+[Sp/Sitco] Raj fue el único que terminó soltero. ¿Era el fina  3939 w | refs 104 on 103/270 lines | quote  70% | exact 100% | placed  97% | ep  84% | shows 1  <<< 30% empty quotes
+[Sp/Sitco] Reese tenía un talento de verdad. ¿Por qué terminó  3769 w | refs 105 on 105/244 lines | quote 100% | exact 100% | placed 100% | ep 100% | shows 2  OK
+[Sp/Sitco] Sheldon recordó una infidelidad. Young Sheldon mos  3865 w | refs  85 on  80/264 lines | quote  62% | exact 100% | placed 100% | ep 100% | shows 2  <<< 38% empty quotes
+[Sp/Sitco] Ted no conoció a Tracy por casualidad               3805 w | refs 119 on 116/259 lines | quote  93% | exact 100% | placed  95% | ep 100% | shows 1  OK
+[Sp/Sitco] The Big Bang Theory casi empezó con otra mujer y o  3496 w | refs  48 on  48/226 lines | quote  52% | exact 100% | placed  91% | ep  63% | shows 1  <<< refs cover only 48/226 lines; 48% empty quotes; eps not in library [('bigbangtheory', 'S00E01')]
+[Sp/Sitco] Todas las veces que Sheldon descubrió que no era e  3583 w | refs 137 on 135/264 lines | quote  94% | exact 100% | placed 100% | ep 100% | shows 1  OK
+[Sp/Sitco] Una temporada para una boda. ¿Y después todo termi  4069 w | refs  83 on  82/277 lines | quote  66% | exact 100% | placed  96% | ep  98% | shows 1  <<< 34% empty quotes
+[Sp/Sitco] ¿Lois era la peor madre… o la única que veía el pe  4260 w | refs 125 on 124/288 lines | quote  96% | exact 100% | placed 100% | ep 100% | shows 1  OK
+Spanish/Drama: 20 videos, 19 flagged | refs 2011 quote 50% exact 100% placed 92% ep 90%
+Spanish/Sitcoms: 20 videos, 7 flagged | refs 2104 quote 87% exact 98% placed 96% ep 96%
