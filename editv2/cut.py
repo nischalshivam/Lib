@@ -254,6 +254,30 @@ class Cutter:
             fallback = fallback if fallback is not None else a
         return fallback
 
+    def still_jpg(self, video, t, o):
+        """One frame as a 2112x1188 jpg. 2026-10-19/20 B99 05 + 12: the picked time (1300.5 s) was PAST the end of the
+        episode file (1293.3 s) - ffmpeg wrote nothing and the whole video failed. A time beyond the end, or a failed
+        grab, is moved back (to the last seconds, then a few seconds earlier) before giving up."""
+        try:
+            dur = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", lp(video)],
+                                       capture_output=True, text=True).stdout or 0)
+        except (ValueError, OSError):
+            dur = 0.0
+        tries = [t] if not dur or t < dur - 0.6 else [dur - 1.5]
+        tries += [max(0.0, (dur or t) - d) for d in (3.0, 8.0, 20.0)]
+        last = None
+        for tt in tries:
+            r = subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{max(0.0, tt):.3f}", "-i", lp(video), "-frames:v", "1",
+                                "-vf", "scale=2112:1188:force_original_aspect_ratio=increase:flags=lanczos,crop=2112:1188,"
+                                       "unsharp=5:5:0.6,eq=contrast=1.04:saturation=1.04", "-q:v", "2", o],
+                               capture_output=True, text=True, encoding="utf-8", errors="replace")
+            if r.returncode == 0 and os.path.exists(o) and os.path.getsize(o) > 1000:
+                if tt != t:
+                    self.log(f"  still: {t:.0f}s is past the end of the file ({dur:.0f}s) - took the frame at {tt:.0f}s")
+                return
+            last = r
+        raise subprocess.CalledProcessError(last.returncode if last else 1, "ffmpeg still", stderr=(last.stderr if last else ""))
+
     def patch_black(self, gaps):
         """QA found black gaps (>2 s, see pipeline.BLACK_REDO_S): rebuild every video clip / still under a gap from the
         nearest bright shot of its own source. Same file names + same lengths, so state.json and the timing stay as they
@@ -274,9 +298,7 @@ class Cutter:
                     self.log(f"  black-gap patch: no bright shot near item {k} ({sid}) - left as is")
                     continue
                 if path.endswith(".jpg"):
-                    subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{tb + 0.5:.3f}", "-i", lp(video), "-frames:v", "1",
-                                    "-vf", "scale=2112:1188:force_original_aspect_ratio=increase:flags=lanczos,crop=2112:1188,"
-                                           "unsharp=5:5:0.6,eq=contrast=1.04:saturation=1.04", "-q:v", "2", path], check=True)
+                    self.still_jpg(video, tb + 0.5, path)
                 else:
                     dur = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", path],
                                                capture_output=True, text=True).stdout or 0) or (it["o1"] - it["o0"] + 0.3)
@@ -440,9 +462,7 @@ class Cutter:
                     self.log(f"  still {k:03d}: picked frame is dark - using the nearest bright shot @{tb:.0f}s")
                     t = tb + 0.5
             o = os.path.join(self.A, f"c{k:03d}s.jpg")
-            subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t:.3f}", "-i", lp(video), "-frames:v", "1",
-                            "-vf", "scale=2112:1188:force_original_aspect_ratio=increase:flags=lanczos,crop=2112:1188,"
-                                   "unsharp=5:5:0.6,eq=contrast=1.04:saturation=1.04", "-q:v", "2", o], check=True)
+            self.still_jpg(video, t, o)
             return k, [("s", o)]
         sids = [("v", it["sid"])] if it["kind"] == "V" else [("l", it["left"]), ("r", it["right"])]
         for tag, sid in sids:
