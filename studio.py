@@ -823,6 +823,22 @@ def _build_v2(job: "Job", log, on_proc, stop, until=None) -> "Job":
 NET_ERR = re.compile(r"LLM failed|HTTP Error 5\d\d|URLError|urlopen|proxy|Connection|timed out|getaddrinfo|"
                      r"incomplete read|cannot read|vision unavailable|RemoteDisconnected|10054|10060|11001|"
                      r"Temporary failure|Max retries|not readable", re.I)
+# 2026-10-20 House 13-16: Google Drive (I:) dropped for a moment at 02:31 - ffmpeg could not read the episodes and
+# the library 'had no House'; 4 videos failed for good. A missing footage drive is waited for and retried like the internet.
+DRIVE_ERR = re.compile(r"none of them is in the library|My Drive|Movies DATA|cannot find the path|has NO catalogs", re.I)
+
+
+def drives_up(job):
+    """the footage drives named in this job's build log / ctx are reachable again"""
+    try:
+        ctx = json.load(open(os.path.join(job.out or "", "ctx.json"), encoding="utf-8")) if job.out else {}
+        roots = [s["root"] for s in ctx.get("shows", [])]
+    except (OSError, ValueError):
+        roots = []
+    roots = roots or [r"I:\My Drive"]
+    return all(os.path.isdir(r) and os.listdir(r) for r in roots)
+
+
 GREEN_FILE = os.path.join(os.path.expanduser("~"), "Desktop", "MOVIE EDITOR - INTERNET KA KAAM POORA.txt")
 BATCH_FILE = os.path.join(HERE, "editv2", "cache", "last_batch.json")
 
@@ -956,7 +972,15 @@ def build_batch(jobs, log=print, on_proc=None, should_stop=None, on_status=None,
             else:
                 tries[id(j)] += 1
                 why = " ".join((getattr(j, "tail", []) or [])[-15:]) + " " + (j.message or "")
-                if NET_ERR.search(why) and tries[id(j)] < 6:
+                if DRIVE_ERR.search(why) and tries[id(j)] < 6:
+                    status(j, "pending")
+                    log(f"  [V{j.index + 1}] the footage drive was not readable - waiting for it, then again "
+                        f"(try {tries[id(j)]}/5)")
+                    t_w = time.time()
+                    while not drives_up(j) and time.time() - t_w < 2 * 3600 and not stop():
+                        time.sleep(30)
+                    retry.append(j)
+                elif NET_ERR.search(why) and tries[id(j)] < 6:
                     status(j, "pending")
                     log(f"  [V{j.index + 1}] stopped by an internet/proxy problem - will continue when it is back "
                         f"(try {tries[id(j)]}/5)")
