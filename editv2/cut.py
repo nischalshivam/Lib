@@ -207,12 +207,39 @@ class Cutter:
                         "-an", "-c:v", "libx264", "-preset", "fast", "-g", str(FPS), "-crf", "18", "-t", f"{need:.3f}", o],
                        check=True)
 
+    def vdur(self, video):
+        """length of a source video in seconds (cached); 0 when unknown"""
+        if not hasattr(self, "_vd"):
+            self._vd = {}
+        if video not in self._vd:
+            try:
+                self._vd[video] = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0",
+                                                        lp(video)], capture_output=True, text=True).stdout.strip() or 0)
+            except (ValueError, OSError):
+                self._vd[video] = 0.0
+        return self._vd[video]
+
+    @staticmethod
+    def clip_dur(path):
+        try:
+            return float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", path],
+                                        capture_output=True, text=True).stdout.strip() or 0)
+        except (ValueError, OSError):
+            return 0.0                                  # 'N/A' = an empty / broken file
+
     def debright(self, o, name):
-        """(Nearly) black clip -> own shot -> nearest bright shot. Also run after the text fix (its blur darkens)."""
-        if o not in self._src or self._clip_luma(o) >= DARK_LUMA:
+        """(Nearly) black or EMPTY clip -> own shot -> nearest bright shot. Also run after the text fix (its blur darkens).
+        2026-10-20 B99 16: a clip cut past the end of its episode file came out as an empty mp4 (duration N/A) and the
+        whole video failed in text_check - an unreadable clip is rebuilt like a black one."""
+        if o not in self._src:
+            return False
+        empty = self.clip_dur(o) < 0.2
+        if not empty and self._clip_luma(o) >= DARK_LUMA:
             return False
         src, start, own_len, need = self._src[o]
-        if not self.dark(src, start + 0.25, DARK_LUMA) and not self.dark(src, start + own_len / 2, DARK_LUMA):
+        if empty:
+            self.log(f"  clip {name}: came out empty (cut past the end of its source?) - rebuilding")
+        if not empty and not self.dark(src, start + 0.25, DARK_LUMA) and not self.dark(src, start + own_len / 2, DARK_LUMA):
             self._hold(src, start, own_len, need, o)
             if self._clip_luma(o) >= DARK_LUMA:
                 self.log(f"  clip {name}: came out black - rebuilt from its own shot")
@@ -234,6 +261,9 @@ class Cutter:
         for s in self.cat(video):
             mid = (s["start"] + s["end"]) / 2
             if abs(mid - t) > span or s["end"] - s["start"] < 1.0 or s.get("safe") is False:
+                continue
+            vd = self.vdur(video)
+            if vd and s["end"] > vd - 0.5:               # catalogue times can run past the file (B99 S07E09)
                 continue
             if any(s["start"] < b and s["end"] > a for a, b in zones):
                 continue
@@ -573,8 +603,9 @@ class Cutter:
 
     def text_check(self, path):
         from PIL import Image, ImageDraw, ImageFont
-        dur = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", path],
-                                   capture_output=True, text=True).stdout or 0)
+        dur = self.clip_dur(path)
+        if dur < 0.2:                                   # unreadable clip: nothing to check
+            return 0, [0.05, 0.05, 0.05, 0.05], ""
         ts = [0.05, dur / 3, 2 * dur / 3, max(0.05, dur - 0.08)]
         G = Image.new("RGB", (1280, 720))
         f = ImageFont.truetype(r"C:\Windows\Fonts\arialbd.ttf", 34)

@@ -579,6 +579,10 @@ def build(ctx: dict, log=print) -> str:
     for bi, idx in enumerate(B):
         refs, plan = results[bi]
         byline = {}
+        if isinstance(plan, list):                  # 2026-10-20 TAHM 02+03: the model answered a bare list of line plans
+            plan = {"lines": plan}
+        if not isinstance(plan, dict):
+            plan = {}
         for p in plan.get("lines", []):
             try:
                 byline[int(p.get("line", 0)) - 1] = p
