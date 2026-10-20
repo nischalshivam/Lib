@@ -521,7 +521,10 @@ class Plan:
         def short_text(i):
             p = LINES[i]
             k = p.get("kinetic")
-            k = " ".join(k) if isinstance(k, list) else k
+            if isinstance(k, dict):                 # 2026-10-20 TAHM 16: the model gave {"text": ...} -> look.py crashed on .split()
+                k = k.get("text") or k.get("words") or next((v for v in k.values() if isinstance(v, str)), "")
+            k = " ".join(str(x) for x in k) if isinstance(k, list) else k
+            k = k if isinstance(k, str) else None
             if len(p["text"].split()) <= 6:
                 return p["text"]
             return k if k and len(k.split()) <= 6 else None

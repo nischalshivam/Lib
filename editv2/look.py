@@ -565,7 +565,8 @@ class Look:
                 if prev is not None:
                     subprocess.run(["ffmpeg", "-v", "error", "-y", "-sseof", "-0.4", "-i", self.clip_of(prev), "-frames:v", "1",
                                     "-vf", "scale=1920:1080", os.path.join(A, img)])
-                words = it["text"].upper() if st["upper"] else it["text"]
+                words = it["text"].get("text", "") if isinstance(it["text"], dict) else str(it["text"])
+                words = words.upper() if st["upper"] else words
                 clips.append(f'<div id="br{k}" class="clip blurcard" data-start="{o0:.3f}" data-duration="{d:.3f}" data-track-index="3">'
                              + (f'<img id="bi{k}" src="assets/{img}">' if prev is not None else '<div class="blackbg"></div>')
                              + f'<div class="brtx {fam}" id="bt{k}">{words}</div></div>')
@@ -604,7 +605,12 @@ class Look:
                 host = next((k for k, it in enumerate(self.ITEMS) if it["o0"] <= a + 0.05 < it["o1"]), None)
                 side = "kb" if host in framed_items else ("kl" if o["side"] else "kr")
                 ws = self.P.words_of(o["line"])
-                toks = o["text"].split()
+                txt = o["text"]
+                if isinstance(txt, dict):           # an older plan.json can hold {"text": ...} (TAHM 16, 2026-10-20)
+                    txt = txt.get("text") or ""
+                if not isinstance(txt, str) or not txt.strip():
+                    continue
+                toks = txt.split()
                 spans, last_t = [], a + 0.1
                 for w in toks:
                     hit = next((x for x in ws if norm(x[2]) == norm(w) and self.out(x[0]) and self.out(x[0]) >= last_t - 0.05), None)
