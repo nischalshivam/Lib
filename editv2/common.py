@@ -54,7 +54,14 @@ def json_update(path, fn):
             tmp = f"{path}.{os.getpid()}.tmp"
             with open(tmp, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=0)
-            os.replace(tmp, path)
+            for i in range(40):                                   # 2026-10-20 TAHM 11: 'Access is denied' - another build
+                try:                                              # had the file open for a moment; Windows refuses the swap
+                    os.replace(tmp, path)
+                    break
+                except PermissionError:
+                    if i == 39:
+                        raise
+                    time.sleep(0.25)
             return data
         finally:
             try:
