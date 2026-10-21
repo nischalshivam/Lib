@@ -11,6 +11,8 @@ from scipy.signal import butter, sosfilt
 
 SR = 48000
 BGM = r"C:\Users\Dell\Desktop\ProStudio\BGM"
+# music bed level under the narration (RMS dB). 7 until 2026-10-22; the user wanted it a little quieter -> 9
+BGM_UNDER_DB = float(os.environ.get("EDITV2_BGM_UNDER_DB", "9"))
 SFXD = r"D:\Lib\hyperframes_lab\arya_demo\assets"
 
 
@@ -106,7 +108,7 @@ def run(ctx, silent, out_mp4, log=print):
             raise RuntimeError(f"no usable background music in {BGM}")
         used.append(os.path.basename(bp))
         tr = _loop(tr, need)
-        tr = tr[:need] * 10 ** ((voice_db - 7 - rms_db(tr[:need])) / 20)
+        tr = tr[:need] * 10 ** ((voice_db - BGM_UNDER_DB - rms_db(tr[:need])) / 20)
         s0 = int(a * SR)
         seg = tr[: max(0, min(need, N - s0))].copy()
         if j > 0:
