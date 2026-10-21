@@ -938,12 +938,16 @@ def build_batch(jobs, log=print, on_proc=None, should_stop=None, on_status=None,
     if v2:
         log(f"\n=== PHASE 1 / 2 - internet work for {len(v2)} video(s) ({parallel} at a time): clue, plan, cut, look "
             "- each video's render starts as soon as its internet work is done ===")
-    pending, tries, t_start = list(v2), {id(j): 0 for j in v2}, time.time()
+    pending, tries = list(v2), {id(j): 0 for j in v2}
+    # 2026-10-21: the 12-h limit counted from the START of the batch - a 120-video batch (online phase ~15 h) stopped
+    # at its first outage after hour 12. It now counts from when THIS outage began.
+    down_since = None
     ready_ids = set()
     while pending and not stop():
         if not internet_up():
-            if time.time() - t_start > wait_hours * 3600:
-                log(f"  internet down for too long - {len(pending)} video(s) left for the next Run")
+            down_since = down_since or time.time()
+            if time.time() - down_since > wait_hours * 3600:
+                log(f"  internet down for {wait_hours} h - {len(pending)} video(s) left for the next Run")
                 break
             log(f"  no internet - waiting (checked {time.strftime('%H:%M')}); {len(pending)} video(s) still need it")
             for _ in range(60):
@@ -951,6 +955,7 @@ def build_batch(jobs, log=print, on_proc=None, should_stop=None, on_status=None,
                     break
                 time.sleep(5)
             continue
+        down_since = None
 
         def one(job):
             status(job, "building")
@@ -980,18 +985,19 @@ def build_batch(jobs, log=print, on_proc=None, should_stop=None, on_status=None,
                     while not drives_up(j) and time.time() - t_w < 2 * 3600 and not stop():
                         time.sleep(30)
                     retry.append(j)
-                elif NET_ERR.search(why) and tries[id(j)] < 6:
-                    status(j, "pending")
-                    log(f"  [V{j.index + 1}] stopped by an internet/proxy problem - will continue when it is back "
-                        f"(try {tries[id(j)]}/5)")
+                elif NET_ERR.search(why) and tries[id(j)] < 13:   # 2026-10-21: 12 tries, waits growing to 30 min
+                    status(j, "pending")                            # (~4-5 h of API outage before 'failed')
+                    log(f"  [V{j.index + 1}] stopped by an internet/API problem - will continue when it is back "
+                        f"(try {tries[id(j)]}/12)")
                     retry.append(j)
                 else:
                     status(j, "failed")
                     log(f"  [V{j.index + 1}] ✗ {j.message}")
         pending = retry
         if pending and not stop():
-            log(f"  {len(pending)} video(s) to retry in 3 min")
-            for _ in range(36):
+            mins = min(30, 3 * 2 ** max(0, max(tries[id(j)] for j in pending) - 1))
+            log(f"  {len(pending)} video(s) to retry in {mins} min")
+            for _ in range(mins * 12):
                 if stop():
                     break
                 time.sleep(5)
