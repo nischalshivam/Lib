@@ -369,8 +369,14 @@ function appendLog(line){logEl.textContent+= "\n"+line;logEl.scrollTop=logEl.scr
 function setStatus(t,color){document.getElementById("statusText").textContent=t;document.getElementById("statusDot").style.background=color;}
 var LABEL={pending:"pending",building:"building…",online:"🌐 internet work done",done:"✓ done",failed:"✗ failed","not started":"not started"};
 // resume offer: the last batch has unfinished videos (PC shut down, internet, window closed)
+var resumeTries=0;
 function checkResume(){
-  if(!(window.pywebview&&window.pywebview.api&&window.pywebview.api.last_batch))return;
+  // 2026-10-21: on a fresh start the API object can exist before its methods do - the old code gave up silently
+  // and the Resume button never showed; try again for up to ~15 s
+  if(!(window.pywebview&&window.pywebview.api&&window.pywebview.api.last_batch)){
+    if(resumeTries++<30)setTimeout(checkResume,500);
+    return;
+  }
   window.pywebview.api.last_batch().then(function(b){
     var btn=document.getElementById("resumeBtn");
     if(b&&b.pending){document.getElementById("resumeTxt").textContent="Resume last batch ("+b.pending+"/"+b.total+" left, "+b.saved+")";btn.style.display="";}
