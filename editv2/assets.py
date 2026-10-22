@@ -115,6 +115,15 @@ def logo(key: str, show: str, log=print) -> str | None:
 
 
 def cutout(key: str, cast_dir: str, name: str) -> str | None:
+    """The cutout intro is decoration: any failure (a broken photo, rembg, a locked file) skips it - never the video."""
+    try:
+        return _cutout(key, cast_dir, name)
+    except Exception as e:                                           # noqa: BLE001
+        print(f"  cutout of {name} skipped: {type(e).__name__}: {e}", flush=True)
+        return None
+
+
+def _cutout(key: str, cast_dir: str, name: str) -> str | None:
     """Clean cutout of a character from its Cast photos (single face, biggest)."""
     import cv2, numpy as np
     from .common import FACE_MODEL
@@ -124,10 +133,13 @@ def cutout(key: str, cast_dir: str, name: str) -> str | None:
     d = os.path.join(cast_dir, name)
     best = None
     for f in sorted([f for e in ("jpg", "jpeg", "png", "webp") for f in glob.glob(os.path.join(d, "*." + e))])[:10]:
-        im = Image.open(f).convert("RGB")
-        a = cv2.cvtColor(np.array(im), cv2.COLOR_RGB2BGR)
-        det = cv2.FaceDetectorYN.create(FACE_MODEL, "", (a.shape[1], a.shape[0]), 0.8)
-        _, faces = det.detect(a)
+        try:                                   # 2026-10-22 French Sitcoms 'Malcolm': one unreadable cast photo
+            im = Image.open(f).convert("RGB")  # (OSError Errno 22) failed the whole video - skip it, use the others
+            a = cv2.cvtColor(np.array(im), cv2.COLOR_RGB2BGR)
+            det = cv2.FaceDetectorYN.create(FACE_MODEL, "", (a.shape[1], a.shape[0]), 0.8)
+            _, faces = det.detect(a)
+        except (OSError, ValueError, cv2.error):
+            continue
         if faces is None or len(faces) != 1:
             continue
         sc = min(faces[0][3] / a.shape[0], 0.35) * 10 + min(im.width * im.height, 4e6) / 1e6
