@@ -714,6 +714,11 @@ def _generate_voiceover_now(job: "Job", out_wav: str, log, api) -> str:
         # checked by OmniVoice's own transcriber and re-made if words drop.
         from media_index import hindi_voice
         return hindi_voice.generate(api, voice, text, out_wav, log=log)
+    if (job.language or "").lower() in ("fr", "pt", "es"):
+        # 2026-10-22: ONE call for a 4,600-word script skipped a 31-word sentence (French 'Dans Les Soprano'): the
+        # script is spoken in ~70-word pieces, each heard back (OmniVoice's own transcriber) and re-made if words go missing
+        from media_index import hindi_voice
+        return hindi_voice.generate(api, voice, text, out_wav, log=log, language=job.language.lower(), max_words=70)
     log(f"  [voiceover] OmniVoice: speaking {len(text.split())} words in "
         f"'{job.language}', voice-cloned from {os.path.basename(voice)} ...")
     t0 = time.time()

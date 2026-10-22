@@ -93,10 +93,13 @@ _LATIN = {c: c for c in "bcdgjklmnprst"}
 _LATIN.update({"f": "p", "q": "k", "x": "k", "z": "j"})
 
 
-def _skel(t: str) -> str:
+def _skel(t: str, hi: bool = True) -> str:
     """Script-independent consonant skeleton (numbers spelled out first —
-    the transcriber writes digits)."""
-    t, _ = hinglish_num.normalize(t or "")
+    the transcriber writes digits). hi=False (French/Portuguese/Spanish): plain text, no Hindi number words."""
+    if hi:
+        t, _ = hinglish_num.normalize(t or "")
+    else:
+        t = t or ""
     t = unicodedata.normalize("NFD", t).replace("़", "")   # nukta -> base
     out = []
     for ch in t.lower():
@@ -106,9 +109,9 @@ def _skel(t: str) -> str:
     return "".join(out)
 
 
-def score(script: str, heard: str) -> tuple:
+def score(script: str, heard: str, hi: bool = True) -> tuple:
     """(coverage of the script by what was heard, heard/script length)."""
-    a, b = _skel(script), _skel(heard)
+    a, b = _skel(script, hi), _skel(heard, hi)
     if not a:
         return 1.0, 1.0
     sm = difflib.SequenceMatcher(None, a, b, autojunk=False)
@@ -116,11 +119,13 @@ def score(script: str, heard: str) -> tuple:
     return cov, len(b) / len(a)
 
 
-def _tts(requests, api, voice, text) -> bytes:
+def _tts(requests, api, voice, text, language="hi") -> bytes:
+    data = {"text": text, "language": language, "format": "wav"}
+    if language == "hi":
+        data["steps"] = STEPS                  # other languages: the server's default, as in the voices the user approved
     with open(voice, "rb") as vf:
         r = requests.post(api + "/api/tts",
-                          data={"text": text, "language": "hi", "format": "wav",
-                                "steps": STEPS},
+                          data=data,
                           files={"voice": (os.path.basename(voice), vf)}, timeout=900)
     r.raise_for_status()
     if len(r.content) < 2000:
@@ -159,16 +164,21 @@ def _join(parts: list, out_wav: str, tmp: str) -> None:
                     "-safe", "0", "-i", lst, "-c:a", "pcm_s16le", out_wav], check=True)
 
 
-def generate(api: str, voice: str, text: str, out_wav: str, log=print) -> str:
-    """Speak a Hindi/Hinglish script into out_wav, piece by piece, checked."""
+def generate(api: str, voice: str, text: str, out_wav: str, log=print, language: str = "hi", max_words: int = 0) -> str:
+    """Speak a script into out_wav, piece by piece, each piece heard back and re-made if words go missing.
+    Hindi/Hinglish by default; language='fr'/'pt'/'es' (2026-10-22): the same check for the Latin languages - one
+    4,600-word French call skipped a 31-word sentence (Dans Les Soprano) and OmniVoice does that now and then."""
     import requests
-    text, n_num = hinglish_num.normalize(text)
+    hi = language == "hi"
+    n_num = 0
+    if hi:
+        text, n_num = hinglish_num.normalize(text)
     if n_num:
         log(f"  [voiceover] {n_num} number(s) spelled out as Hinglish words "
             "(e.g. $80,000 -> अस्सी हज़ार डॉलर)")
-    chunks = split_chunks(text)
-    log(f"  [voiceover] OmniVoice Hindi: {len(text.split())} words in {len(chunks)} "
-        f"piece(s), {STEPS} steps, each piece checked by ear (re-made if words "
+    chunks = split_chunks(text, max_words) if max_words else split_chunks(text)
+    log(f"  [voiceover] OmniVoice {language}: {len(text.split())} words in {len(chunks)} "
+        f"piece(s){f', {STEPS} steps' if hi else ''}, each piece checked by ear (re-made if words "
         f"go missing), voice {os.path.basename(voice)} ...")
     t0 = time.time()
     tmp = tempfile.mkdtemp(prefix="hi_vo_")
@@ -179,13 +189,13 @@ def generate(api: str, voice: str, text: str, out_wav: str, log=print) -> str:
             for attempt in range(1, TRIES + 1):
                 p = os.path.join(tmp, f"c{i:04d}_{attempt}.wav")
                 with open(p, "wb") as f:
-                    f.write(_tts(requests, api, voice, chunk))
+                    f.write(_tts(requests, api, voice, chunk, language))
                 heard = _heard(requests, api, p)
                 if heard is None:                        # cannot check -> keep it
                     unchecked += 1
                     best = (1.0, p)
                     break
-                cov, lr = score(chunk, heard)
+                cov, lr = score(chunk, heard, hi)
                 good = cov >= MIN_COVERAGE and lr <= MAX_LEN_RATIO
                 rank = cov - max(0.0, lr - 1.0)          # penalise extra speech
                 if best is None or rank > best[0]:
