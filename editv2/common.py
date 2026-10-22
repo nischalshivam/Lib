@@ -343,14 +343,18 @@ def _proxy_down(e) -> bool:
 _WAIT_LOCK, _WAIT_OK = __import__("threading").Lock(), [True]
 
 
-def wait_proxy(log=print, limit=1800):
+NET_WAIT_S = int(float(os.environ.get("EDITV2_NET_WAIT_H", "12")) * 3600)   # 2026-10-22: was 30 min
+
+
+def wait_proxy(log=print, limit=None):
     """2026-10-13: B99/House/TWD test builds died in 1 min because the proxy was stuck after a network drop. Wait (up
-    to 30 min, probing every 60 s) - the libjobs supervisor restarts a stuck proxy within ~25 min.
+    to NET_WAIT_S = 12 h since 2026-10-22, probing every 60 s) - the libjobs supervisor restarts a stuck proxy within ~25 min.
     One thread per build probes and logs; the others (16 verify threads) wait for its verdict quietly - the Movie
     Editor showed the same 'proxy unavailable' line 16 times for one 2-min hiccup (2026-10-14)."""
     if not _WAIT_LOCK.acquire(blocking=False):
         with _WAIT_LOCK:
             return _WAIT_OK[0]
+    limit = limit or NET_WAIT_S
     try:
         _WAIT_OK[0] = _wait_proxy(log, limit)
         return _WAIT_OK[0]
