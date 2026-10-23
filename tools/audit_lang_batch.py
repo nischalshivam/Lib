@@ -20,15 +20,19 @@ def lib_for(keys):
     return lib_cache[key]
 
 
-for root in sys.argv[1:]:
-    for cat in sorted(os.listdir(root)):
-        cp = os.path.join(root, cat)
+FLAT = "--flat" in sys.argv          # a channel folder whose children ARE the topics (D:\Movies\English\<channel>)
+for root in [a for a in sys.argv[1:] if a != "--flat"]:
+    for cat in ([None] if FLAT else sorted(os.listdir(root))):
+        cp = root if FLAT else os.path.join(root, cat)
+        cat = cat or os.path.basename(root)
         if not os.path.isdir(cp):
             continue
         for d in sorted(os.listdir(cp)):
             topic = os.path.join(cp, d)
-            lang = os.path.basename(root)
-            if not os.path.isdir(topic):
+            lang = "English" if FLAT else os.path.basename(root)
+            if not os.path.isdir(topic) or d.lower() == "final videos":
+                continue
+            if False:
                 rows.append((lang, cat, d, "!! stray file at category level (not a topic folder)")); continue
             txts = [f for f in os.listdir(topic) if f.lower().endswith(".txt") and not f.lower().endswith("_qa.txt")]
             jss = [f for f in os.listdir(topic) if f.lower().endswith(".json")]
@@ -85,7 +89,7 @@ for root in sys.argv[1:]:
             if unknown: flag.append(f"shows not in library {sorted(unknown)}")
             if issues: flag.append("script: " + ", ".join(issues))
             if words < 2500: flag.append(f"short ({words} w)")
-            if dl != {"French": "fr", "Spanish": "es", "Portuguese": "pt"}.get(lang): flag.append(f"language detected '{dl}'")
+            if dl != {"French": "fr", "Spanish": "es", "Portuguese": "pt", "English": "en"}.get(lang): flag.append(f"language detected '{dl}'")
             for x in c: tot[(lang, cat)][x] += c[x]
             tot[(lang, cat)]["videos"] += 1; tot[(lang, cat)]["flagged"] += bool(flag)
             rows.append((lang, cat, d, f"{words:5} w | refs {c['refs']:3} on {len(ext):3}/{len(lines):3} lines | quote {100 * c['quoted'] // n:3}% | exact {100 * c['exact'] // max(1, c['quoted']):3}% | placed {100 * c['placed'] // n:3}% | ep {100 * c['ep_ok'] // max(1, c['placed']):3}% | shows {len(keys)}"
