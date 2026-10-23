@@ -183,10 +183,11 @@ def generate(api: str, voice: str, text: str, out_wav: str, log=print, language:
     t0 = time.time()
     tmp = tempfile.mkdtemp(prefix="hi_vo_")
     parts, rerolled, weak, unchecked = [], 0, [], 0
-    try:
+    streak, blind = 0, False       # 2026-10-22 Portuguese 'Gus matou Victor': the transcriber glitched, EVERY piece failed
+    try:                           # 3 tries (13 min wasted) although the audio was fine (97 % heard by whisper afterwards)
         for i, chunk in enumerate(chunks, 1):
             best = None                                  # (cov, path)
-            for attempt in range(1, TRIES + 1):
+            for attempt in range(1, 2 if blind else TRIES + 1):
                 p = os.path.join(tmp, f"c{i:04d}_{attempt}.wav")
                 with open(p, "wb") as f:
                     f.write(_tts(requests, api, voice, chunk, language))
@@ -206,6 +207,13 @@ def generate(api: str, voice: str, text: str, out_wav: str, log=print, language:
                     rerolled += 1
             if best[0] < MIN_COVERAGE:
                 weak.append(i)
+                streak += 1
+                if streak >= 5 and not blind:          # 5 pieces in a row never reached 80 %: the checker, not the voice
+                    blind = True
+                    log("  [voiceover] 5 pieces in a row failed the check - the transcriber looks broken; "
+                        "the rest is spoken once per piece (not re-made)")
+            else:
+                streak = 0
             parts.append(best[1])
             if i % 10 == 0 or i == len(chunks):
                 log(f"    voiceover {i}/{len(chunks)} pieces "
